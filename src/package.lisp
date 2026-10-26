@@ -1,7 +1,11 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:data-model #:make-function-model #:make-vector-model #:replace-model-items
+  (:export #:ui-scale #:ui-to-device #:device-to-ui #:dispatch-device-event
+   #:install-command-menu #:command-menu #:command-menu-backend #:command-menu-bar #:refresh-command-menu #:menu-separator
+   #:request-path #:path-request #:path-request-state #:path-request-result #:path-request-dialog #:cancel-path-request
+   #:platform-capabilities #:platform-capability #:begin-ui-scissor #:with-ui-scissor
+   #:data-model #:make-function-model #:make-vector-model #:replace-model-items
    #:model-count #:model-item #:model-key #:model-index #:model-contains-key-p #:model-revision #:notify-model-change
    #:make-projection-model #:set-model-query #:make-tree-model #:replace-tree-roots #:set-tree-expanded
    #:tree-expanded-p #:model-depth #:model-branch-p

@@ -22,7 +22,7 @@
  (let* ((presentation (cell-presentation view index column-index))
         (selected (and (view-selection view) (selection-contains-p (view-selection view) key)))
         (cell-clip (intersect-rectangles clip (list left py cw (row-height view)))))
-   (rl:with-scissor-mode ((round (first cell-clip)) (round (second cell-clip)) (round (third cell-clip)) (round (fourth cell-clip)))
+   (with-ui-scissor ((first cell-clip) (second cell-clip) (third cell-clip) (fourth cell-clip))
      (when (and (not selected) (getf presentation :background))
        (rl:draw-rectangle left py cw (row-height view) (getf presentation :background)))
      (draw-string view (getf presentation :text) (+ left (style-value view :padding)) (row-text-y view py)
@@ -33,14 +33,14 @@
         (clip (intersect-rectangles *clip* (list (x view) (+ (y view) rh) (width view) (model-viewport-height view)))))
    ;; Keep a partially scrolled row out of the fixed column header.
    (when (and (plusp (third clip)) (plusp (fourth clip)))
-     (rl:with-scissor-mode ((round (first clip)) (round (second clip)) (round (third clip)) (round (fourth clip)))
+     (with-ui-scissor ((first clip) (second clip) (third clip) (fourth clip))
        (map-visible-model-rows view
          (lambda (index key item px py width height)
            (declare (ignore item width height))
            (paint-model-row view key index py)
            (loop for c below (length columns) do
              (paint-model-cell view index key c (+ px (* c cw)) py cw clip)
-             (rl:begin-scissor-mode (round (first clip)) (round (second clip)) (round (third clip)) (round (fourth clip))))))))
-   (rl:begin-scissor-mode (round (first *clip*)) (round (second *clip*)) (round (third *clip*)) (round (fourth *clip*)))
+             (begin-ui-scissor (first clip) (second clip) (third clip) (fourth clip)))))))
+   (begin-ui-scissor (first *clip*) (second *clip*) (third *clip*) (fourth *clip*))
    (loop for column in columns for c from 0 do
      (draw-string view (data-column-title column) (+ (x view) (* c cw) (style-value view :padding)) (row-text-y view (y view))))))

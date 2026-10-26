@@ -74,12 +74,12 @@
    (let* ((left (+ (x view) (text-left-padding view)))
           (clip (intersect-rectangles *clip* (list left (y view) (max 0 (- (+ (x view) (width view)) left (style-value view :padding))) (height view)))))
      (when (and (plusp (third clip)) (plusp (fourth clip)))
-       (rl:with-scissor-mode ((round (first clip)) (round (second clip)) (round (third clip)) (round (fourth clip)))
+       (with-ui-scissor ((first clip) (second clip) (third clip) (fourth clip))
          (map-visible-text-lines view (lambda (line start end px py) (declare (ignore px))
            (paint-styled-line view root line start end py))))))
    (when (plusp (gutter-width view))
      (let ((clip (intersect-rectangles *clip* (list (x view) (y view) (text-left-padding view) (height view)))))
-       (rl:with-scissor-mode ((round (first clip)) (round (second clip)) (round (third clip)) (round (fourth clip)))
+       (with-ui-scissor ((first clip) (second clip) (third clip) (fourth clip))
          (rl:draw-rectangle (x view) (y view) (text-left-padding view) (height view) (style-value view :background))
          (map-visible-text-lines view (lambda (line start end px py) (declare (ignore line px))
            (map-text-decorations view start (1+ end) (lambda (record)
@@ -87,7 +87,7 @@
                (draw-string view (or (getf record :text) "") (+ (x view) (style-value view :padding)) py
                             (or (getf record :color) (style-value view :foreground)))))))))))
    ;; The outer renderer draws focus using its original ancestor clip.
-   (rl:begin-scissor-mode (round (first *clip*)) (round (second *clip*)) (round (third *clip*)) (round (fourth *clip*)))))
+   (begin-ui-scissor (first *clip*) (second *clip*) (third *clip*) (fourth *clip*))))
 (defmethod render ((surface suggestion-surface))
  (paint-surface surface)
  (let* ((pad (style-value surface :padding)) (rh (row-height surface))

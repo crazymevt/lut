@@ -2,7 +2,7 @@
 (defun signatures ()
  (let ((result (make-hash-table)) (*package* (find-package :lut)) (*read-eval* nil))
    (dolist (file '("src/core.lisp" "src/widgets.lisp" "src/styles.lisp" "src/input.lisp"
-                  "src/text-buffers.lisp" "src/text-history.lisp" "src/text-index.lisp" "src/text-geometry.lisp" "src/text-selection.lisp" "src/text-presentation.lisp" "src/anchored-surfaces.lisp" "src/commands.lisp" "src/data-models.lisp" "src/data-views.lisp" "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/presentation-raylib.lisp" "src/data-raylib.lisp" "src/windows.lisp"))
+                  "src/text-buffers.lisp" "src/text-history.lisp" "src/text-index.lisp" "src/text-geometry.lisp" "src/text-selection.lisp" "src/text-presentation.lisp" "src/anchored-surfaces.lisp" "src/commands.lisp" "src/data-models.lisp" "src/data-views.lisp" "src/platform.lisp" "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/presentation-raylib.lisp" "src/data-raylib.lisp" "src/windows.lisp"))
      (with-open-file (in (asdf:system-relative-pathname "lut" file))
        (loop for form = (read in nil :eof) until (eq form :eof)
              when (and (consp form) (member (first form) '(defun defmacro defgeneric)) (symbolp (second form)))
@@ -12,6 +12,8 @@
    (dolist (name '(lut:edit-start lut:edit-old-end lut:edit-new-end lut:edit-revision lut:edit-origin))
      (setf (gethash name result) '(edit)))
    (setf (gethash 'lut:command-binding-active-p result) '(binding))
+   (dolist (name '(lut:command-menu-backend lut:command-menu-bar lut:path-request-state lut:path-request-result lut:path-request-dialog))
+     (setf (gethash name result) '(handle)))
    (dolist (name '(lut:model-revision lut:selection-focus lut:selection-anchor
                   lut:view-model lut:view-selection lut:row-label-function lut:table-columns lut:active-column
                   lut:data-column-id lut:data-column-title))
@@ -28,7 +30,7 @@
  (let ((*package* (find-package :lut)) (*print-case* :downcase)) (prin1-to-string value)))
 (defun event-accessor-p (symbol) (search "EVENT-" (symbol-name symbol)))
 (defun function-contract (symbol)
- (or (assoc symbol *data-contracts*) (assoc symbol *contracts*)
+ (or (assoc symbol *platform-contracts*) (assoc symbol *data-contracts*) (assoc symbol *contracts*)
      (let ((records (accessor-records symbol)))
        (when records
          (let ((class (caar records)))

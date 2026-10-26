@@ -195,3 +195,6 @@ Phase 2 presentation APIs and the `lut-examples:document-presentation` showcase 
 documented in [text presentation](docs/text-presentation.md).
 Phase 3 keyed data models, virtual views, selection, trees and editable cells are
 documented in [data models](docs/data-models.md); try `lut-examples:data-models`.
+Phase 4 menus (including separators), native/portable path pickers, UI scaling
+and capability limits are documented in [platform integration](docs/platform-integration.md).
+Try `lut-examples:platform-integration`.

@@ -8,7 +8,7 @@
  (:documentation "Widget-specific event extension. Return true to consume EVENT before default dispatch."))
 (defmethod handle-event ((w widget) event) (declare (ignore event)) nil)
 (defun open-context-menu (window target event &optional actions)
- "Open a pointer-positioned menu. ACTIONS are (caption callback enabled-p) lists.
+ "Open a pointer-positioned menu. ACTIONS are (caption callback enabled-p) lists or :SEPARATOR (NIL also separates).
 Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no arguments."
  (let* ((actions (or actions (when (typep target 'entry)
                  (list (list "Cut" (lambda () (when (editable-p target)
@@ -19,19 +19,22 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
                                          (replace-selection target (clipboard-text target)))) (editable-p target))
                        (list "Select all" (lambda () (select-all target)) t)))))
         (pad (style-value target :padding)) (row (row-height target))
-        (menu (make-widget 'context-menu :width 220 :height (+ (* 2 pad) (* (length actions) (+ row 4)))
+        (menu (make-widget 'context-menu :width 220 :height (+ (* 2 pad)
+                  (loop for item in actions sum (+ 4 (if (or (null item) (eq item :separator)) 8 row))))
                            :position-mode :absolute :draggable-p nil :detach-on-drag-p nil :spacing 4)))
    (unless actions (return-from open-context-menu nil))
    (setf (x menu) (max 0 (min (event-x event) (- (width window) (width menu))))
          (y menu) (max 0 (min (event-y event) (- (height window) (height menu)))))
    (dolist (item actions)
+    (if (or (null item) (eq item :separator))
+      (add-child menu (make-widget 'menu-separator))
      (destructuring-bind (caption callback &optional (enabled t)) item
        (let ((button (make-widget 'button :text caption :height row :enabled-p enabled)))
          (on button :activate (lambda (button payload) (declare (ignore button payload))
            (dismiss-dialog menu)
            (when (focusable-p target) (focus window target))
            (funcall callback)))
-         (add-child menu button))))
+         (add-child menu button)))))
    (show-dialog window menu)
    (layout menu (x menu) (y menu) (width menu) (height menu)) menu))
 (defun selection-button-width (w) (min 36 (width w)))

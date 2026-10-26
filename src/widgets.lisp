@@ -30,6 +30,8 @@
 (defwidget header-bar (box) "Horizontal title/action container."
  ((orientation :horizontal (member :horizontal :vertical) "Default horizontal orientation.")))
 (defwidget menu-bar (header-bar) "Horizontal container of menu buttons." ())
+(defwidget menu-separator (widget) "Noninteractive separator between menu actions; :SEPARATOR entries create these in drawn menus."
+ ((height 8 (real 0 *) "Logical height reserved for the separator rule.")))
 (defwidget popover (dialog) "Pointer-positioned popup dismissed by an outside click."
  ((popup-owner nil (or null widget) "Control owning this popup, when applicable.")
   (position-mode :absolute (member :center :absolute) "Popup position is in root pixels.")

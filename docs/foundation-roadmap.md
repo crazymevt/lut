@@ -99,15 +99,26 @@ model. Linux/Windows remain unverified.
 
 ## Phase 4: Platform and application integration
 
-- [ ] **Native menus.** Adapt command labels, enabled state and shortcuts to
-  platform menus; preserve the existing drawn menu fallback.
-- [ ] **Native file/folder/save pickers.** Keep a portable picker contract and
-  existing fallback; return paths without embedding file-save policies.
-- [ ] **Coordinated UI scaling.** Scale layout, fonts, hit testing and scroll
-  geometry together. Application preference persistence remains external.
-- [ ] **Text/platform capability audit.** Track shaping, bidi, IME and accessibility
-  gaps explicitly. Choose backend strategies before claiming support. Verify
-  Linux/Windows when requested; current macOS checks do not establish those ports.
+- [x] **Native menus — delivered.** Primary macOS AppKit command menus adapt
+  labels, enabled state and shortcuts; workers/other platforms retain drawn
+  menus. Main and right-click context menus accept noninteractive separators.
+- [x] **Native file/folder/save pickers — delivered.** Path-only request handles
+  choose native AppKit panels or the portable browser/entry fallback. Existing
+  pickers remain available; no file-save or application persistence policies.
+- [x] **Coordinated UI scaling — delivered.** Logical UI coordinates share root
+  rendering, clipping, font-atlas and input transforms, including worker frames.
+  Application zoom/preference persistence stays separate from OS backing DPI.
+- [x] **Text/platform capability audit — delivered.** Queryable status and a
+  documented strategy for shaping, bidi, IME composition and accessibility.
+  These text/accessibility features remain unsupported; audit completion does
+  not claim their implementation. Linux/Windows remain unverified.
+
+See [platform integration](platform-integration.md) and
+`lut-examples:platform-integration`. Portable behavior, GC, macOS menu updates,
+native modal cancellation, 100/125/200% rendering/input and scaled worker checks
+pass. Human acceptance in native pickers and Linux/Windows native checks have
+not been exercised. Native macOS menus/pickers are primary-context adapters;
+secondary workers intentionally use portable menus/pickers.
 
 ## Phase 5: Advanced interaction and composition
 

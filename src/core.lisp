@@ -52,6 +52,8 @@
 (defwidget window (box) "Root of a GUI tree. One native raylib window per process."
  ((text "LUT" string "Native title.") (theme *light-theme* list "Inherited theme property list.")
   (theme-explicit-p nil boolean "Internal flag distinguishing an explicit theme from the default palette.")
+  (ui-scale 1 (real (0) *) "Application UI zoom; layout, geometry and dispatched events remain in logical UI units.")
+  (platform-resources nil list "Internal owned menu and path-request handles.")
   (style-source nil (or null window) "Optional application window whose styles, selectors and theme are inherited across native windows.")
   (style-rules nil list "Ordered rules: (:CLASS class :STATE state-or-NIL :STYLE token-plist). Later rules win.")
   (content-layout :box (member :box :fill) "BOX stacks children; FILL allocates every child the root content rectangle.")
