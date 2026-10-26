@@ -1,4 +1,4 @@
-(defpackage #:lut-examples (:use #:cl) (:export #:hello-world #:todo #:editor #:drawing #:clock #:adwaita #:gallery #:drag-tabs #:overflow-tabs))
+(defpackage #:lut-examples (:use #:cl) (:export #:hello-world #:todo #:editor #:drawing #:clock #:adwaita #:gallery #:drag-tabs #:overflow-tabs #:command-actions))
 (in-package #:lut-examples)
 (defun action (title function)
  (let ((b (lut:make-widget 'lut:button :text title)))
@@ -94,3 +94,24 @@
      (lut:add-child left (lut:make-widget 'lut:entry :text (format nil "Extra page ~d" (1+ i)))))
    (setf (lut:items left) (append (lut:items left)
                             (loop for i below 12 collect (format nil "Extra ~d" (1+ i))))) root))
+
+(defun command-actions ()
+ "One context-sensitive action shared by a toolbar button, menu button and F6."
+ (let* ((root (lut:make-widget 'lut:window :text "Shared commands" :width 600 :height 320))
+        (model (list :count 0 :allowed t))
+        (toggle (lut:add-child root (lut:make-widget 'lut:check-button :id :allow-command
+                                                   :text "Enable the shared action" :value t)))
+        (toolbar (lut:add-child root (lut:make-widget 'lut:button :id :command-button)))
+        (menu (lut:add-child root (lut:make-widget 'lut:menu-bar :height 52)))
+        (menu-item (lut:add-child menu (lut:make-widget 'lut:button :id :command-menu :width 220)))
+        (status (lut:add-child root (lut:make-widget 'lut:label :id :command-status :text "Count: 0. Click either action or press F6.")))
+        (command (lut:make-command :increment "Increment (F6)"
+                   (lambda (command context)
+                     (declare (ignore command))
+                     (setf (lut:text status) (format nil "Count: ~d" (incf (getf context :count)))))
+                   :enabled-when (lambda (command context) (declare (ignore command)) (getf context :allowed))
+                   :shortcut :f6)))
+   (lut:bind-command root command :widget toolbar :context model)
+   (lut:bind-command root command :widget menu-item :context model :shortcut-p nil)
+   (lut:on toggle :change (lambda (w value)
+     (declare (ignore w)) (setf (getf model :allowed) value) (lut:refresh-commands root))) root))

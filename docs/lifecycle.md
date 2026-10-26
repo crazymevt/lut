@@ -150,3 +150,13 @@ instances become unreachable. `tests/demo-native.lisp` verifies actual decoded
 media cleanup and repeated shader reloads, in addition to the ordinary cache and
 worker cleanup tests. External references held by a user REPL variable remain
 intentional roots; LUT cannot collect objects the application still retains.
+
+## Command bindings
+
+Command bindings register with their window, command and optional button/menu
+button. Disposing any endpoint disconnects the appropriate bindings; disposing a
+command disables its remaining controls. Unbinding clears endpoints, context and
+provider closures even when a custom restoration setter signals. Owner teardown
+continues through other bindings and child disposal before reporting such an
+error. The command GC fixture retains unbound handles and verifies collection of
+100 disposed controls and their context/provider closures.

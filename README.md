@@ -172,3 +172,8 @@ no claim is made that those native paths have passed.
 Reusable in-window drag sessions and opt-in notebook tab reordering/transfer are
 available. See [drag-and-drop](docs/drag-and-drop.md) for extension hooks, lifecycle
 and the `lut-examples:drag-tabs` example.
+
+## Shared commands
+
+Commands share actions, labels, availability and shortcuts across buttons/menu
+buttons. See [commands](docs/commands.md) and `lut-examples:command-actions`.

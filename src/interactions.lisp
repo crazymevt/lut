@@ -114,6 +114,7 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
      (when (member (event-kind event) '(:down :key :text :context)) (focus-modal blocker))
      (return-from dispatch nil)))
  (when (dispatch-drag window event) (return-from dispatch nil))
+ (refresh-commands window)
  (when (eq (event-kind event) :key)
    (setf (focus-visible-p window) t)
    (emit window :key event)

@@ -2,13 +2,14 @@
 (defun signatures ()
  (let ((result (make-hash-table)) (*package* (find-package :lut)) (*read-eval* nil))
    (dolist (file '("src/core.lisp" "src/widgets.lisp" "src/styles.lisp" "src/input.lisp"
-                  "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/windows.lisp"))
+                  "src/commands.lisp" "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/windows.lisp"))
      (with-open-file (in (asdf:system-relative-pathname "lut" file))
        (loop for form = (read in nil :eof) until (eq form :eof)
              when (and (consp form) (member (first form) '(defun defmacro defgeneric)) (symbolp (second form)))
                do (setf (gethash (second form) result) (third form)))))
    (dolist (name '(lut:drag-source lut:drag-payload lut:drag-target lut:drag-state lut:drag-x lut:drag-y))
      (setf (gethash name result) '(session)))
+   (setf (gethash 'lut:command-binding-active-p result) '(binding))
    (setf (gethash 'lut:make-event result) '(&key kind x y key base-key text delta shift-p control-p alt-p super-p)) result))
 (defun inherited-slots (name)
  (let ((record (assoc name lut:*api*)))
@@ -79,6 +80,7 @@
           (push `(:entry ,(format nil "type/~(~a~)" symbol) :names (,(symbol-name symbol)) :kind :class
                   :kind-name "Type" :package "LUT" :summary ,(cond ((eq symbol 'lut:remote-window)
                     "Native worker handle returned by SPAWN-WINDOW and DETACH-WINDOW. Root/process/reader references are cleared after closure.")
+                    ((eq symbol 'lut:command-binding) "Command/control/shortcut binding handle; endpoint and context references are cleared on unbinding or disposal.")
                     ((eq symbol 'lut:drag-session) "Pending or active in-window drag; widget/payload references are released after terminal callbacks.")
                     ((eq symbol 'lut:connection) "Event connection handle returned as ON's second value; DISCONNECT clears its references.")
                     (t "Backend capability error condition; CAPABILITY initarg identifies the unavailable operation."))

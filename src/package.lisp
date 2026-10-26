@@ -1,7 +1,10 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:drag-session #:current-drag #:drag-source #:drag-payload #:drag-target
+  (:export #:command #:make-command #:command-label #:command-action #:command-predicate
+   #:command-shortcut #:command-available-p #:invoke-command #:bind-command #:unbind-command
+   #:refresh-commands #:window-commands #:command-binding #:command-binding-active-p
+   #:drag-session #:current-drag #:drag-source #:drag-payload #:drag-target
    #:drag-state #:drag-x #:drag-y #:drag-data #:accepts-drop-p #:perform-drop
    #:begin-drag #:cancel-drag #:render-drag-feedback #:reorderable-p #:tab-group #:move-page #:tab-offset #:scroll-tabs #:reveal-page #:tab-at-position
    #:toggle-button #:switch #:radio-button #:spin-button #:dropdown #:combo-box
