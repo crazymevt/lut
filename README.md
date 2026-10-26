@@ -1,0 +1,141 @@
+# LUI
+
+A retained-mode Common Lisp GUI library with CLOS widgets, portable core logic,
+and a raylib backend. Applications build widget trees and register callbacks;
+the library handles layout, painting, input, focus and window processes.
+
+The GTK 4.20.2 suite has 108 runnable portable adaptations, each with a behavioral
+test. [Generated coverage](examples/gtk-demo-coverage.md) is checked against the
+registry. [Demo usage and differences](docs/gtk-demo.md) describes controls,
+optional media dependencies and backend limits; this is not exact GTK feature or
+rendering parity. See [acceptance status](docs/status.md).
+
+## Install and run
+
+Register this checkout with ASDF, alongside the existing local `raylib` and
+`docset` projects. Raylib requires its native library and a C compiler; follow
+that binding's installation instructions. Quicklisp supplies CFFI, Alexandria,
+Bordeaux Threads and CL-BASE64. The demo system additionally uses portable
+Classowary (constraint solving), XMLS (markup) and CL-PDF/parser (printing).
+Video loading uses an optional `ffmpeg` executable on PATH. Noto Sans regular,
+bold and italic faces are bundled under the SIL OFL.
+
+```lisp
+(ql:quickload "lui/examples")
+(defparameter *app* (lui-examples:gallery))
+(lui:start *app*)
+```
+
+The example builders `hello-world`, `todo`, `editor`, `drawing`, `clock`, and
+`adwaita` return trees. These are small adaptations of the six local GTK4
+examples, not full replicas. `gallery` demonstrates the basic controls.
+
+```lisp
+(ql:quickload '("lui/raylib" "lui/gtk-demo"))
+(lui-gtk-demo:demo-names)
+(lui:start (lui-gtk-demo:demo "stack"))
+```
+
+## REPL workflow
+
+Keep the actual widget tree in a variable. Use `on-ui` for mutations from an
+editor REPL; its closures execute FIFO on the GUI/controller thread.
+
+```lisp
+(lui:on-ui
+  (setf (lui:theme *app*) lui:*dark-theme*)
+  (lui:add-child *app* (lui:make-widget 'lui:entry :id :name :text "Added live")))
+(lui:on-ui (setf (lui:text (lui:find-widget *app* :name)) "Changed live"))
+```
+
+Re-evaluate named functions, CLOS methods and `defwidget` forms. Existing CLOS
+instances acquire added slots through normal class redefinition. Setter type
+checks and `validate-slot` invariants also apply to REPL edits. See the
+[worked class-redefinition example](docs/repl.md), including source reloads,
+callback registration and error recovery.
+
+## Native windows and dialogs
+
+In-window dialogs are draggable by their title/empty surface. Drag past the
+main window boundary to detach into a real OS window. `detach-window` also does
+this programmatically. `spawn-window` opens another root; calling `start` while
+the primary loop runs opens a worker as well.
+
+Use `dismiss-dialog` in dialog response callbacks so they also close a detached
+native host. App styles and selectors inherit across roots through `style-source`.
+
+Each native worker owns one raylib context. The original Lisp retains all widget
+objects, callback closures and rendering methods; it renders secondary windows
+offscreen and transfers PNG frames over private process pipes. Input returns to
+the original objects. This supports live custom drawing without copying closures
+or classes between processes. PNG readback/compression is a performance cost;
+this backend is not intended for high-frame-rate multiwindow animation.
+
+```lisp
+(defvar *second*)
+(lui:on-ui
+  (setf *second* (lui:spawn-window
+    (lui:with-ui (lui:window :text "Second" :width 400 :height 240)
+      (lui:make-widget 'lui:button :text "Another native window")))))
+(lui:close-window *second*)
+```
+
+The primary controller loop services secondary input and render updates. Workers continue handling OS movement/close events while the
+parent is paused, displaying their latest frame. Stopping the primary loop closes secondary workers and releases their registry
+references. Workers launch the local Lisp executable through
+`*worker-command*`; override it for deployed applications or other runtimes.
+
+## Widgets and styles
+
+The library includes labels, buttons, toggles, switches, radio groups, entries,
+multiline text, sliders, numeric steppers, progress, lists, dropdowns, editable
+combos, expandable trees, sortable tables/columns, boxes, grids, split panes,
+stacks, tabs, headers, menus, popovers, tooltips, expanders, images and portable
+file/color/font choosers. These are initial implementations; they do not provide
+all GTK/JavaFX features such as virtualized data models or editable table cells.
+
+Root themes inherit through the tree. Local overrides, state overrides and
+ordered root class selectors control colors, fonts, metrics, borders and radii.
+See [styling](docs/styling.md) and the [programming guide](docs/guide.md).
+Text uses a loaded font with the tree's Unicode codepoints and whole-string
+measurement/drawing. Font coverage limits still apply. Complex shaping, bidi,
+font-pair kerning and IME are not implemented by raylib's text renderer.
+
+## Object lifetime
+
+Use `remove-child` to detach for reuse, or `dispose` / `remove-child :dispose t`
+to destroy a subtree. Owned callbacks (`on ... :owner widget`) and owned queued
+work (`on-widget`) are removed automatically on disposal. Closed worker handles
+release their widget roots, and native caches evict unused resources after a
+frame. See [ownership and cleanup](docs/lifecycle.md), including GC tests.
+
+## Documentation and tests
+
+```lisp
+(asdf:test-system "lui")
+(asdf:test-system "lui/gtk-demo-tests")
+(ql:quickload "lui/gc-tests")
+(asdf:test-system "lui/gc-tests")
+(ql:quickload "lui/docs")
+(lui-docs:generate)
+```
+
+The generated `docs/docset/` is the shared Cadre/spec-browser Lisp-data format,
+not a Dash SQLite docset. It includes inherited initargs, types/defaults,
+function/macro signatures, argument contracts, examples and event payloads.
+Generation rejects missing exported-function contracts and unreadable examples.
+
+Native checks are in `tests/smoke.lisp`, `tests/gtk-smoke.lisp`,
+`tests/backend.lisp`, `tests/windows.lisp`, `tests/text.lisp`, `tests/cache.lisp`,
+`tests/review-native.lisp`, and `tests/demo-native.lisp`.
+`tests/portable.lisp` runs all headless, GC and docset checks, including
+`lui/gtk-demo-gc-tests`.
+Run them as load scripts from this checkout in SBCL or CCL. Use the project's
+required quiet command wrapper for shell invocations.
+
+## Verified platforms
+
+Core behavior and native windows run on macOS/ARM64 under SBCL and the upstream
+CCL 1.13 ARM64 prerelease. The backend bridges both implementations onto the OS
+main thread. Linux and Windows runtime verification is deferred by user direction;
+no claim is made that those native paths have passed.

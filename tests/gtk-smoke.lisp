@@ -1,0 +1,8 @@
+(require :asdf)
+(load (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname)))
+(asdf:load-asd (truename "lui.asd"))
+(ql:quickload '("lui/raylib" "lui/gtk-demo"))
+(dolist (name (lui-gtk-demo:demo-names))
+ (let ((root (lui-gtk-demo:demo name)))
+  (unwind-protect (lui:run root :frames 2) (lui:dispose root)))
+ (format t "GTK native adaptation ~a: passed~%" name))

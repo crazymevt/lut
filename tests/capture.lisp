@@ -1,0 +1,8 @@
+(require :asdf)
+(load (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname)))
+(asdf:load-asd (truename "lui.asd"))
+(ql:quickload "lui/examples")
+(let ((w (lui-examples:gallery)) (frame 0))
+  (lui:on w :tick (lambda (w dt) (declare (ignore w dt))
+    (when (= (incf frame) 3) (rl:take-screenshot "/tmp/lui-gallery.png"))))
+  (lui:run w :frames 4))

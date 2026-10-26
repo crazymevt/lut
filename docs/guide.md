@@ -1,0 +1,72 @@
+# Programming guide
+
+## Composition and ownership
+
+Construct widgets with `make-widget` (a thin `make-instance` wrapper) or `with-ui`.
+The macro takes a class and initargs, followed by child expressions. Each child
+has one parent; `add-child` reparents and rejects cycles. `remove-child` clears
+focus if necessary. Do not assign `parent`/`children` directly.
+
+```lisp
+(lui:with-ui (lui:window :text "Counter" :width 500 :height 320)
+  (lui:make-widget 'lui:label :text "Welcome")
+  (lui:with-ui (lui:box :orientation :horizontal :height 50)
+    (lui:make-widget 'lui:button :text "One")
+    (lui:make-widget 'lui:button :text "Two")))
+```
+
+Boxes stack vertically or horizontally with `spacing` and inherited `:padding`.
+Vertical children fill available width; their height is their preferred height.
+Horizontal children keep preferred width. Uniform grids, split panes, stacks
+and notebooks provide additional layouts; there is no flex negotiation.
+Containers clip descendants. Scroll views scroll vertically with the mouse wheel.
+
+## Styles
+
+Set the root window's `theme` to `*light-theme*` or `*dark-theme*`, or supply a
+property list. See [styling](styling.md) for all tokens, state styles and root
+class selectors. Basic tokens include `:background`, `:foreground`, `:surface`,
+`:accent`, `:font-size`, and `:padding`. Colors use raylib's keyword/list conventions;
+RGBA byte lists work for both themes. Font size and padding are positive pixel
+numbers. Override tokens with any widget's `:style` plist. Resolution searches
+local styles and ancestors before the root theme. Changing a token affects the
+next frame. Use a copied plist when modifying shared themes.
+
+## Events and input
+
+`(on widget :activate (lambda (widget payload) ...))` registers activation.
+`:change` receives the new text, number, boolean, or selected row index.
+`:context` receives the right-click event, and root `:tick` receives elapsed
+seconds. Handlers execute in registration order. Entries get a reusable context menu automatically. `open-context-menu` also
+accepts shared (caption callback enabled-p) actions; it positions at the pointer
+and dismisses on outside click or Escape.
+
+Tab/Shift-Tab traverse enabled visible interactive descendants. Space/Enter
+activate buttons. Entries support arrows, Home/End, Shift selection, pointer drag
+selection, Backspace/Delete and Ctrl/Cmd+A/C/X/V. Text views accept newlines.
+The renderer loads a real font with explicit codepoints and measures/draws full
+strings. Text viewports track the caret and support wheel scrolling in multiline
+controls. Complex shaping, pair kerning, bidi, IME and undo are unfinished.
+Bundled Noto Sans covers Latin, Greek and Cyrillic; use the :font style for other
+font coverage.
+
+Sliders support click position, arrow keys and wheel increments. List views have
+selection and wheel scrolling. Progress bars share numeric bounds but are
+read-only. Selection is zero-based. Prefer updating text with `select-all` and
+`replace-selection`; assigning shorter text directly clamps the existing selection to valid indices.
+
+`dispatch` accepts normalized `make-event` objects independently of raylib, so
+custom backends and tests can drive the same behavior. Kinds are `:down`, `:move`,
+`:up`, `:wheel`, `:key`, `:text`, and `:context`. Coordinates are logical pixels.
+Wheel delta is in notches. Dialogs block input to the underlying tree; Escape
+closes the top modal dialog. Drag titles/empty surfaces to move dialogs.
+Crossing the root bounds detaches into a native worker window. See the
+[REPL and window workflow](repl.md).
+
+## Extending
+
+Subclass `widget` or a concrete control. Define methods on `layout` and `render`;
+call the backend's drawing API only in the latter. `drawing-area` offers a
+`:draw-function` callback for simpler custom drawing. `defwidget` records class
+metadata for documentation; slot specifications are `(name default type doc)`.
+The core and normalized event model can be loaded without native libraries.
