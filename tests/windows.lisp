@@ -2,6 +2,42 @@
 (load (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname)))
 (asdf:load-asd (truename "lut.asd"))
 (ql:quickload "lut/examples")
+;; Focus is reported over IPC; exercise transitions deterministically without
+;; changing which desktop application the person is using during the tests.
+(let* ((owner (lut:make-widget 'lut:window))
+       (modal (lut:make-widget 'lut:dialog))
+       (modeless (lut:make-widget 'lut:dialog :modal-p nil))
+       (remote (lut::make-remote-window :owner owner :dialog modal :root (lut:make-widget 'lut:window)))
+       (other (lut::make-remote-window :owner owner :dialog modeless :root (lut:make-widget 'lut:window)))
+       (lut::*remote-windows* (list remote other)))
+ (lut::sync-modal-window-levels t)
+ (assert (lut::remote-window-topmost-p remote))
+ (assert (not (lut::remote-window-topmost-p other)))
+ (setf (lut::remote-window-forms remote) nil)
+ (lut::focus-modal remote)
+ (lut::sync-modal-window-levels nil)
+ (assert (not (lut::remote-window-topmost-p remote)))
+ (assert (equal '((rl:clear-window-state :window-topmost)) (lut::remote-window-forms remote)))
+ (assert (eq remote (lut::modal-blocker owner))) ; backgrounding does not dismiss or unblock
+ (setf (lut::remote-window-forms remote) nil)
+ (lut::sync-modal-window-levels nil)
+ (assert (null (lut::remote-window-forms remote))) ; no repeated state commands
+ (setf (lut::remote-window-focused-p remote) t)
+ (lut::sync-modal-window-levels nil)
+ (assert (lut::remote-window-topmost-p remote)) ; return through the dialog
+ (setf (lut::remote-window-focused-p remote) nil)
+ (lut::sync-modal-window-levels nil)
+ (assert (not (lut::remote-window-topmost-p remote)))
+ (lut::sync-modal-window-levels t)
+ (assert (lut::remote-window-topmost-p remote)) ; return through the owner
+ (assert (not (lut::remote-window-topmost-p other)))
+ (setf (lut::remote-window-focused-p other) t)
+ (lut::sync-modal-window-levels nil)
+ (assert (lut::remote-window-topmost-p remote)) ; another LUT window keeps the group active
+ (setf (lut::remote-window-closing-p other) t)
+ (lut::sync-modal-window-levels nil)
+ (assert (not (lut::remote-window-topmost-p remote))))
+(format t "Modal stacking releases on app deactivation and restores for owner/worker activation; modeless and input blocking checks passed.~%")
 (let* ((main (lut-examples:hello-world))
        (dialog (lut:make-widget 'lut:dialog :text "Native dialog" :width 400 :height 220))
        (button (lut:make-widget 'lut:button :text "Same parent objects"))

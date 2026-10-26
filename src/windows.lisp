@@ -1,5 +1,5 @@
 (in-package #:lut)
-(defstruct remote-window process root reader owner dialog (alive-p t) (pending-p nil) (frames 0) (forms nil) (closing-p nil) (write-lock (bt:make-lock "LUT worker writer")) (dispose-on-close-p t) target last-pixels last-size (encoded-frames 0) error)
+(defstruct remote-window process root reader owner dialog (focused-p nil) (topmost-p nil) (alive-p t) (pending-p nil) (frames 0) (forms nil) (closing-p nil) (write-lock (bt:make-lock "LUT worker writer")) (dispose-on-close-p t) target last-pixels last-size (encoded-frames 0) error)
 (defvar *remote-windows* nil)
 (defvar *remote-lock* (bt:make-lock "LUT window registry"))
 (defvar *forwarded-events* nil)
@@ -76,7 +76,28 @@ NIL means keep the worker's existing texture; control/input round trips continue
      (error (e) (setf (remote-window-error remote) e (remote-window-alive-p remote) nil)
                 (ignore-errors (uiop:terminate-process (remote-window-process remote)))))))
 (defun remote-alive-p (remote) "Whether the remote native window's worker is still alive." (remote-window-alive-p remote))
+(defun lut-windows-active-p (primary-focused-p)
+ (or primary-focused-p
+     (some (lambda (r) (and (remote-window-alive-p r) (not (remote-window-closing-p r))
+                            (remote-window-focused-p r)))
+           (bt:with-lock-held (*remote-lock*) (copy-list *remote-windows*)))))
+(defun set-modal-window-topmost (remote enabled)
+ (unless (eq enabled (remote-window-topmost-p remote))
+   (setf (remote-window-topmost-p remote) enabled)
+   (evaluate-in-window remote
+     (list (if enabled '(rl:set-window-state :window-topmost) '(rl:clear-window-state :window-topmost))))))
+(defun sync-modal-window-levels (primary-focused-p)
+ (let ((active (not (null (lut-windows-active-p primary-focused-p)))))
+   (dolist (remote (bt:with-lock-held (*remote-lock*) (copy-list *remote-windows*)))
+     (when (and (remote-window-alive-p remote) (not (remote-window-closing-p remote))
+                (remote-window-dialog remote))
+       (set-modal-window-topmost remote (and active (modal-p (remote-window-dialog remote))))
+       ;; A queued focus request must not reactivate LUT after an app switch.
+       (unless active
+         (setf (remote-window-forms remote)
+               (remove '(rl:set-window-focused) (remote-window-forms remote) :test #'equal)))))))
 (defun pump-remote-windows ()
+ (sync-modal-window-levels (and *active-window* (rl:is-window-focused)))
  (dolist (remote (bt:with-lock-held (*remote-lock*) (copy-list *remote-windows*)))
    (when (and (not (remote-window-alive-p remote)) (remote-window-target remote))
      (retire-render-target (remote-window-target remote)) (setf (remote-window-target remote) nil))
@@ -100,7 +121,8 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                                       ;; for that stream can stall PROCESS-WAIT during GUI teardown.
                                       :input :stream :output :stream :error-output :interactive
                                       :directory root #+ccl :sharing #+ccl :lock))
-        (remote (make-remote-window :process process :root window)))
+        (remote (make-remote-window :process process :root window
+                  :topmost-p (not (null (member :window-topmost flags))))))
    (write-message (uiop:process-info-input process) (list :open (list (width window) (height window) (text window)) position flags))
    (setf (remote-window-pending-p remote) t)
    (bt:with-lock-held (*remote-lock*) (push remote *remote-windows*))
@@ -116,6 +138,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                           (let ((root (remote-window-root remote)))
                             (when (and root (not (disposed-p root)) (not (remote-window-closing-p remote))
                                        (eq (first packet) :input))
+                              (setf (remote-window-focused-p remote) (fifth packet))
                               (layout root 0 0 (second packet) (third packet))
                               (dolist (data (fourth packet)) (dispatch root (apply #'make-event data)))))
                           (incf (remote-window-frames remote))
@@ -164,9 +187,11 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
  (let ((remote (bt:with-lock-held (*remote-lock*)
                  (find dialog *remote-windows* :key #'remote-window-dialog :test #'eq))))
    (when remote
-     (evaluate-in-window remote
-       (list (if value '(rl:set-window-state :window-topmost) '(rl:clear-window-state :window-topmost))))
-     (when value (clear-modal-owner-hover (remote-window-owner remote)) (focus-modal remote)))))
+     (let ((active (not (null (lut-windows-active-p (and *active-window* (rl:is-window-focused)))))))
+       (set-modal-window-topmost remote (and value active))
+       (when value
+         (clear-modal-owner-hover (remote-window-owner remote))
+         (when active (focus-modal remote)))))))
 (defun native-dialog-p (d)
  (and (typep d 'dialog) (not (typep d 'popover)) (not (typep d 'context-menu))))
 (defmethod present-dialog :around ((window window) (dialog dialog))
@@ -245,7 +270,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                (rl:draw-texture-pro texture (rl:rect 0 0 (rl:texture-width texture) (rl:texture-height texture))
                  (rl:rect 0 0 (rl:get-screen-width) (rl:get-screen-height)) (rl:vec2 0 0) 0 :white)))
            (when acknowledge
-             (write-message output (list :input (rl:get-screen-width) (rl:get-screen-height) (nreverse *forwarded-events*)))
+             (write-message output (list :input (rl:get-screen-width) (rl:get-screen-height) (nreverse *forwarded-events*) (rl:is-window-focused)))
              (setf *forwarded-events* nil acknowledge nil)))
          (when texture (rl:unload-texture texture))
          (mapc (lambda (pair) (rl:unload-font (cdr pair))) *font-cache*)
