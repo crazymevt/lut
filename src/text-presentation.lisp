@@ -141,7 +141,7 @@
      (setf (slot-value view slot)
        (coerce (loop for record across (slot-value view slot)
                      for a = (record-start record) for b = (record-end record)
-                     when (or (and (< a b) (<= b start)) (>= a old-end)) collect
+                     when (or (and (< a start) (<= b start)) (>= a old-end)) collect
                      (let ((copy (copy-presentation-record record)))
                        (when (>= a old-end)
                          (if (getf copy :position) (incf (getf copy :position) delta)

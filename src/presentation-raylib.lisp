@@ -89,7 +89,7 @@
    ;; The outer renderer draws focus using its original ancestor clip.
    (rl:begin-scissor-mode (round (first *clip*)) (round (second *clip*)) (round (third *clip*)) (round (fourth *clip*)))))
 (defmethod render ((surface suggestion-surface))
- (paint-surface surface) (reveal-suggestion surface)
+ (paint-surface surface)
  (let* ((pad (style-value surface :padding)) (rh (row-height surface))
         (first (max 0 (floor (scroll-offset surface) rh)))
         (limit (min (length (items surface)) (ceiling (+ (scroll-offset surface) (- (height surface) (* 2 pad))) rh))))

@@ -31,7 +31,7 @@
                             (member w (active-children (parent w)))
                             (and (typep (parent w) 'window)
                                  (member w (slot-value (parent w) 'overlays))))))
-      (loop for w = widget then (parent w) while w thereis (eq w (input-root window)))))
+      (in-input-scope-p widget (input-root window))))
 (defun begin-drag (source payload event)
  "Arm a drag from SOURCE using EVENT's start coordinates. Movement past :DRAG-THRESHOLD starts it; return the session."
  (let ((window (root-of source)))

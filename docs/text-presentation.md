@@ -91,6 +91,12 @@ policy. Text uses unwrapped logical
 lines and one configured `:line-height`. Configure it to accommodate all fonts
 and images; there is no automatic paragraph reflow or variable-height row index.
 
+Setting TEXT uses a minimal text diff and preserves presentation outside the
+changed span, including links and images in a shared prefix or suffix. When
+replacing a document, follow the TEXT update with `set-text-presentation` for all
+collections, passing NIL for any that should be cleared. Otherwise an old link
+target or image source can remain attached to text shared with the new document.
+
 ```lisp
 (let ((view (lut:make-widget 'lut:document-view
               :text (format nil "Open help~%~c An image" (code-char #xfffc))
@@ -150,7 +156,10 @@ space favors it, and clamps inside the window. Preferred dimensions survive a
 temporary window shrink. Surfaces do not create native windows or cross workers;
 they work inside each controller-rendered window.
 
-Up/Down/Home/End select candidates; Enter calls `accept-suggestion`; Escape
+Unmodified Up/Down/Home/End select candidates while focus is on the owner or
+inside the surface; Enter calls `accept-suggestion` in that scope. Modified keys
+and keys focused on unrelated widgets continue normally. An empty list lets
+these keys through, including Enter for a text-view newline. Escape
 dismisses the top surface. Pointer rows and wheel scrolling are supported.
 Acceptance dismisses first, then emits `:accept` with the original item. LUT
 does not insert text or execute a candidate. Typing continues to the owner while

@@ -52,6 +52,19 @@
          (assert (lut:find-widget root :presentation-suggestions))
          (lut:dispatch root (lut:make-event :kind :key :key :down)))
        (3
+         ;; Rendering must preserve a wheel viewport even when the selected
+         ;; candidate is offscreen. Restore the demo candidates afterward.
+         (let* ((surface (lut:find-widget root :presentation-suggestions))
+                (items (lut:items surface)))
+           (setf (lut:items surface) (loop for i below 30 collect (list :label (format nil "Candidate ~d" i)))
+                 (lut:value surface) 0)
+           (lut:dispatch root (lut:make-event :kind :wheel :x (+ (lut:x surface) 12)
+                                            :y (+ (lut:y surface) 12) :delta -6))
+           (let ((offset (lut:scroll-offset surface)))
+             (assert (plusp offset))
+             (capture-presentation root (format nil "/tmp/lut-presentation-~a-wheel.png" name))
+             (assert (= offset (lut:scroll-offset surface))))
+           (setf (lut:items surface) items (lut:value surface) 1))
          (capture-presentation root (format nil "/tmp/lut-presentation-~a-suggestions.png" name))
          (lut:dispatch root (lut:make-event :kind :key :key :enter))
          (assert (search "Accepted application candidate: format" (lut:text status)))

@@ -55,7 +55,7 @@
  "Set keyboard focus to an enabled visible interactive descendant or NIL."
  (when widget
    (unless (and (eq (root-of widget) window) (focusable-p widget)
-                (loop for p = widget then (parent p) while p thereis (eq p (input-root window)))
+                (in-input-scope-p widget (input-root window))
                 (loop for p = widget then (parent p) while p always (and (visible-p p) (enabled-p p))))
      (error "Invalid focus target.")))
  (when (and (slot-value window 'text-selection-state)
@@ -63,9 +63,15 @@
    (cancel-text-selection window :forget-clicks t))
  (setf (focused-widget window) widget (focus-visible-p window) t))
 (defun input-root (window) (or (find-if-not (lambda (d) (or (typep d 'tooltip) (nonmodal-overlay-p d))) (slot-value window 'overlays)) window))
+(defgeneric overlay-input-scope-p (overlay scope))
+(defmethod overlay-input-scope-p ((overlay widget) scope) (declare (ignore scope)) nil)
+(defun in-input-scope-p (widget scope)
+ (loop for node = widget then (parent node) while node
+       thereis (or (eq node scope) (overlay-input-scope-p node scope))))
 (defun input-hit-test (window px py)
  (or (loop for overlay in (slot-value window 'overlays)
-           for hit = (and (nonmodal-overlay-p overlay) (hit-test overlay px py)) when hit return hit)
+           for hit = (and (nonmodal-overlay-p overlay) (in-input-scope-p overlay (input-root window))
+                          (hit-test overlay px py)) when hit return hit)
      (hit-test (input-root window) px py)))
 (defun tab-focus (window backwards)
  (let (nodes)
@@ -138,12 +144,11 @@
 (defun dispatch-base (window event)
  "Dispatch normalized input: :DOWN, :UP, :MOVE, :WHEEL, :KEY, :TEXT, :CONTEXT.
 Callbacks receive (widget payload). Pointer capture supports text drag selection."
- (let* ((root (input-root window))
-        (target (input-hit-test window (event-x event) (event-y event)))
+ (let* ((target (input-hit-test window (event-x event) (event-y event)))
         (focused (focused-widget window)))
    (when (and focused
               (not (and (eq (root-of focused) window)
-                        (loop for p = focused then (parent p) while p thereis (eq p root))
+                        (in-input-scope-p focused (input-root window))
                         (loop for p = focused then (parent p) while p
                               always (and (visible-p p) (enabled-p p))))))
      (setf (focused-widget window) nil focused nil))
