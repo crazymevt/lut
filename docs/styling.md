@@ -37,6 +37,8 @@ normal. A root class selector matches subclasses as well.
 | `:max-border-radius` | Non-negative real pixel corner-radius cap; default 8 |
 | `:border-color`, `:focus-color` | Border and focus decoration colors |
 | `:hover-color`, `:pressed-color`, `:disabled-color` | Default interactive surface colors; a state-specific `:surface` overrides them |
+| `:button-depth` | Non-negative pixel elevation for buttons and toggles, default 3; 0 gives flat surfaces |
+| `:button-shadow`, `:button-highlight` | Button depth-edge and raised top-highlight colors |
 | `:caret-width` | Non-negative real pixel width |
 
 Style metric assignments are validated. A malformed property list or invalid
@@ -91,3 +93,12 @@ on layout containers; a custom render method can add that surface.
 Labels can opt into `:style '(:wrap-text t)`. Allocate enough height for the
 expected lines: wrapping does not automatically resize a widget. Editable text
 and button captions retain their existing explicit-newline behavior.
+
+Buttons show a lower shadow edge at rest and an upper inset edge when pressed;
+the caption moves with the face. Selected toggle buttons stay depressed.
+Disabled buttons are flat. Elevation stays inside the widget bounds and does
+not change layout or hit testing. Override `:button-depth` locally or in a
+button class rule to adjust it; use zero to restore flat styling.
+
+In the GTK demo launcher, open `combobox` for the dropdown option selector
+(the first control), or `application_demo` for application action menus.

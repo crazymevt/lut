@@ -1,6 +1,7 @@
 (in-package #:lut)
 (defparameter *style-defaults*
  '(:wrap-text nil :font nil :font-size 18 :font-spacing 0 :line-height 26 :row-height 30
+   :button-depth 3 :button-shadow (0 0 0 100) :button-highlight (255 255 255 100)
    :surface (255 255 255 255) :on-accent (255 255 255 255)
    :padding 8 :caret-width 2 :border-width 1 :border-radius 0.3 :max-border-radius 8
    :border-color (130 140 160 255) :focus-color (40 120 240 255)
@@ -52,7 +53,7 @@ STYLE-SOURCE propagates application styling across native windows. Later matchin
    (case key
      ((:font-size :line-height :row-height :title-height)
       (unless (typep v '(real (0) *)) (error "~a must be positive." key)))
-     ((:padding :font-spacing :border-width :caret-width :max-border-radius)
+     ((:padding :font-spacing :border-width :caret-width :max-border-radius :button-depth)
       (unless (typep v '(real 0 *)) (error "~a must be non-negative." key)))
      (:border-radius (unless (typep v '(real 0 1)) (error "Border radius must be 0..1.")))
      (:wrap-text (unless (typep v 'boolean) (error "Wrap text must be boolean.")))
