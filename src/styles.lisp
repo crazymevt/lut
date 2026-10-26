@@ -1,7 +1,8 @@
 (in-package #:lut)
 (defparameter *style-defaults*
  '(:font nil :font-size 18 :font-spacing 0 :line-height 26 :row-height 30
-   :padding 8 :caret-width 2 :border-width 1 :border-radius 0.15
+   :surface (255 255 255 255) :on-accent (255 255 255 255)
+   :padding 8 :caret-width 2 :border-width 1 :border-radius 0.3
    :border-color (130 140 160 255) :focus-color (40 120 240 255)
    :hover-color (200 210 225 255) :pressed-color (165 185 220 255)
    :disabled-color (120 125 135 255) :title-height 28)
