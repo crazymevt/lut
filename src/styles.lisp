@@ -1,8 +1,8 @@
 (in-package #:lut)
 (defparameter *style-defaults*
- '(:font nil :font-size 18 :font-spacing 0 :line-height 26 :row-height 30
+ '(:wrap-text nil :font nil :font-size 18 :font-spacing 0 :line-height 26 :row-height 30
    :surface (255 255 255 255) :on-accent (255 255 255 255)
-   :padding 8 :caret-width 2 :border-width 1 :border-radius 0.3
+   :padding 8 :caret-width 2 :border-width 1 :border-radius 0.3 :max-border-radius 8
    :border-color (130 140 160 255) :focus-color (40 120 240 255)
    :hover-color (200 210 225 255) :pressed-color (165 185 220 255)
    :disabled-color (120 125 135 255) :title-height 28)
@@ -52,9 +52,10 @@ STYLE-SOURCE propagates application styling across native windows. Later matchin
    (case key
      ((:font-size :line-height :row-height :title-height)
       (unless (typep v '(real (0) *)) (error "~a must be positive." key)))
-     ((:padding :font-spacing :border-width :caret-width)
+     ((:padding :font-spacing :border-width :caret-width :max-border-radius)
       (unless (typep v '(real 0 *)) (error "~a must be non-negative." key)))
      (:border-radius (unless (typep v '(real 0 1)) (error "Border radius must be 0..1.")))
+     (:wrap-text (unless (typep v 'boolean) (error "Wrap text must be boolean.")))
      (:font (unless (typep v '(or null pathname string)) (error "Font must be a pathname, string or NIL."))))) tokens)
 (defmethod validate-slot :around ((w widget) slot value)
  (when (eq slot 'style-source)

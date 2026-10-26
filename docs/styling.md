@@ -23,7 +23,8 @@ normal. A root class selector matches subclasses as well.
 
 | Token | Valid values / meaning |
 | --- | --- |
-| `:background`, `:foreground`, `:surface`, `:accent` | Raylib palette keyword, RGBA integer, or RGB/RGBA byte list |
+| `:background`, `:foreground`, `:surface`, `:accent`, `:on-accent` | Raylib palette keyword, RGBA integer, or RGB/RGBA byte list |
+| `:wrap-text` | Boolean; opt-in word wrapping for labels, within padded width; long individual words remain clipped |
 | `:font` | Existing TrueType/OpenType pathname/string, or NIL for bundled Noto Sans |
 | `:font-size` | Positive real pixel size; atlas generation rounds to integer |
 | `:font-spacing` | Non-negative real additional glyph spacing |
@@ -32,7 +33,8 @@ normal. A root class selector matches subclasses as well.
 | `:padding` | Non-negative real; content and text inset |
 | `:title-height` | Positive real; dialog title and notebook tab strip |
 | `:border-width` | Non-negative real; zero hides borders |
-| `:border-radius` | Real in 0..1, raylib rounded-rectangle proportion |
+| `:border-radius` | Real in 0..1, raylib rounded-rectangle proportion, limited by `:max-border-radius` |
+| `:max-border-radius` | Non-negative real pixel corner-radius cap; default 8 |
 | `:border-color`, `:focus-color` | Border and focus decoration colors |
 | `:hover-color`, `:pressed-color`, `:disabled-color` | Default interactive surface colors; a state-specific `:surface` overrides them |
 | `:caret-width` | Non-negative real pixel width |
@@ -67,3 +69,25 @@ class-rule edits and root style overrides therefore reach detached controls too.
 
 Set a secondary root's theme to NIL to resume inheritance. Give it a palette to
 fix that window's palette independently. Local control styles continue to win.
+
+## Rounded controls and layout
+
+Use `:style '(:border-radius 1 :max-border-radius 24)` on a button up to
+48px tall for pill-shaped corners, or
+`:border-radius 0` for square corners. The value is proportional to the shorter
+side, capped by `:max-border-radius` in pixels. Surfaces, borders, focus outlines,
+and rounded indicators share this cap so tall controls keep restrained corners.
+Lists and tables paint a surface and border, with inset selection highlights and
+vertically centered text; selected text uses `:on-accent`.
+
+Layout containers arrange children; they do not paint a background or border
+by default. A box accepts `:orientation :horizontal` and `:spacing 12`; a grid
+accepts `:columns 3` and `:spacing 12`. Both resolve `:style '(:padding 16)`.
+Stacks select a child with `value`, and paned containers use `orientation` and
+`value` for the split. Width and height are widget properties, not style keys.
+There is no CSS flexbox, automatic responsive sizing, or decorative card surface
+on layout containers; a custom render method can add that surface.
+
+Labels can opt into `:style '(:wrap-text t)`. Allocate enough height for the
+expected lines: wrapping does not automatically resize a widget. Editable text
+and button captions retain their existing explicit-newline behavior.

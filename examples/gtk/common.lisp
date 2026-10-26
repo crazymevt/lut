@@ -24,7 +24,7 @@
 (defun browser ()
  "Interactive searchable launcher for the registered GTK demo ports. Run with LUT/RAYLIB."
  (let* ((query (node 'lut:entry :query)) (list (node 'lut:list-view :demos :height 380 :items (demo-names)))
-        (info (labeled :description "Select a demo" :height 70)) (root (app "LUT GTK demo suite" query list info)))
+        (info (labeled :description "Select a demo" :height 90 :style '(:wrap-text t))) (root (app "LUT GTK demo suite" query list info)))
    (changed query (lambda (w text) (declare (ignore w))
      (setf (lut:items list) (remove-if-not (lambda (s) (search text s :test #'char-equal)) (demo-names))
            (lut:value list) nil)) root)
