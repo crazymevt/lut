@@ -122,16 +122,35 @@ secondary workers intentionally use portable menus/pickers.
 
 ## Phase 5: Advanced interaction and composition
 
-- [ ] **Tab closing and richer tab presentation.** Close requests, application
-  veto hooks and generic badges; dirty-buffer decisions remain application code.
-- [ ] **Cross-window drag/transfer.** Explicit controller ownership, coordinates,
-  cancellation and cleanup across native workers, without serializing closures.
-- [ ] **General autoscroll and keyboard drag operations.** Extend beyond the
-  current notebook header edge scrolling.
-- [ ] **Reusable split/drop zones.** Compose panes through public drag/drop APIs.
-  Do not encode an editor's workspace tree, project layout or session persistence.
-- [ ] **OS drag-and-drop.** A separate platform/MIME adapter with explicit
-  capabilities; in-process payload support is not OS interoperability.
+- [x] **Tab closing and richer tab presentation — delivered.** Vetoable close
+  requests detach pages without imposing disposal/dirty-buffer policy. Generic
+  string badges follow pages through transfer; close affordances share header
+  geometry with pointer hit testing.
+- [ ] **Cross-window drag/transfer — partially delivered.** Keyboard and
+  programmatic transfers use explicit controller registration, source-owned
+  sessions and receiving-root logical coordinates without serializing widgets or
+  closures. Removal, disposal and worker teardown release references. Physical
+  pointer transfer remains pending: source-window mouse capture is not routed
+  to peer screen rectangles, so registration alone does not enable it.
+- [x] **General autoscroll and keyboard drag operations — delivered.** Frame-based
+  edge scrolling for scroll/list/model views and notebook headers; explicit
+  keyboard initiation, target cycling/aiming, movement, commit and cancellation.
+- [x] **Reusable split/drop zones — delivered.** Predicate/commit surfaces and
+  side-based paned composition through public drag/drop APIs. Workspace trees,
+  empty-pane collapse and persistence remain application policy.
+- [x] **OS drag-and-drop adapter — delivered with limited scope.** Separate
+  capability query and MIME delivery boundary; raylib supplies incoming file
+  paths (including worker IPC). Arbitrary MIME, outgoing drags and OS hover
+  negotiation remain unsupported; in-process payloads do not imply OS support.
+
+See [advanced interaction](advanced-interaction.md) and
+`lut-examples:advanced-interaction`. Portable behavior, closure/peer/session GC,
+light/dark native rendering, 200% injected peer-event transfer, keyboard return,
+OS path IPC and worker teardown pass on macOS. OS allocation/Unicode decoding
+and cleanup are tested at the adapter boundary. Injected peer events verify
+routing and IPC, not physical cross-window pointer delivery. Physical pointer
+transfer is unsupported pending capture-aware routing and manual acceptance.
+Physical Finder drops and Linux/Windows native behavior remain unverified.
 
 ## Delivery rule
 

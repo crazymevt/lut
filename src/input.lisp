@@ -1,7 +1,7 @@
 (in-package #:lut)
 (defstruct event
- "Normalized input. KIND: :DOWN :MOVE :UP :WHEEL :KEY :TEXT :CONTEXT :GESTURE. KEY: keyword. TEXT: string. X/Y/DELTA: real. SHIFT-P/CONTROL-P/ALT-P/SUPER-P: booleans; BASE-KEY is the key before shortcut aliases. TIMESTAMP is optional monotonic seconds; CLICK-COUNT optionally forces 1/2/3 on pointer down."
- kind (x 0) (y 0) key base-key (text "") (delta 0) shift-p control-p alt-p super-p timestamp click-count)
+ "Normalized input. KIND: :DOWN :MOVE :UP :WHEEL :KEY :TEXT :CONTEXT :GESTURE :OS-DROP. DROP-DATA holds adapter file-path strings for :OS-DROP. KEY: keyword. TEXT: string. X/Y/DELTA: real. SHIFT-P/CONTROL-P/ALT-P/SUPER-P: booleans; BASE-KEY is the key before shortcut aliases. TIMESTAMP is optional monotonic seconds; CLICK-COUNT optionally forces 1/2/3 on pointer down."
+ kind drop-data (x 0) (y 0) key base-key (text "") (delta 0) shift-p control-p alt-p super-p timestamp click-count)
 (defmethod (setf text) :around (new-text (entry entry))
  (if (and (slot-boundp entry 'view-buffer) (view-buffer entry))
      (set-buffer-view-text entry new-text)

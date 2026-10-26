@@ -1,7 +1,13 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:ui-scale #:ui-to-device #:device-to-ui #:dispatch-device-event
+  (:export #:closable-p #:tab-badge #:request-page-close #:page-close-request
+   #:close-request-page #:close-request-reason #:close-request-veto-p
+   #:drag-controller #:make-drag-controller #:register-drag-window #:unregister-drag-window
+   #:window-drag-controller #:begin-keyboard-drag #:keyboard-drag-to #:advance-drag
+   #:drag-autoscroll #:drop-zone #:drop-predicate #:drop-function #:split-drop-zone #:split-edge #:split-drop
+   #:os-drop #:os-drop-mime #:os-drop-data #:dispatch-os-drop #:os-drag-capabilities
+   #:ui-scale #:ui-to-device #:device-to-ui #:dispatch-device-event
    #:install-command-menu #:command-menu #:command-menu-backend #:command-menu-bar #:refresh-command-menu #:menu-separator
    #:request-path #:path-request #:path-request-state #:path-request-result #:path-request-dialog #:cancel-path-request
    #:platform-capabilities #:platform-capability #:begin-ui-scissor #:with-ui-scissor
@@ -47,7 +53,7 @@
    #:style #:theme #:*light-theme* #:*dark-theme* #:style-value #:add-child
    #:remove-child #:bind-key #:on #:emit #:make-widget #:with-ui #:layout #:hit-test
    #:dispatch #:make-event #:event-kind #:event-x #:event-y #:event-key
-   #:event-text #:event-delta #:event-shift-p #:event-control-p #:event-alt-p #:event-super-p #:event-timestamp #:event-click-count #:event-base-key #:focus #:modal-p #:focused-widget
+   #:event-drop-data #:event-text #:event-delta #:event-shift-p #:event-control-p #:event-alt-p #:event-super-p #:event-timestamp #:event-click-count #:event-base-key #:focus #:modal-p #:focused-widget
    #:undo #:redo #:history-limit #:history-character-limit #:selection #:cursor #:select-all #:selected-text #:replace-selection
    #:scroll-offset #:minimum #:maximum #:step #:draw-function #:render
    #:on-widget #:cancel-ui #:on-ui #:enqueue-ui #:run #:start #:stop #:*window* #:frame-step #:show-dialog #:close-dialog #:dismiss-dialog #:unsupported-capability #:detach-window

@@ -29,7 +29,8 @@
  :border-color (78 88 108 255) :hover-color (60 69 86 255)
  :pressed-color (70 83 106 255) :disabled-color (78 84 98 255) :accent (90 155 255 255) :font-size 18 :padding 8))
 (defwidget widget () "Base node. Geometry is in logical pixels; styles inherit through parents."
- ((id nil (or null string symbol) "Optional application identifier used by FIND-WIDGET.")
+ ((tab-badge nil (or null string) "Optional generic notebook badge; follows this page through transfers.")
+  (id nil (or null string symbol) "Optional application identifier used by FIND-WIDGET.")
   (parent nil (or null widget) "Managed by ADD-CHILD; do not assign directly.")
   (children nil list "Ordered child widgets; use ADD-CHILD and REMOVE-CHILD.")
   (x 0 real "Allocated horizontal position.") (y 0 real "Allocated vertical position.")
@@ -61,6 +62,7 @@
   (focused-widget nil (or null widget) "Keyboard focus within this root.")
   (overlays nil list "Internal modal dialog stack.")
   (pressed-widget nil (or null widget) "Internal pointer capture.")
+  (window-drag-controller nil t "Internal explicit cross-window controller registration.")
   (drag-context nil t "Internal pending or active drag session.")
   (interaction-state nil list "Internal pointer gesture state.")
   (text-selection-state nil list "Internal captured text selection gesture.")
@@ -365,7 +367,7 @@ Return CALLBACK and, as a second value, a CONNECTION handle for DISCONNECT."
              (slot-value w 'text-selection-state) nil (slot-value w 'text-click-state) nil
              (slot-value w 'style-source) nil (slot-value w 'style-rules) nil (slot-value w 'theme) nil)))
    (dolist (c (append (copy-list (slot-value w 'handlers)) (copy-list (slot-value w 'connections)))) (disconnect c))
-   (setf (slot-value w 'children) nil (slot-value w 'handlers) nil (slot-value w 'connections) nil
+   (setf (slot-value w 'tab-badge) nil (slot-value w 'children) nil (slot-value w 'handlers) nil (slot-value w 'connections) nil
          (slot-value w 'style) nil (slot-value w 'state-style) nil)
    (when (or (typep w 'label) (typep w 'window) (typep w 'dialog) (typep w 'expander)) (setf (slot-value w 'text) ""))
    (when (typep w 'entry)

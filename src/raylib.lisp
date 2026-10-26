@@ -445,10 +445,14 @@ Return FUNCTION and, as a second value, a cancellable job handle."
              when (and (< px (+ left viewport)) (> (+ px tab) left)) do
          (rl:draw-rectangle px (y w) tab (style-value w :title-height)
            (if (= i (value w)) (style-value w :accent) (surface-color w)))
-         (draw-string w (fit-caption w (or (nth i (items w)) "Page")
-                                    (max 0 (- tab (* 2 (style-value w :padding)))))
+         (draw-string w (fit-caption w (tab-caption w i)
+                                    (max 0 (- tab (* 2 (style-value w :padding))
+                                      (if (closable-p w) (style-value w :title-height) 0))))
                         (+ px (style-value w :padding)) (y w)
-                        (when (= i (value w)) (style-value w :on-accent))))))
+                        (when (= i (value w)) (style-value w :on-accent)))
+         (when (closable-p w)
+           (draw-string w "×" (- (+ px tab) (style-value w :title-height)) (y w)
+                        (when (= i (value w)) (style-value w :on-accent)))))))
    (begin-ui-scissor (first *clip*) (second *clip*)
                          (third *clip*) (fourth *clip*))
    (when (plusp button)
@@ -459,7 +463,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
          (draw-string w (if right ">" "<") (+ px (/ button 3)) (y w)
                       (style-value w (if enabled :foreground :disabled-color))))))))
 (defmethod render-drag-feedback ((window window))
- (let ((session (current-drag window)))
+ (let ((session (visible-drag window)))
    (when (and session (eq (drag-state session) :dragging))
      (let ((target (drag-target session)) (source (drag-source session)))
        (when target
@@ -561,11 +565,19 @@ Return FUNCTION and, as a second value, a cancellable job handle."
        (control (or (rl:is-key-down :left-control) (rl:is-key-down :right-control)))
        (alt (or (rl:is-key-down :left-alt) (rl:is-key-down :right-alt)))
        (super (or (rl:is-key-down :left-super) (rl:is-key-down :right-super))))
-   (flet ((send (kind &key key (base-key key) (text "") (delta 0))
-            (let ((event (make-event :kind kind :x mx :y my :key key :base-key base-key :text text :delta delta
+   (flet ((send (kind &key key (base-key key) (text "") (delta 0) drop-data)
+            (let ((event (make-event :kind kind :drop-data drop-data :x mx :y my :key key :base-key base-key :text text :delta delta
                                     :shift-p shift :control-p control :alt-p alt :super-p super
                                     :timestamp (/ (get-internal-real-time) internal-time-units-per-second))))
               (if *event-sink* (funcall *event-sink* event) (dispatch w event)))))
+     (when (rl:is-file-dropped)
+       (let ((files (rl:load-dropped-files)))
+         (unwind-protect
+           (send :os-drop :drop-data
+             (loop for i below (rl:file-path-list-count files) collect
+               (cffi:foreign-string-to-lisp (cffi:mem-aref (rl:file-path-list-paths files) :pointer i)
+                                            :encoding :utf-8)))
+           (rl:unload-dropped-files files))))
      (when (rl:is-mouse-button-pressed :left) (send :down))
      (send :move)
      (when (rl:is-mouse-button-released :left) (send :up))
@@ -611,6 +623,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
  (unless (rl:is-window-focused) (cancel-text-selection w :forget-clicks t))
  (poll-input w)
  (advance-text-selection w dt)
+ (advance-drag w dt)
  (rl:with-drawing ((style-value w :background)) (render-window w))
  (sweep-native-resources))
 (defun render-window (w)
@@ -679,3 +692,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
  (when target (pushnew target *retired-targets* :test #'eq)))
 (defun flush-retired-targets ()
  (mapc #'rl:unload-render-texture *retired-targets*) (setf *retired-targets* nil))
+
+(defmethod os-drag-capabilities ((window window))
+ (list :incoming t :outgoing nil :mime-types (list "application/x-lut-file-path-list")
+       :status :file-paths-only :scope :raylib-window :hover-feedback nil))

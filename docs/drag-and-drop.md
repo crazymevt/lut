@@ -1,13 +1,18 @@
 # Drag-and-drop and notebook tabs
 
-LUT supplies drag sessions and drop targets within one window. Payloads are
-ordinary Lisp values and stay in the controller process. This is independent of
+LUT supplies pointer drag sessions within a window, plus keyboard and
+programmatic transfers between explicitly registered peer windows. Physical
+pointer dragging between native windows is unsupported. Payloads are ordinary
+Lisp values and stay in the controller process. This is independent of
 an editor, document type or workspace layout.
 
 ## Notebook tabs
 
 Opt in with `:reorderable-p t`. Two notebooks can exchange pages when they have
-equal, non-NIL `:tab-group` values and belong to the same window:
+equal, non-NIL `:tab-group` values and belong to the same window. Cross-window
+keyboard/programmatic transfers require an explicit drag controller; see
+[advanced interaction](advanced-interaction.md). The example below uses
+in-window pointer dragging:
 
 ```lisp
 (lut:with-ui (lut:paned :height 300)
@@ -109,10 +114,11 @@ The raylib backend paints a target outline, insertion marker for notebook tabs,
 and accepted/rejected pointer marker. Override `render-drag-feedback` on your
 window class for a custom preview; call the next method to retain default feedback.
 
-This first implementation does not supply cross-native-window transfers,
-OS/MIME drag-and-drop, keyboard drag operations, automatic content-area edge scrolling,
-tab close controls, or docking. Applications may build split/drop-zone
-policies using custom targets without adding workspace rules to LUT.
+See [advanced interaction and composition](advanced-interaction.md) for tab
+close requests/badges, controller-owned keyboard/programmatic peer transfers, keyboard dragging,
+stationary-pointer content scrolling, reusable split/drop zones, and the
+incoming OS file-path adapter. Arbitrary MIME and outgoing OS drags remain
+unsupported; workspace/persistence policies remain application code.
 
 ## Tab overflow
 

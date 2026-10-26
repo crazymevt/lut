@@ -14,7 +14,8 @@
 (defwidget stack (widget) "Only child at selected page VALUE participates in layout and input."
  ((value 0 (integer 0 *) "Visible zero-based page index.")))
 (defwidget notebook (stack) "Tabbed stack with optional page reordering and grouped tab transfer."
- ((tab-offset 0 (real 0 *) "Horizontal tab-strip scroll offset in pixels; clamped during layout.")
+ ((closable-p nil boolean "Show tab close affordances; requests may be vetoed.")
+  (tab-offset 0 (real 0 *) "Horizontal tab-strip scroll offset in pixels; clamped during layout.")
   (tab-reveal-p t boolean "Internal request to reveal the selected tab.")
   (tab-layout-extent -1 real "Internal previous strip extent.")
   (tab-layout-width -1 real "Internal previous widget width.")

@@ -21,7 +21,7 @@
 (defun read-message (stream)
  (with-standard-io-syntax (let ((*read-eval* nil)) (read stream nil :eof))))
 (defun event-data (e)
- (list :kind (event-kind e) :x (event-x e) :y (event-y e) :key (event-key e)
+ (list :kind (event-kind e) :drop-data (copy-tree (event-drop-data e)) :x (event-x e) :y (event-y e) :key (event-key e)
        :text (event-text e) :delta (event-delta e) :shift-p (event-shift-p e)
        :control-p (event-control-p e) :alt-p (event-alt-p e) :super-p (event-super-p e) :base-key (event-base-key e)
        :timestamp (event-timestamp e) :click-count (event-click-count e)))
@@ -112,6 +112,7 @@ NIL means keep the worker's existing texture; control/input round trips continue
        (when (and (eq root (remote-window-root remote)) (not (disposed-p root)))
          (open-pending-dialogs root) (layout-window root)
          (advance-text-selection root (if *active-window* (rl:get-frame-time) 0))
+         (advance-drag root (if *active-window* (rl:get-frame-time) 0))
          (send-snapshot remote))))))
 (defun spawn-window (window &key position (style-source *active-window*) (flags '(:window-resizable)))
  "Open WINDOW in a native worker process. Its objects and event callbacks stay in this REPL.
@@ -304,7 +305,9 @@ This is an intentional REPL evaluation API over private child-process pipes; nev
 (defun finalize-remote-window (remote)
  (let ((root (remote-window-root remote)))
    (when root
-     (handler-case (cancel-drag root)
+     (handler-case (if (window-drag-controller root)
+                       (unregister-drag-window (window-drag-controller root) root)
+                       (cancel-drag root))
        (error (e) (unless (remote-window-error remote) (setf (remote-window-error remote) e)))))
    (when (and (remote-window-target remote) *active-window*)
      (retire-render-target (remote-window-target remote)))

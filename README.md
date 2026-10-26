@@ -198,3 +198,10 @@ documented in [data models](docs/data-models.md); try `lut-examples:data-models`
 Phase 4 menus (including separators), native/portable path pickers, UI scaling
 and capability limits are documented in [platform integration](docs/platform-integration.md).
 Try `lut-examples:platform-integration`.
+
+Phase 5 close requests/badges, keyboard/programmatic peer transfers, keyboard dragging,
+drag autoscroll, split/drop zones and incoming OS file paths are documented in
+[advanced interaction](docs/advanced-interaction.md).
+Try `lut-examples:advanced-interaction`. Arbitrary MIME and outgoing OS drags
+remain unsupported. Physical cross-window pointer transfer is unfinished;
+Finder drag acceptance and Linux/Windows native behavior remain unverified.
