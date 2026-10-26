@@ -197,10 +197,21 @@ Return FUNCTION and, as a second value, a cancellable job handle."
        (rl:with-scissor-mode ((round (first clip)) (round (second clip)) (round (third clip)) (round (fourth clip)))
          (call-next-method)
          (when (and (typep (root-of w) 'window) (eq w (focused-widget (root-of w))))
-           (rl:draw-rectangle-rounded-lines-ex
-             (rl:rect (+ (x w) 1) (+ (y w) 1) (max 0 (- (width w) 2)) (max 0 (- (height w) 2)))
-             (resolved-roundness w (max 0 (- (width w) 2)) (max 0 (- (height w) 2)))
-             12 2 (style-value w :focus-color))))
+           ;; Elevated faces need an inner ring so focus cannot cover their
+           ;; highlight or lower shadow. Check/switch indicators use the usual ring.
+           (let* ((elevated (or (typep w 'dropdown)
+                               (and (typep w 'button)
+                                    (or (not (typep w 'check-button))
+                                        (and (typep w 'toggle-button) (not (typep w 'switch)))))))
+                  (depth (if elevated (button-depth w) 0))
+                  (inset (if (plusp depth) 4 1))
+                  (fw (max 0 (- (width w) (* 2 inset))))
+                  (fh (max 0 (- (height w) depth (* 2 inset)))))
+             (when (and (plusp fw) (plusp fh))
+               (rl:draw-rectangle-rounded-lines-ex
+                 (rl:rect (+ (x w) inset)
+                          (+ (y w) inset (if (and elevated (button-depressed-p w)) depth 0)) fw fh)
+                 (resolved-roundness w fw fh) 12 2 (style-value w :focus-color))))))
        (dolist (child (active-children w)) (render child))))))
 (defun intersect-rectangles (a b)
  (let ((left (max (first a) (first b))) (top (max (second a) (second b))))
