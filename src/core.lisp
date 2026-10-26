@@ -80,6 +80,7 @@
 (defwidget progress-bar (slider) "Read-only numeric progress indicator." ())
 (defwidget list-view (widget) "Selectable rows; :CHANGE receives selected index."
  ((items nil list "Strings displayed as rows.")
+  (hovered-row nil (or null (integer 0 *)) "Internal pointer row; separate from selection.")
   (value nil (or null (integer 0 *)) "Selected zero-based index, or NIL.")
   (scroll-offset 0 (real 0 *) "Vertical scroll in pixels.")))
 (defwidget scroll-view (box) "Clipped container with wheel scrolling."

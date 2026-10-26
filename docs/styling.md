@@ -124,3 +124,9 @@ Opening either selector focuses its popup list immediately. Up/Down move the
 highlight without changing the owner; Enter commits the highlighted option.
 Escape cancels the preview. Selection and cancellation return focus to the
 owner, so no Tab step is needed to continue keyboard use.
+
+List and table hover feedback applies to the individual row under the pointer,
+using `:hover-color` (or `:pressed-color` while pressed). The list surface stays
+neutral. Selected rows retain `:accent` and `:on-accent`; hovering does not change
+selection or commit a popup option. Hover clears on leaving or empty space and
+tracks scrolled content; table headers are excluded from row hover.
