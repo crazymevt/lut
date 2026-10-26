@@ -3,7 +3,7 @@
   (:shadow #:step #:directory)
   (:export #:drag-session #:current-drag #:drag-source #:drag-payload #:drag-target
    #:drag-state #:drag-x #:drag-y #:drag-data #:accepts-drop-p #:perform-drop
-   #:begin-drag #:cancel-drag #:render-drag-feedback #:reorderable-p #:tab-group #:move-page
+   #:begin-drag #:cancel-drag #:render-drag-feedback #:reorderable-p #:tab-group #:move-page #:tab-offset #:scroll-tabs #:reveal-page #:tab-at-position
    #:toggle-button #:switch #:radio-button #:spin-button #:dropdown #:combo-box
    #:stack #:notebook #:grid #:paned #:header-bar #:menu-bar #:popover #:tooltip
    #:expander #:tree-view #:table-view #:column-view #:image #:file-chooser
@@ -18,7 +18,7 @@
    #:style #:theme #:*light-theme* #:*dark-theme* #:style-value #:add-child
    #:remove-child #:bind-key #:on #:emit #:make-widget #:with-ui #:layout #:hit-test
    #:dispatch #:make-event #:event-kind #:event-x #:event-y #:event-key
-   #:event-text #:event-delta #:event-shift-p #:focus #:modal-p #:focused-widget
+   #:event-text #:event-delta #:event-shift-p #:event-control-p #:event-alt-p #:event-super-p #:event-base-key #:focus #:modal-p #:focused-widget
    #:undo #:redo #:history-limit #:history-character-limit #:selection #:cursor #:select-all #:selected-text #:replace-selection
    #:scroll-offset #:minimum #:maximum #:step #:draw-function #:render
    #:on-widget #:cancel-ui #:on-ui #:enqueue-ui #:run #:start #:stop #:*window* #:frame-step #:show-dialog #:close-dialog #:dismiss-dialog #:unsupported-capability #:detach-window

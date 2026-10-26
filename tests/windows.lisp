@@ -98,7 +98,7 @@
        (popup (lut:make-widget 'lut:popover))
        (owner-button (lut:add-child main (lut:make-widget 'lut:button :text "Owner action")))
        (owner-list (lut:add-child main (lut:make-widget 'lut:list-view :items '("Hover row"))))
-       (parent-clicks 0) (parent-keys 0)
+       (parent-clicks 0) (parent-keys 0) (forwarded-modifiers nil)
        (remote nil) (phase :open)
        (deadline (+ (get-internal-real-time) (* 15 internal-time-units-per-second))))
  (lut:on owner-button :activate (lambda (w e) (declare (ignore w e)) (incf parent-clicks)))
@@ -148,7 +148,16 @@
              (assert (eq nested-remote (lut::modal-blocker main)))
              (lut:dismiss-dialog nested)
              (assert (eq remote (lut::modal-blocker main)))))
+         (lut:on (lut::remote-window-root remote) :key
+           (lambda (w e)
+             (declare (ignore w))
+             (when (eq (lut:event-key e) :f12)
+               (setf forwarded-modifiers
+                 (list (lut:event-base-key e) (lut:event-control-p e)
+                       (lut:event-alt-p e) (lut:event-super-p e) (lut:event-shift-p e))))))
          (lut:on-window remote
+           (lut::forward-native-event (lut:make-event :kind :key :key :f12 :base-key :f12
+                                                     :control-p t :alt-p nil :super-p t :shift-p t))
            (lut::forward-native-event (lut:make-event :kind :key :key :escape)))
          (setf phase :closing)))
      (:closing
@@ -159,6 +168,7 @@
          (setf phase :done) (lut:stop))))))
  (lut:run main :frames 1500)
  (assert (eq phase :done))
+ (assert (equal forwarded-modifiers '(:f12 t nil t t)))
  (assert (lut:disposed-p dialog))
  (assert (null (lut::remote-window-error remote)))
  (format t "Immediate native creation, modal/modeless owner input, nested modals, overlay popovers and Escape dismissal passed.~%"))

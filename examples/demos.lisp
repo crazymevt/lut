@@ -1,4 +1,4 @@
-(defpackage #:lut-examples (:use #:cl) (:export #:hello-world #:todo #:editor #:drawing #:clock #:adwaita #:gallery #:drag-tabs))
+(defpackage #:lut-examples (:use #:cl) (:export #:hello-world #:todo #:editor #:drawing #:clock #:adwaita #:gallery #:drag-tabs #:overflow-tabs))
 (in-package #:lut-examples)
 (defun action (title function)
  (let ((b (lut:make-widget 'lut:button :text title)))
@@ -85,3 +85,12 @@
        (declare (ignore w change))
        (setf (lut:text status) (format nil "Left: ~d pages; right: ~d pages."
                                (length (lut:children left)) (length (lut:children right))))))) root))
+
+(defun overflow-tabs ()
+ "Many pages demonstrate overflow navigation together with grouped tab dragging."
+ (let* ((root (drag-tabs)) (left (lut:find-widget root :left-tabs)))
+   (setf (lut:text root) "Notebook overflow")
+   (dotimes (i 12)
+     (lut:add-child left (lut:make-widget 'lut:entry :text (format nil "Extra page ~d" (1+ i)))))
+   (setf (lut:items left) (append (lut:items left)
+                            (loop for i below 12 collect (format nil "Extra ~d" (1+ i))))) root))

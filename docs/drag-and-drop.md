@@ -110,6 +110,28 @@ and accepted/rejected pointer marker. Override `render-drag-feedback` on your
 window class for a custom preview; call the next method to retain default feedback.
 
 This first implementation does not supply cross-native-window transfers,
-OS/MIME drag-and-drop, keyboard drag operations, automatic edge scrolling,
-tab overflow/close controls, or docking. Applications may build split/drop-zone
+OS/MIME drag-and-drop, keyboard drag operations, automatic content-area edge scrolling,
+tab close controls, or docking. Applications may build split/drop-zone
 policies using custom targets without adding workspace rules to LUT.
+
+## Tab overflow
+
+When tabs no longer fit, the notebook retains readable tab widths, clips the
+strip, and shows left/right navigation buttons. The mouse wheel over the header
+scrolls the tabs without changing the selected page. Left/Right keyboard page
+selection and `select-page` reveal the selected tab automatically; resizing and
+caption/page changes clamp the offset and reveal the selection on layout.
+Dragging near either edge of the visible strip scrolls toward hidden tabs.
+Navigation buttons do not start a drag or select a page.
+
+`scroll-tabs` accepts a pixel delta; `tab-offset` exposes the current pixel offset
+and is clamped on layout. `reveal-page` scrolls a given page into view without
+selecting it. `tab-at-position` returns the visible page at root coordinates,
+excluding navigation controls and the content body.
+
+Styles `:tab-min-width` (96), `:tab-max-width` (220) and `:tab-scroll-step` (96)
+control overflow geometry. Long labels are truncated within their tabs. When all
+tabs fit they continue to share the available strip width. For a strip too narrow
+to expose any tab, resize it or select a page from code/keyboard.
+
+Try `(lut:start (lut-examples:overflow-tabs))` after loading `lut/examples`.

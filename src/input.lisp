@@ -1,7 +1,7 @@
 (in-package #:lut)
 (defstruct event
- "Normalized input. KIND: :DOWN :MOVE :UP :WHEEL :KEY :TEXT :CONTEXT :GESTURE. KEY: keyword. TEXT: string. X/Y/DELTA: real. SHIFT-P: boolean."
- kind (x 0) (y 0) key (text "") (delta 0) shift-p)
+ "Normalized input. KIND: :DOWN :MOVE :UP :WHEEL :KEY :TEXT :CONTEXT :GESTURE. KEY: keyword. TEXT: string. X/Y/DELTA: real. SHIFT-P/CONTROL-P/ALT-P/SUPER-P: booleans; BASE-KEY is the key before shortcut aliases."
+ kind (x 0) (y 0) key base-key (text "") (delta 0) shift-p control-p alt-p super-p)
 (defvar *record-history* t)
 (defun edit-snapshot (entry)
  (list (copy-seq (text entry)) (cursor entry) (slot-value entry 'anchor)))

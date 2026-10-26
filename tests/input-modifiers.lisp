@@ -1,0 +1,42 @@
+(require :asdf)
+(load (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname)))
+(asdf:load-asd (truename "lut.asd"))
+(ql:quickload "lut/raylib" :silent t)
+(defun check-modifier-poll (root keys expected)
+ ;; Stub hardware sampling while exercising the real poller and alias mapping.
+ (let* ((symbols '(rl:is-key-down rl:is-key-pressed rl:is-key-pressed-repeat
+                  rl:get-key-pressed rl:get-char-pressed))
+        (originals (mapcar #'symbol-function symbols))
+        (queue '(67 0)) (events nil)
+        (lut::*event-sink* (lambda (e) (push e events))))
+   (unwind-protect
+     (progn
+       (setf (symbol-function 'rl:is-key-down) (lambda (key) (not (null (member key keys))))
+             (symbol-function 'rl:is-key-pressed) (lambda (key) (member key '(:c :left)))
+             (symbol-function 'rl:is-key-pressed-repeat) (lambda (key) (declare (ignore key)) nil)
+             (symbol-function 'rl:get-key-pressed) (lambda () (or (pop queue) 0))
+             (symbol-function 'rl:get-char-pressed) (lambda () 0))
+       (lut::poll-input root)
+       (dolist (kind '(:copy :left))
+         (let ((event (find kind events :key #'lut:event-key)))
+           (assert event)
+           (assert (eq (lut:event-base-key event) (if (eq kind :copy) :c :left)))
+           (assert (equal expected
+                     (list (lut:event-control-p event) (lut:event-alt-p event)
+                           (lut:event-super-p event) (lut:event-shift-p event))))))
+       (let ((pointer (find :move events :key #'lut:event-kind)))
+         (assert pointer)
+         (assert (equal expected
+                   (list (lut:event-control-p pointer) (lut:event-alt-p pointer)
+                         (lut:event-super-p pointer) (lut:event-shift-p pointer))))))
+     (loop for symbol in symbols for original in originals do (setf (symbol-function symbol) original)))))
+(let ((root (lut:make-widget 'lut:window :width 160 :height 100)) (tested nil))
+ (lut:on root :tick (lambda (w dt)
+   (declare (ignore dt))
+   (unless tested
+     (check-modifier-poll w '(:left-super :left-alt :left-shift) '(nil t t t))
+     (check-modifier-poll w '(:left-control) '(t nil nil nil))
+     (setf tested t))))
+ (unwind-protect (lut:run root :frames 2) (lut:dispose root))
+ (assert tested))
+(format t "Native poller preserves independent modifiers/base keys for clipboard aliases, arrows and pointer events.~%")

@@ -1,6 +1,6 @@
 (in-package #:lut)
 (defparameter *style-defaults*
- '(:drag-threshold 6 :scrollbar-width 12 :wrap-text nil :font nil :font-size 18 :font-spacing 0 :line-height 26 :row-height 30
+ '(:tab-min-width 96 :tab-max-width 220 :tab-scroll-step 96 :drag-threshold 6 :scrollbar-width 12 :wrap-text nil :font nil :font-size 18 :font-spacing 0 :line-height 26 :row-height 30
    :button-depth 2 :button-shadow (0 0 0 35) :button-highlight (255 255 255 45)
    :surface (255 255 255 255) :on-accent (255 255 255 255)
    :padding 8 :caret-width 2 :border-width 1 :border-radius 0.3 :max-border-radius 8
@@ -51,7 +51,7 @@ STYLE-SOURCE propagates application styling across native windows. Later matchin
  (unless (evenp (length tokens)) (error "Styles must be property lists."))
  (loop for (key v) on tokens by #'cddr do
    (case key
-     ((:font-size :line-height :row-height :title-height)
+     ((:tab-min-width :tab-max-width :tab-scroll-step :font-size :line-height :row-height :title-height)
       (unless (typep v '(real (0) *)) (error "~a must be positive." key)))
      ((:drag-threshold :scrollbar-width :padding :font-spacing :border-width :caret-width :max-border-radius :button-depth)
       (unless (typep v '(real 0 *)) (error "~a must be non-negative." key)))

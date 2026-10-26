@@ -131,3 +131,17 @@ Lisp's `*error-output*` while LUT owns the native window. This keeps warnings
 out of stdout-based editor protocols, including Argon's framed REPL. Worker
 processes inherit OS stderr rather than an editor's captured Gray stream, so
 native worker shutdown does not depend on the editor's stream copier.
+
+## Modifier-preserving input
+
+Normalized events now expose `event-control-p`, `event-alt-p`, `event-super-p`
+and the existing `event-shift-p` independently, on pointer, key, gesture and text
+events. `event-base-key` retains the key before shortcut normalization: a native
+Cmd+C event has key `:copy`, base key `:c`, super true and control false. Ctrl+C
+has control true instead. Synthetic events may set these fields with `make-event`;
+unspecified fields default to NIL. Worker-window IPC preserves every field.
+
+Existing `event-key` aliases and `bind-key` names remain compatible, including
+`:control-s` for Cmd+S on macOS. Custom widgets can inspect the base key and flags
+to distinguish commands, modified arrows, and Alt combinations. This adds
+modifier information; it does not add key-release events or IME composition.

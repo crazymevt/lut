@@ -19,7 +19,8 @@
  (with-standard-io-syntax (let ((*read-eval* nil)) (read stream nil :eof))))
 (defun event-data (e)
  (list :kind (event-kind e) :x (event-x e) :y (event-y e) :key (event-key e)
-       :text (event-text e) :delta (event-delta e) :shift-p (event-shift-p e)))
+       :text (event-text e) :delta (event-delta e) :shift-p (event-shift-p e)
+       :control-p (event-control-p e) :alt-p (event-alt-p e) :super-p (event-super-p e) :base-key (event-base-key e)))
 (defun encode-remote-frame (remote)
  "Render every frame for live code/custom drawing, but PNG-encode only changed pixels.
 NIL means keep the worker's existing texture; control/input round trips continue."

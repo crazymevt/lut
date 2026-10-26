@@ -163,7 +163,7 @@
    (let ((page (first (lut:children b))))
      (lut:move-page b page a 0)
      (assert (null (lut:children b))) (assert (null (lut:items b))) (assert (zerop (lut:value b)))
-     (drag-event root :down 20 10) (drag-event root :move 400 10) (drag-event root :up 400 10)
+     (drag-event root :down 48 10) (drag-event root :move 400 10) (drag-event root :up 400 10)
      (assert (eq b (lut:parent page))) (assert (equal (lut:items b) '("D")))))
  ;; Opt-in, cross-window and containment restrictions.
  (multiple-value-bind (root a b) (notebook-fixture)
