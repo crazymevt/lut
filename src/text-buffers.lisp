@@ -57,6 +57,7 @@
                (slot-value view 'undo-history) nil (slot-value view 'redo-history) nil
                (slot-value view 'last-cursor) -1)
          (when buffer (setf (slot-value view 'text-offset) 0 (slot-value view 'vertical-offset) 0))
+         (when buffer (reset-text-presentation view))
          (unless (or quiet (string= previous contents)) (emit view :change contents)))))) buffer)
 (defmethod (setf view-buffer) :around (buffer (view entry))
  (check-type buffer (or null text-buffer))
@@ -150,6 +151,7 @@
          (when (and (not (disposed-p view)) (eq (view-buffer view) buffer))
            (if (eq view origin) (cancel-view-text-selection view)
                (remap-view-text-selection view start end new-end))
+           (remap-text-presentation view start end new-end)
            (setf (slot-value view 'text) ""
                  (slot-value view 'cursor) (remap-text-position (cursor view) start end new-end)
                  (slot-value view 'anchor) (remap-text-position (slot-value view 'anchor) start end new-end))

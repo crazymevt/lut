@@ -1,7 +1,12 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:text-length #:text-range #:text-line-count #:text-line-range #:text-position-line
+  (:export #:styled-text-view #:document-view #:gutter-width #:set-text-presentation
+   #:invalidate-text-presentation #:text-presentation-revision #:text-runs #:text-decorations
+   #:text-style-at #:document-links #:document-images #:document-hit-test
+   #:anchored-surface #:suggestion-surface #:show-anchored-surface #:dismiss-anchored-surface
+   #:accept-suggestion #:item-label-function #:dismiss-on-blur-p
+   #:text-length #:text-range #:text-line-count #:text-line-range #:text-position-line
    #:text-position-rectangle #:text-point-position #:map-visible-text-lines #:invalidate-text-geometry
    #:text-word-range #:select-word #:select-line #:move-text-cursor #:reveal-text-cursor
    #:advance-text-selection #:cancel-text-selection

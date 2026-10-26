@@ -59,19 +59,27 @@ See [drag-and-drop](drag-and-drop.md), [commands](commands.md) and
 
 ## Phase 2: Reusable document presentation
 
-- [ ] **Styled text runs and decorations — next.** Font/color spans, underlines,
-  selection, gutters and annotations with explicit invalidation. Applications
-  supply syntax/diagnostic data; LUT does not supply a language server or parser.
-- [ ] **Read-only document view.** Selectable formatted text, links, embedded
-  images and hit testing. Navigation/history and markup parsing should remain
-  separable models/adapters, not an Argon documentation tab.
-- [ ] **Anchored suggestion/help surfaces.** Reusable caret/rectangle-anchored
-  popovers with keyboard selection and dismissal. Completion candidates and
-  parameter/documentation lookup remain application data.
+- [x] **Styled text runs and decorations — delivered.** Per-view font/color
+  spans, backgrounds, selection, underlines, gutter markers and annotations with
+  explicit invalidation and edit remapping. Rendering and hit testing share run
+  metrics; applications supply syntax/diagnostic data, not LUT.
+- [x] **Read-only document view — delivered.** Selectable formatted text,
+  application link targets, inline images and hit testing. Programmatic refresh
+  remains available. Parsing, routing, navigation/history and rich serialization
+  stay in application models/adapters. Text uses unwrapped logical lines and
+  explicit line height; this is not an HTML/paragraph layout engine.
+- [x] **Anchored suggestion/help surfaces — delivered.** In-window caret/root-
+  rectangle anchoring with flip/clamp/reposition, keyboard/pointer candidate
+  selection, dismissal and focus/lifetime handling. Acceptance emits original
+  application data; candidate ranking and documentation lookup remain external.
+
+See [text presentation](text-presentation.md) and
+`lut-examples:document-presentation`. Portable behavior, GC and native light/dark
+rendering/interaction checks pass on macOS. Linux/Windows remain unverified.
 
 ## Phase 3: Data model and selection foundations
 
-- [ ] **Virtualized list model.** Extract reusable model/viewport contracts from
+- [ ] **Virtualized list model — next.** Extract reusable model/viewport contracts from
   demo-only implementations; avoid allocating one widget/string per row.
 - [ ] **Selection models.** Single/multiple/range selection with keyboard and
   pointer behavior independent of a particular list/tree/table.

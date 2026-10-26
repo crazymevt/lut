@@ -22,9 +22,13 @@
      (when (member root roots) (error "Style source cycle."))
      (push root roots) (setf root (style-source root)))
    (nreverse roots)))
+(defvar *text-style-context* nil)
 (defun style-value (w key &optional default)
  "Resolve local state/base, inherited overrides, class/state rules, root/application themes, then defaults.
 STYLE-SOURCE propagates application styling across native windows. Later matching rules win within a root."
+ (when (eq w (first *text-style-context*))
+   (multiple-value-bind (value found) (property (rest *text-style-context*) key)
+     (when found (return-from style-value value))))
  (let ((state (widget-state w)) (roots (style-roots w)))
    (labels ((lookup (node)
               (multiple-value-bind (v found) (property (getf (state-style node) state) key)

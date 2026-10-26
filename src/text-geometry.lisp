@@ -7,6 +7,11 @@
 (defgeneric map-text-run-advances (view string function))
 (defmethod map-text-run-advances ((view widget) string function)
  (loop for c across string do (funcall function (text-character-advance view c))))
+(defgeneric text-left-padding (view))
+(defmethod text-left-padding ((view widget)) (style-value view :padding))
+(defgeneric map-text-range-advances (view string start function))
+(defmethod map-text-range-advances ((view widget) string start function)
+ (declare (ignore start)) (map-text-run-advances view string function))
 (defgeneric text-metric-spacing (view))
 (defmethod text-metric-spacing ((view widget)) 0)
 (defgeneric text-metric-key (view))
@@ -50,7 +55,7 @@
          for from = (1- (length advances)) for to = (min size (+ from 256))
          for string = (index-substring (line-metrics-root metrics)
                          (+ (line-metrics-start metrics) from) (+ (line-metrics-start metrics) to))
-         do (map-text-run-advances view string
+         do (map-text-range-advances view string (+ (line-metrics-start metrics) from)
               (lambda (advance)
                 (vector-push-extend (+ (aref advances (1- (length advances)))
                                       (max 0 advance)) advances)))) advances))
@@ -69,7 +74,7 @@
    (let* ((line (index-position-line root position))
           (metrics (view-line-metrics view root line)) (column (- position (line-metrics-start metrics)))
           (advances (extend-line-metrics view metrics :column column)) (pad (style-value view :padding)))
-     (values (- (+ (x view) pad (metric-caret-width view advances column)) (text-offset view))
+     (values (- (+ (x view) (text-left-padding view) (metric-caret-width view advances column)) (text-offset view))
              (- (+ (y view) pad (* line (line-height view))) (vertical-offset view)) (style-value view :caret-width) (line-height view)))))
 (defun text-point-position (view px py)
  "Return nearest display character insertion position at root coordinates PX/PY; clamp outside text."
@@ -79,7 +84,7 @@
                   (max 0 (min (node-lines root) (floor (+ (- py (y view) pad) (vertical-offset view)) (line-height view)))) 0))
         (metrics (view-line-metrics view root line)))
    (+ (line-metrics-start metrics)
-      (line-column-at-pixel view metrics (+ (- px (x view) pad) (text-offset view))))))
+      (line-column-at-pixel view metrics (+ (- px (x view) (text-left-padding view)) (text-offset view))))))
 (defun map-visible-text-lines (view function)
  "Call FUNCTION with (LINE START END X Y) for vertically visible logical lines. END excludes newline; no text copies. Return count."
  (check-type view label)
@@ -92,13 +97,13 @@
      (loop for line from first below limit do
        (multiple-value-bind (start end) (index-line-range root line)
          (funcall function line start end
-                  (- (+ (x view) pad) (if entry-p (text-offset view) 0))
+                  (- (+ (x view) (text-left-padding view)) (if entry-p (text-offset view) 0))
                   (- (+ (y view) pad (* line lh)) offset)) (incf count)))) count))
 (defun visible-line-fragment (view root line)
  ;; Include the glyph crossing each horizontal viewport boundary.
  (let* ((metrics (view-line-metrics view root line))
         (left (if (typep view 'entry) (text-offset view) 0))
-        (right (+ left (max 0 (- (width view) (* 2 (style-value view :padding))))))
+        (right (+ left (max 0 (- (width view) (text-left-padding view) (style-value view :padding)))))
         (a (max 0 (1- (line-column-at-pixel view metrics left))))
         (b (min (- (line-metrics-end metrics) (line-metrics-start metrics))
                 (1+ (line-column-at-pixel view metrics right)))))

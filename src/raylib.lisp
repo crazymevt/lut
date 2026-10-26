@@ -597,6 +597,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
  (rl:with-drawing ((style-value w :background)) (render-window w))
  (sweep-native-resources))
 (defun render-window (w)
+ (update-anchored-surfaces w)
  (refresh-commands w)
  (render w)
  (dolist (d (reverse (slot-value w 'overlays))) (render d))

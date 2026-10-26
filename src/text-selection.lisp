@@ -50,7 +50,7 @@
    (multiple-value-bind (start end) (index-line-range root line)
      (values start (if (< end (node-size root)) (1+ end) end)))))
 (defun text-content-width (view)
- (max 1 (- (width view) (* 2 (style-value view :padding))
+ (max 1 (- (width view) (text-left-padding view) (style-value view :padding)
            (if (typep view 'combo-box) (selection-button-width view) 0))))
 (defun reveal-text-cursor (view &key (vertical t))
  "Reveal VIEW's caret using shared geometry and its own offsets. VERTICAL NIL preserves vertical scroll. Return VIEW; selection is unchanged."
@@ -59,7 +59,7 @@
    (let* ((pad (style-value view :padding))
           (available (text-content-width view))
           (tall (max lh (- (height view) (* 2 pad))))
-          (local-x (+ (- cx (x view) pad) (text-offset view)))
+          (local-x (+ (- cx (x view) (text-left-padding view)) (text-offset view)))
           (local-y (+ (- cy (y view) pad) (vertical-offset view))))
      (setf (text-offset view) (max 0 (min (text-offset view) local-x)))
      (when (> (+ local-x cw) (+ (text-offset view) available))
@@ -91,7 +91,7 @@
         (vertical (member movement '(:up :down)))
         (goal (when vertical
                 (or (slot-value view 'navigation-x)
-                    (+ (- (text-position-rectangle view position) (x view) (style-value view :padding)) (text-offset view)))))
+                    (+ (- (text-position-rectangle view position) (x view) (text-left-padding view)) (text-offset view)))))
         (destination
           (cond
             ((and (not extend) (/= position (slot-value view 'anchor))
@@ -107,7 +107,7 @@
                  ((:up :down)
                   (let ((row (max 0 (min (node-lines root) (+ line (if (eq movement :up) -1 1))))))
                     (text-point-position view
-                      (- (+ (x view) (style-value view :padding) goal) (text-offset view))
+                      (- (+ (x view) (text-left-padding view) goal) (text-offset view))
                       (- (+ (y view) (style-value view :padding) (* row (line-height view)) (/ (line-height view) 2))
                          (vertical-offset view))))))))))
    (setf (cursor view) destination)
@@ -173,8 +173,8 @@
    (reveal-text-cursor view)))
 (defun selection-content-bounds (view)
  (let ((pad (style-value view :padding)))
-   (values (+ (x view) pad) (+ (y view) pad)
-           (max (+ (x view) pad) (- (+ (x view) (width view)) pad (style-value view :caret-width)
+   (values (+ (x view) (text-left-padding view)) (+ (y view) pad)
+           (max (+ (x view) (text-left-padding view)) (- (+ (x view) (width view)) pad (style-value view :caret-width)
                    (if (typep view 'combo-box) (selection-button-width view) 0)))
            (max (+ (y view) pad) (- (+ (y view) (height view)) pad 1)))))
 (defun valid-text-selection-p (window)
@@ -237,7 +237,7 @@
             (line (index-position-line root position))
             (end (nth-value 1 (index-line-range root line))))
        (when (= position end)
-         (let* ((extent (+ (- (text-position-rectangle view end) (x view) (style-value view :padding))
+         (let* ((extent (+ (- (text-position-rectangle view end) (x view) (text-left-padding view))
                            (text-offset view)))
                 (limit (max 0 (- (+ extent (style-value view :caret-width)) (text-content-width view)))))
            (setf (text-offset view) (min (text-offset view) limit))))))

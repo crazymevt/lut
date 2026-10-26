@@ -191,3 +191,5 @@ remaining toolkit work and the boundary with application-specific behavior.
 `lut-examples:standalone-history` demonstrates range undo/redo and oversized-record feedback.
 See [text selection and navigation](docs/text-selection.md) and `lut-examples:text-selection`
 for word/line selection, caret reveal and selection autoscroll.
+Phase 2 presentation APIs and the `lut-examples:document-presentation` showcase are
+documented in [text presentation](docs/text-presentation.md).

@@ -62,7 +62,11 @@
             (not (eq widget (first (slot-value window 'text-selection-state)))))
    (cancel-text-selection window :forget-clicks t))
  (setf (focused-widget window) widget (focus-visible-p window) t))
-(defun input-root (window) (or (find-if-not (lambda (d) (typep d 'tooltip)) (slot-value window 'overlays)) window))
+(defun input-root (window) (or (find-if-not (lambda (d) (or (typep d 'tooltip) (nonmodal-overlay-p d))) (slot-value window 'overlays)) window))
+(defun input-hit-test (window px py)
+ (or (loop for overlay in (slot-value window 'overlays)
+           for hit = (and (nonmodal-overlay-p overlay) (hit-test overlay px py)) when hit return hit)
+     (hit-test (input-root window) px py)))
 (defun tab-focus (window backwards)
  (let (nodes)
    (labels ((visit (w)
@@ -135,7 +139,7 @@
  "Dispatch normalized input: :DOWN, :UP, :MOVE, :WHEEL, :KEY, :TEXT, :CONTEXT.
 Callbacks receive (widget payload). Pointer capture supports text drag selection."
  (let* ((root (input-root window))
-        (target (hit-test root (event-x event) (event-y event)))
+        (target (input-hit-test window (event-x event) (event-y event)))
         (focused (focused-widget window)))
    (when (and focused
               (not (and (eq (root-of focused) window)
