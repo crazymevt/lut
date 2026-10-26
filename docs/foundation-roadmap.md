@@ -190,11 +190,19 @@ OS resizing and Linux/Windows native behavior remain unverified; see
 
 ## Phase 8: General scrolling and reveal (G4)
 
-- [ ] **Public scrolling geometry.** Query content extent/page size and reveal
+- [x] **Public scrolling geometry — delivered.** Query content extent/page size and reveal
   child rectangles or text ranges after layout, including nested containers.
-- [ ] **Optional follow-end behavior.** Preserve a requested end relationship as
+- [x] **Optional follow-end behavior — delivered.** Preserve a requested end relationship as
   streaming content grows; applications decide when to follow, suspend it for
   search or user scrolling, and restore it. Do not bake chat policy into LUT.
+
+See [scrolling and reveal](scrolling.md) and `lut-examples:scrolling`. The public
+operations use allocated logical coordinates and are immediate after layout.
+Following is explicit application policy. Whole-document wrapped reflow remains
+the Phase 7 implementation; this phase does not claim incremental appends.
+Portable and macOS native font/render/injected-input checks pass on SBCL and CCL
+at explicit wide/narrow allocations and 100/125/200% scale. Physical OS resizing,
+manual interaction, and Linux/Windows native behavior remain unverified.
 
 ## Phase 9: Native application adapters (G6, G7)
 

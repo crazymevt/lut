@@ -57,7 +57,8 @@
    #:dispatch #:make-event #:event-kind #:event-x #:event-y #:event-key
    #:event-drop-data #:event-text #:event-delta #:event-shift-p #:event-control-p #:event-alt-p #:event-super-p #:event-timestamp #:event-click-count #:event-base-key #:focus #:modal-p #:focused-widget
    #:undo #:redo #:history-limit #:history-character-limit #:selection #:cursor #:select-all #:selected-text #:replace-selection
-   #:scroll-offset #:minimum #:maximum #:step #:draw-function #:render
+   #:scroll-geometry #:scroll-to #:reveal-rectangle #:reveal-widget #:reveal-text-range
+   #:follow-end-distance #:set-follow-end #:scroll-offset #:minimum #:maximum #:step #:draw-function #:render
    #:on-widget #:cancel-ui #:on-ui #:enqueue-ui #:run #:start #:stop #:*window* #:frame-step #:show-dialog #:close-dialog #:dismiss-dialog #:unsupported-capability #:detach-window
    #:on-window #:evaluate-in-window #:spawn-window #:close-window #:remote-window #:remote-alive-p #:*worker-command*
    #:open-context-menu #:clipboard-text #:choose-file #:choose-color #:choose-font

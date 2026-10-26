@@ -1,0 +1,28 @@
+(in-package #:lut-examples)
+(export 'scrolling)
+(defun scrolling ()
+ "Application-controlled following, search reveal and nested scrolling."
+ (let* ((root (lut:make-widget 'lut:window :text "Scrolling and reveal" :width 700 :height 550 :content-layout :fill))
+        (body (lut:add-child root (lut:make-widget 'lut:measured-box :spacing 10)))
+        (actions (lut:add-child body (lut:make-widget 'lut:flow-box :hexpand t :column-spacing 8 :row-spacing 8)))
+        (region (lut:add-child body (lut:make-widget 'lut:scroll-view :id :scroll-region
+                    :height-request 280 :min-height 100 :max-height 300 :vexpand t :hexpand t)))
+        (heading (lut:add-child region (lut:make-widget 'lut:label :text "Conversation" :height 60)))
+        (document (lut:add-child region (lut:make-widget 'lut:wrapped-document-view :id :scroll-document
+                     :height 220 :paragraph-spacing 6 :text (format nil "~{~a~%~}"
+                       (loop for i from 1 to 18 collect (format nil "Message ~d: Resize the window or append another message." i))))))
+        (count 18))
+   (declare (ignore heading))
+   (flet ((action (id label function)
+            (let ((button (lut:add-child actions (lut:make-widget 'lut:button :id id :text label))))
+              (lut:on button :activate (lambda (w payload) (declare (ignore w payload)) (funcall function))) button)))
+     (action :scroll-append "Append" (lambda ()
+       (setf (lut:text document) (concatenate 'string (lut:text document)
+         (format nil "Message ~d: New content follows only while you request it.~%" (incf count))))))
+     (action :scroll-pause "Pause" (lambda () (lut:set-follow-end document nil) (lut:set-follow-end region nil)))
+     (action :scroll-resume "Follow end" (lambda () (lut:set-follow-end document t) (lut:set-follow-end region t)))
+     (action :scroll-search "Find first" (lambda ()
+       (lut:set-follow-end document nil) (lut:set-follow-end region nil)
+       (lut:reveal-text-range document 0 9))))
+   (lut:add-child body (lut:make-widget 'lut:label :hexpand t :style '(:wrap-text t)
+     :text "Pause to browse freely. Find first reveals a match without changing selection. Follow end resumes following new messages.")) root))

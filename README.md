@@ -216,3 +216,10 @@ and `lut-examples:measured-layout`. Selectable/editor reflow remains pending.
 scrolling. `wrapped-document-view` adds paragraph spacing and variable-height
 headings/images. See [wrapped text](docs/wrapped-text.md) and
 `lut-examples:wrapped-text` for a bounded growing composer.
+
+## Scrolling and reveal
+
+Query content/page/offset with `scroll-geometry`, clamp with `scroll-to`, and
+reveal nested children or text ranges with `reveal-widget` / `reveal-text-range`.
+Applications explicitly enable or pause `set-follow-end`. See
+[scrolling and reveal](docs/scrolling.md) and `lut-examples:scrolling`.

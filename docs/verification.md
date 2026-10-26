@@ -143,3 +143,43 @@ and exactly one base/extension signature traversal per pass. It also verifies
 that missing-glyph extensions leave the base set unchanged and atlas identity
 survives fresh discovery lists. These checks run on SBCL and CCL; native cache
 and indexed-text regressions cover resource eviction and bounded run discovery.
+
+## Phase 8: General scrolling and reveal
+
+All shell checks use `/Users/jessie/.local/bin/quiet-run.sh --`.
+
+- `tests/portable.lisp`, run with `sbcl --script` and
+  `ccl --no-init --batch --load`: portable suites, GC, all 108 demo behaviors and
+  generated API docset validation pass. New scrolling tests cover geometry,
+  clamping, inside-out nested child/range reveal, horizontal unwrapped text,
+  wrapped boundaries/newlines/EOF, selection preservation, variable-height image
+  blocks, following distance, pause/restore, growth/shrink, resize, model disposal,
+  and unsupported/disposed views.
+- `tests/scrolling-native.lisp` on SBCL and CCL: light/dark rendering and native
+  font metrics, append/follow/pause/search/restore, nested match visibility,
+  explicit wide/narrow reflow and injected button input at 100/125/200% scale
+  pass. A subsequent actual render/frame preserves following without moving the
+  caret. Captures are `/tmp/lut-scroll-{search,tail}-{light,dark}-*.png`; the 100%
+  light search and dark end captures were visually inspected.
+- Existing wrapped-text, font-discovery, presentation, and resource-cache native
+  regressions pass. These include the earlier glyph lookup work bounds.
+
+These are explicit allocation and injected-input checks, not manual typing,
+physical OS resizing, wheel/scrollbar acceptance or Linux/Windows verification.
+Following deliberately does not change the documented whole-document streaming
+reflow cost. Applications choose when to suspend or resume it.
+
+### Phase 8 review: Bounded unwrapped reveal (F1)
+
+Horizontal reveal now uses the target rectangle, page width and current offset,
+without querying document-wide text extent. Explicit horizontal extent queries
+and `scroll-to` keep their exact full-document clamping behavior. The same
+bounded path is used when revealing through an unwrapped text ancestor.
+
+The portable scrolling regression uses 512 lines of 4,096 characters (about
+2 MiB). It counts measured characters and horizontal extent queries: cold near-left
+matches measure at most 256 characters, a match at column 2,048 measures at most
+2,304, repeated matches reuse cached advances, and caller-supplied rectangles
+measure no text. All reveal requests perform zero full horizontal extent queries;
+selection/cursor and expected offsets are checked. Cost remains proportional to
+affected line prefixes through the range endpoints, including chunk rounding.
