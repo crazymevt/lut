@@ -173,13 +173,20 @@ Linux/Windows native behavior remains unverified.
 
 ## Phase 7: Wrapped text and rich document blocks (G1, G3)
 
-- [ ] **Selectable/editable wrapped text (G1).** Shared visual-line geometry for
+- [x] **Selectable/editable wrapped text (G1) — delivered.** Shared visual-line geometry for
   rendering, hit testing, cursor navigation, selection and scrolling. Support
   composers that grow to a configured height limit using Phase 6 measurement.
   Paint-only label wrapping is not completion of this item.
-- [ ] **Variable-height document blocks (G3).** Paragraph spacing, heading metrics
+- [x] **Variable-height document blocks (G3) — delivered.** Paragraph spacing, heading metrics
   and block images whose size is independent of a global line height. Keep
   Markdown parsing, link routing and document models in applications.
+
+See [wrapped text](wrapped-text.md) and `lut-examples:wrapped-text`. Character
+wrapping preserves whitespace; shaping, bidi and IME remain unsupported.
+Portable suites and macOS native font/render/injected-input checks pass on SBCL
+and CCL at explicit wide/narrow/wide allocations and 100/125/200% scale. Physical
+OS resizing and Linux/Windows native behavior remain unverified; see
+[verification](verification.md).
 
 ## Phase 8: General scrolling and reveal (G4)
 

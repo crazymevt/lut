@@ -1,4 +1,5 @@
 (in-package #:lut)
+(defvar *text-caret-affinity* t)
 ;; Geometry describes unwrapped logical lines in root coordinates. Each cache
 ;; increment measures a bounded run, never a full-buffer or full-line string.
 (defgeneric text-character-advance (view character))
@@ -66,7 +67,8 @@
    (loop while (< lo hi) for mid = (floor (+ lo hi) 2)
          do (if (< pixel (/ (+ (metric-caret-width view advances mid) (metric-caret-width view advances (1+ mid))) 2))
                 (setf hi mid) (setf lo (1+ mid)))) lo))
-(defun text-position-rectangle (view position)
+(defgeneric text-position-rectangle (view position))
+(defmethod text-position-rectangle ((view entry) position)
  "Return caret X, Y, WIDTH, HEIGHT in root pixels for a display character position. No wrapping/shaping."
  (check-type view entry)
  (let ((root (display-index view)))
@@ -76,7 +78,8 @@
           (advances (extend-line-metrics view metrics :column column)) (pad (style-value view :padding)))
      (values (- (+ (x view) (text-left-padding view) (metric-caret-width view advances column)) (text-offset view))
              (- (+ (y view) pad (* line (line-height view))) (vertical-offset view)) (style-value view :caret-width) (line-height view)))))
-(defun text-point-position (view px py)
+(defgeneric text-point-position (view px py))
+(defmethod text-point-position ((view entry) px py)
  "Return nearest display character insertion position at root coordinates PX/PY; clamp outside text."
  (check-type view entry) (check-type px real) (check-type py real)
  (let* ((root (display-index view)) (pad (style-value view :padding))
@@ -85,7 +88,8 @@
         (metrics (view-line-metrics view root line)))
    (+ (line-metrics-start metrics)
       (line-column-at-pixel view metrics (+ (- px (x view) (text-left-padding view)) (text-offset view))))))
-(defun map-visible-text-lines (view function)
+(defgeneric map-visible-text-lines (view function))
+(defmethod map-visible-text-lines ((view label) function)
  "Call FUNCTION with (LINE START END X Y) for vertically visible logical lines. END excludes newline; no text copies. Return count."
  (check-type view label)
  (let* ((root (display-index view)) (pad (style-value view :padding)) (lh (line-height view))
@@ -99,7 +103,8 @@
          (funcall function line start end
                   (- (+ (x view) (text-left-padding view)) (if entry-p (text-offset view) 0))
                   (- (+ (y view) pad (* line lh)) offset)) (incf count)))) count))
-(defun visible-line-fragment (view root line)
+(defgeneric visible-line-fragment (view root line))
+(defmethod visible-line-fragment ((view label) root line)
  ;; Include the glyph crossing each horizontal viewport boundary.
  (let* ((metrics (view-line-metrics view root line))
         (left (if (typep view 'entry) (text-offset view) 0))
@@ -116,3 +121,24 @@
 (defmethod dispose :after ((view label))
  (setf (slot-value view 'text-root) nil (slot-value view 'indexed-string) nil
        (slot-value view 'geometry-cache) nil))
+
+(defgeneric text-content-height (view))
+(defmethod text-content-height ((view text-view))
+ (* (text-line-count view) (line-height view)))
+(defgeneric text-row-range (view position))
+(defmethod text-row-range ((view entry) position)
+ (index-line-range (display-index view) (index-position-line (display-index view) position)))
+(defgeneric text-range-width (view start end))
+(defmethod text-range-width ((view entry) start end)
+ (- (text-position-rectangle view end) (text-position-rectangle view start)))
+
+(defgeneric text-vertical-position (view position goal direction))
+(defmethod text-vertical-position ((view entry) position goal direction)
+ (let* ((root (display-index view))
+        (row (max 0 (min (node-lines root) (+ (index-position-line root position) direction)))))
+   (text-point-position view
+     (- (+ (x view) (text-left-padding view) goal) (text-offset view))
+     (- (+ (y view) (style-value view :padding) (* row (line-height view)) (/ (line-height view) 2))
+        (vertical-offset view)))))
+(defgeneric finish-text-navigation (view movement))
+(defmethod finish-text-navigation ((view entry) movement) (declare (ignore movement)))

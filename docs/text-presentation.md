@@ -195,3 +195,7 @@ payloads and disposed owners are collected. Native light/dark checks exercise
 mixed-font metrics, image/link hit testing, all presentation layers and popup
 interaction on macOS. Linux/Windows and shaping/bidi/IME/accessibility have not
 been established by these checks.
+
+For character wrapping, variable-height headings, paragraph spacing and block
+images beyond the base line height, use the opt-in
+[wrapped document view](wrapped-text.md).

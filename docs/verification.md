@@ -71,3 +71,75 @@ The full 108-window native sweep and codec tests recorded above were not repeate
 for this naming-only change; focused native/worker checks cover its path/package
 risks. Linux/Windows execution remains deferred. No external docset reader/schema
 change was required, and no commit was created.
+
+## Phase 7: Wrapped text and rich document blocks
+
+All commands use `/Users/jessie/.local/bin/quiet-run.sh --`.
+
+- `sbcl --script tests/portable.lisp` and
+  `ccl --no-init --batch --load tests/portable.lisp`: portable suites, 108 demo
+  behaviors, GC checks and regenerated API docset pass. New tests cover visual
+  geometry round trips, empty/trailing lines, editing and history, Home/End and
+  vertical movement, independent shared-buffer widths, bounded measurement,
+  resize, cache invalidation/disposal, paragraph/heading/image metrics, read-only
+  policy, image hit testing and captured-selection autoscroll.
+- `sbcl --script tests/wrapped-text-native.lisp` and
+  `ccl --no-init --batch --load tests/wrapped-text-native.lisp`: macOS native font
+  metrics/rendering, block image hit testing, explicit wide/narrow/wide reflow,
+  measurement/allocation agreement, selection painting and injected pointer input
+  at 100/125/200% scale pass. Captures are written under `/tmp/lut-wrapped-*.png`;
+  the 100% narrow rendering was visually inspected.
+- `sbcl --script tests/presentation-native.lisp` and
+  `sbcl --script tests/text-selection-native.lisp`: existing unwrapped presentation
+  and selection native regressions pass.
+
+These checks use explicit allocations and injected input. Physical OS resizing,
+manual typing/dragging, Linux and Windows are not verified by this phase. Whole
+wrapped-document reflow is not an incremental large-document performance claim.
+
+### Phase 7 review: Font-discovery work bounds (F1, F2)
+
+`tests/font-discovery-native.lisp` instruments a 65,536-character wrapped
+read-only document alongside nine labels. On SBCL and CCL, unchanged native
+frames perform no additional wrapped-text scans and exactly one window glyph
+discovery per layout/render pass. Repeated text measurement in one pass also
+performs one discovery. Explicit width changes reuse the glyph set; text edits
+and presentation changes each rebuild it once. Removing the view refreshes the
+next window glyph set, and disposal releases the view cache.
+
+The test runs through the required quiet wrapper with `sbcl --script` and
+`ccl --no-init --batch --load`. Wrapped-text native rendering/input tests,
+portable suites and generated-docset validation are rerun on both implementations.
+Streaming still rebuilds rows on each append; its potentially quadratic cumulative
+cost is explicit in [wrapped text](wrapped-text.md). Append-only row reuse is
+future work, rather than a performance claim of this phase.
+
+### Phase 7 review: Distinct-character glyph merging (F3)
+
+Window glyph discovery now deduplicates all sources in an `eql` hash table and
+sorts the unique keys once. Merging cached wrapped-view sets no longer performs
+a linear list membership search for each code point. The font-discovery regression
+also covers 4,096 distinct CJK characters across overlapping wrapped views and
+ordinary labels, verifies the exact sorted unique union over four discovery
+passes, and checks that the cached view set is neither rescanned nor modified.
+This discovery-only case does not depend on CJK glyph coverage in the loaded font.
+
+### Phase 7 review: Font-lookup work bounds (F4)
+
+Normal font lookups and measured runs now share a glyph-set object with `eql`
+hash membership. Already-covered strings examine only their own characters.
+Missing glyphs form a sorted extension cached for the pass. Font keys contain
+the glyph-set object rather than a large code list. Fresh discovery sets are
+canonicalized against retained atlases using a full-content signature with an
+exact comparison on signature matches; this also reuses atlases across passes
+without trusting hash collisions. Glyph-set ownership follows the existing
+font cache and its resource sweep, with pass-only memo tables discarded afterward.
+
+The font-discovery native regression exercises a 4,191-code base (including
+4,096 CJK characters) over three fresh passes with repeated lookups, native
+text measurements and measured runs. Counters require only two membership-set
+builds and two atlases, at most 1,000 probes for the short requested strings,
+and exactly one base/extension signature traversal per pass. It also verifies
+that missing-glyph extensions leave the base set unchanged and atlas identity
+survives fresh discovery lists. These checks run on SBCL and CCL; native cache
+and indexed-text regressions cover resource eviction and bounded run discovery.

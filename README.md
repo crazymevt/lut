@@ -209,3 +209,10 @@ Finder drag acceptance and Linux/Windows native behavior remain unverified.
 Content measurement, minimum/natural size requests, measured boxes and wrapping
 control rows are available as opt-in APIs. See [measured layout](docs/measured-layout.md)
 and `lut-examples:measured-layout`. Selectable/editor reflow remains pending.
+
+## Wrapped editors and documents
+
+`wrapped-text-view` shares visual rows across editing, painting, selection and
+scrolling. `wrapped-document-view` adds paragraph spacing and variable-height
+headings/images. See [wrapped text](docs/wrapped-text.md) and
+`lut-examples:wrapped-text` for a bounded growing composer.

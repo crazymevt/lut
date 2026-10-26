@@ -84,10 +84,9 @@
      (setf (slot-value view 'anchor) start (cursor view) end)))
  (reveal-text-cursor view))
 (defun move-text-cursor (view movement &key extend)
- "Move by character, word, logical line or document. EXTEND preserves the anchor. Return the new character position."
+ "Move by character, word, visual row or document. EXTEND preserves the anchor. Return the new character position."
  (check-type view entry) (ensure-live view)
  (let* ((root (display-index view)) (position (cursor view)) (size (node-size root))
-        (line (index-position-line root position))
         (vertical (member movement '(:up :down)))
         (goal (when vertical
                 (or (slot-value view 'navigation-x)
@@ -101,16 +100,14 @@
             (t (ecase movement
                  (:left (max 0 (1- position))) (:right (min size (1+ position)))
                  ((:word-left :word-right) (word-navigation-position root position movement))
-                 (:line-start (nth-value 0 (index-line-range root line)))
-                 (:line-end (nth-value 1 (index-line-range root line)))
+                 (:line-start (nth-value 0 (text-row-range view position)))
+                 (:line-end (nth-value 1 (text-row-range view position)))
                  (:document-start 0) (:document-end size)
                  ((:up :down)
-                  (let ((row (max 0 (min (node-lines root) (+ line (if (eq movement :up) -1 1))))))
-                    (text-point-position view
-                      (- (+ (x view) (text-left-padding view) goal) (text-offset view))
-                      (- (+ (y view) (style-value view :padding) (* row (line-height view)) (/ (line-height view) 2))
-                         (vertical-offset view))))))))))
+                  (text-vertical-position view position goal (if (eq movement :up) -1 1))))))))
+
    (setf (cursor view) destination)
+   (finish-text-navigation view movement)
    (when vertical (setf (slot-value view 'navigation-x) goal))
    (unless extend (setf (slot-value view 'anchor) destination))
    (reveal-text-cursor view) destination))
@@ -155,9 +152,13 @@
  ;; Caret hit testing rounds to the nearest insertion point. Unit selection
  ;; instead uses the character under the pointer, including a word's last half
  ;; character before punctuation/whitespace.
- (let* ((position (text-point-position view px py)) (root (display-index view))
-        (start (nth-value 0 (index-line-range root (index-position-line root position)))))
-   (if (and (> position start) (< px (text-position-rectangle view position))) (1- position) position)))
+ (let* ((*text-caret-affinity* nil) (position (text-point-position view px py))
+        (start (nth-value 0 (text-row-range view position))))
+   (multiple-value-bind (cx cy) (text-position-rectangle view position)
+     (if (and (plusp position)
+              (or (< py cy) (and (> position start) (< px cx))))
+         (1- position) position))))
+
 (defun begin-text-selection (window view event)
  (let* ((position (text-position view event)) (count (text-click-count window view event))
         (mode (if (event-shift-p event) :character (case count (2 :word) (3 :line) (t :character)))))
@@ -222,7 +223,7 @@
    (multiple-value-bind (left top right bottom) (selection-content-bounds view)
      (incf (text-offset view) (max (- old-x) (selection-scroll-step (second state) left right seconds)))
      (when (typep view 'text-view)
-       (let ((limit (max 0 (- (* (text-line-count view) (line-height view))
+       (let ((limit (max 0 (- (text-content-height view)
                              (max 1 (- (height view) (* 2 (style-value view :padding))))))))
          (setf (vertical-offset view) (max 0 (min limit (+ old-y (selection-scroll-step (third state) top bottom seconds))))))))
    (when (and (= old-x (text-offset view)) (= old-y (vertical-offset view)))
@@ -231,11 +232,9 @@
    ;; At the end of a short line the endpoint is already measured; clamp without
    ;; scanning an unmeasured long line merely to discover its full width.
    (multiple-value-bind (left top right bottom) (selection-content-bounds view)
-     (let* ((root (display-index view))
-            (position (text-point-position view (max left (min right (second state)))
+     (let* ((position (text-point-position view (max left (min right (second state)))
                                                (max top (min bottom (third state)))))
-            (line (index-position-line root position))
-            (end (nth-value 1 (index-line-range root line))))
+            (end (nth-value 1 (text-row-range view position))))
        (when (= position end)
          (let* ((extent (+ (- (text-position-rectangle view end) (x view) (text-left-padding view))
                            (text-offset view)))

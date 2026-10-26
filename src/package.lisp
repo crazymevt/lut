@@ -49,7 +49,7 @@
    #:state-style #:style-rules #:style-source #:widget-state #:row-height #:line-height #:vertical-offset #:text-offset
    #:active-children #:tree-rows #:refresh-items #:select-page #:group-radios
    #:content-layout #:tooltip-text #:sort-table #:id #:find-widget #:dispose #:disposed-p #:off #:disconnect #:connection #:widget #:box #:window #:label #:button #:check-button #:entry
-   #:text-view #:slider #:progress-bar #:list-view #:scroll-view #:drawing-area
+   #:wrapped-text-view #:wrapped-document-view #:paragraph-spacing #:text-view #:slider #:progress-bar #:list-view #:scroll-view #:drawing-area
    #:dialog #:context-menu #:children #:parent #:text #:value #:items
    #:orientation #:spacing #:width #:height #:x #:y #:visible-p #:enabled-p
    #:style #:theme #:*light-theme* #:*dark-theme* #:style-value #:add-child
