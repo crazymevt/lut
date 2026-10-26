@@ -102,6 +102,10 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
 (defun dispatch (window event)
  "Dispatch input with state updates, generic widget handlers, popup dismissal, context menus and dialog dragging."
  (when (disposed-p window) (return-from dispatch nil))
+ (let ((blocker (modal-blocker window)))
+   (when blocker
+     (when (member (event-kind event) '(:down :key :text :context)) (focus-modal blocker))
+     (return-from dispatch nil)))
  (when (eq (event-kind event) :key)
    (setf (focus-visible-p window) t)
    (emit window :key event)

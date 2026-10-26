@@ -381,7 +381,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
      (paint-rounded w sx sy sw sh 1 (style-value w :border-color)))))
 (defmethod render ((w dialog))
  (paint-surface w (style-value w :background))
- (unless (or (typep w 'popover) (typep w 'context-menu))
+ (unless (or (native-p w) (typep w 'popover) (typep w 'context-menu))
    (draw-string w (text w) (+ (x w) (style-value w :padding)) (y w))))
 (defmethod render ((w notebook))
  (let ((tab-width (/ (width w) (max 1 (length (children w))))))
@@ -465,6 +465,9 @@ Return FUNCTION and, as a second value, a cancellable job handle."
      (rl:draw-texture-ex texture (rl:vec2 (x w) (y w)) 0 scale :white))))
 (defvar *event-sink* nil)
 (defun poll-input (w)
+ ;; Clicking the owner's title bar can focus it without a content mouse event.
+ (when (rl:is-window-focused)
+   (let ((blocker (modal-blocker w))) (when blocker (focus-modal blocker))))
  (let ((mx (rl:get-mouse-x)) (my (rl:get-mouse-y))
        (shift (or (rl:is-key-down :left-shift) (rl:is-key-down :right-shift))))
    (flet ((send (kind &key key (text "") (delta 0))
@@ -505,6 +508,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
  "One frame, called by name so redefinition takes effect immediately."
  (setf *used-fonts* nil *used-textures* nil)
  (drain-ui-queue)
+ (when (fboundp 'open-pending-dialogs) (open-pending-dialogs w))
  (unless (equal *native-title* (text w))
    (rl:set-window-title (text w)) (setf *native-title* (text w)))
  (when (fboundp 'pump-remote-windows) (pump-remote-windows))

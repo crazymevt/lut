@@ -15,7 +15,7 @@
    #:style #:theme #:*light-theme* #:*dark-theme* #:style-value #:add-child
    #:remove-child #:bind-key #:on #:emit #:make-widget #:with-ui #:layout #:hit-test
    #:dispatch #:make-event #:event-kind #:event-x #:event-y #:event-key
-   #:event-text #:event-delta #:event-shift-p #:focus #:focused-widget
+   #:event-text #:event-delta #:event-shift-p #:focus #:modal-p #:focused-widget
    #:undo #:redo #:history-limit #:history-character-limit #:selection #:cursor #:select-all #:selected-text #:replace-selection
    #:scroll-offset #:minimum #:maximum #:step #:draw-function #:render
    #:on-widget #:cancel-ui #:on-ui #:enqueue-ui #:run #:start #:stop #:*window* #:frame-step #:show-dialog #:close-dialog #:dismiss-dialog #:unsupported-capability #:detach-window

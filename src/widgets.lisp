@@ -107,7 +107,7 @@
  (dolist (c (active-children w)) (layout c (x c) (+ (y c) (line-height w)) (width c) (height c))))
 (defmethod layout :after ((w dialog) x y width height)
  (declare (ignore x y width height))
- (unless (or (typep w 'popover) (typep w 'context-menu))
+ (unless (or (native-p w) (typep w 'popover) (typep w 'context-menu))
    (dolist (c (active-children w))
      (layout c (x c) (+ (y c) (style-value w :title-height)) (width c) (height c)))))
 

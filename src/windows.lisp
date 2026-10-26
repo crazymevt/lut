@@ -1,5 +1,5 @@
 (in-package #:lut)
-(defstruct remote-window process root reader (alive-p t) (pending-p nil) (frames 0) (forms nil) (closing-p nil) (write-lock (bt:make-lock "LUT worker writer")) (dispose-on-close-p t) target last-pixels last-size (encoded-frames 0) error)
+(defstruct remote-window process root reader owner dialog (alive-p t) (pending-p nil) (frames 0) (forms nil) (closing-p nil) (write-lock (bt:make-lock "LUT worker writer")) (dispose-on-close-p t) target last-pixels last-size (encoded-frames 0) error)
 (defvar *remote-windows* nil)
 (defvar *remote-lock* (bt:make-lock "LUT window registry"))
 (defvar *forwarded-events* nil)
@@ -84,8 +84,8 @@ NIL means keep the worker's existing texture; control/input round trips continue
      (when (and (remote-window-alive-p remote) root (not (disposed-p root)))
        (emit root :tick (if *active-window* (rl:get-frame-time) 0))
        (when (and (eq root (remote-window-root remote)) (not (disposed-p root)))
-         (layout-window root) (send-snapshot remote))))))
-(defun spawn-window (window &key position (style-source *active-window*))
+         (open-pending-dialogs root) (layout-window root) (send-snapshot remote))))))
+(defun spawn-window (window &key position (style-source *active-window*) (flags '(:window-resizable)))
  "Open WINDOW in a native worker process. Its objects and event callbacks stay in this REPL.
 Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list."
  (check-type window window)
@@ -101,7 +101,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                                       :input :stream :output :stream :error-output :interactive
                                       :directory root #+ccl :sharing #+ccl :lock))
         (remote (make-remote-window :process process :root window)))
-   (write-message (uiop:process-info-input process) (list :open (list (width window) (height window) (text window)) position))
+   (write-message (uiop:process-info-input process) (list :open (list (width window) (height window) (text window)) position flags))
    (setf (remote-window-pending-p remote) t)
    (bt:with-lock-held (*remote-lock*) (push remote *remote-windows*))
    (setf (remote-window-reader remote)
@@ -143,6 +143,43 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
    (when (and (remote-window-alive-p remote) (not (remote-window-closing-p remote)))
      (setf (remote-window-closing-p remote) t (remote-window-dispose-on-close-p remote) dispose)
      (write-message (uiop:process-info-input (remote-window-process remote)) '(:close)))) remote)
+(defmethod modal-blocker ((window window))
+ (let ((remote (find-if (lambda (r)
+                 (and (eq (remote-window-owner r) window)
+                      (remote-window-alive-p r) (not (remote-window-closing-p r))
+                      (remote-window-dialog r) (modal-p (remote-window-dialog r))))
+                (bt:with-lock-held (*remote-lock*) (copy-list *remote-windows*)))))
+   (when remote (or (modal-blocker (remote-window-root remote)) remote))))
+(defmethod focus-modal ((remote remote-window))
+ ;; Queue focus with the next frame; the worker owns the OS window/context.
+ (unless (member '(rl:set-window-focused) (remote-window-forms remote) :test #'equal)
+   (push '(rl:set-window-focused) (remote-window-forms remote)))
+ remote)
+(defun clear-modal-owner-hover (owner)
+ (when (typep owner 'window)
+   (walk-widgets owner (lambda (w)
+     (setf (hovered-p w) nil)
+     (when (typep w 'list-view) (setf (hovered-row w) nil))))))
+(defmethod (setf modal-p) :after (value (dialog dialog))
+ (let ((remote (bt:with-lock-held (*remote-lock*)
+                 (find dialog *remote-windows* :key #'remote-window-dialog :test #'eq))))
+   (when remote
+     (evaluate-in-window remote
+       (list (if value '(rl:set-window-state :window-topmost) '(rl:clear-window-state :window-topmost))))
+     (when value (clear-modal-owner-hover (remote-window-owner remote)) (focus-modal remote)))))
+(defun native-dialog-p (d)
+ (and (typep d 'dialog) (not (typep d 'popover)) (not (typep d 'context-menu))))
+(defmethod present-dialog :around ((window window) (dialog dialog))
+ (call-next-method)
+ (when (and *controller-running-p* (native-dialog-p dialog))
+   (layout-window window)
+   (detach-window dialog))
+ dialog)
+(defun open-pending-dialogs (window)
+ "Open dialogs queued before the GUI loop without first drawing an overlay."
+ (dolist (dialog (reverse (copy-list (slot-value window 'overlays))))
+   (when (native-dialog-p dialog)
+     (layout-window window) (detach-window dialog))))
 (defmethod detach-window ((d dialog))
  (let* ((old-root (root-of d))
         (w (make-widget 'window :text (text d) :width (width d) :height (height d) :content-layout :fill
@@ -150,13 +187,17 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
         (pos (when *active-window* (let ((p (rl:get-window-position)))
                  (list (+ (rl:vector2-x p) (x d)) (+ (rl:vector2-y p) (y d)))))))
    ;; Spawn first; retain original ownership if worker startup fails synchronously.
-   (let ((remote (spawn-window w :position pos :style-source (when (typep old-root 'window) old-root))))
+   (let ((remote (spawn-window w :position pos :style-source (when (typep old-root 'window) old-root)
+                   :flags (if (modal-p d) '(:window-resizable :window-topmost) '(:window-resizable)))))
      (when (typep old-root 'window)
        (setf (slot-value old-root 'overlays) (remove d (slot-value old-root 'overlays)))
        (setf (focused-widget old-root) nil
              (slot-value old-root 'pressed-widget) nil (pressed-p d) nil))
-     (setf (parent d) nil (position-mode d) :absolute (x d) 0 (y d) 0 (detach-on-drag-p d) nil)
+     (setf (parent d) nil (position-mode d) :absolute (x d) 0 (y d) 0
+           (native-p d) t (draggable-p d) nil (detach-on-drag-p d) nil)
      (add-child w d)
+     (setf (remote-window-owner remote) old-root (remote-window-dialog remote) d)
+     (when (modal-p d) (clear-modal-owner-hover old-root) (focus-modal remote))
      remote)))
 (defun worker-main ()
  (with-native-logging
@@ -166,6 +207,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
    (unless (eq (first opening) :open) (error "Expected worker OPEN message."))
    (let* ((w (make-widget 'window :width (first (second opening)) :height (second (second opening))
                               :text (third (second opening)))) (position (third opening))
+          (flags (or (fourth opening) '(:window-resizable)))
           (texture nil)
           (*font-cache* nil) (*texture-cache* nil) (*active-window* w)
           (lock (bt:make-lock "LUT worker inbox")) (inbox nil) (closed nil)
@@ -181,7 +223,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                         (error () (bt:with-lock-held (lock) (setf closed t)))))
                     :name "LUT worker snapshot reader")))
      (declare (ignore reader))
-     (rl:with-window ((round (width w)) (round (height w)) (text w) :flags '(:window-resizable) :exit-key :null)
+     (rl:with-window ((round (width w)) (round (height w)) (text w) :flags flags :exit-key :null)
        (when position (rl:set-window-position (round (first position)) (round (second position))))
        (unwind-protect
          (loop
@@ -228,7 +270,8 @@ This is an intentional REPL evaluation API over private child-process pipes; nev
  (let ((root (remote-window-root remote)))
    (when (and (remote-window-target remote) *active-window*)
      (retire-render-target (remote-window-target remote)))
-   (setf (remote-window-target remote) nil (remote-window-root remote) nil
+   (setf (remote-window-owner remote) nil (remote-window-dialog remote) nil
+         (remote-window-target remote) nil (remote-window-root remote) nil
          (remote-window-forms remote) nil (remote-window-pending-p remote) nil (remote-window-reader remote) nil
          (remote-window-last-pixels remote) nil (remote-window-last-size remote) nil)
    (bt:with-lock-held (*remote-lock*) (setf *remote-windows* (remove remote *remote-windows*)))
@@ -240,6 +283,8 @@ This is an intentional REPL evaluation API over private child-process pipes; nev
    (ignore-errors (close-window remote))
    (finalize-remote-window remote)))
 (defmethod dispose :after ((w window))
+ (dolist (child (bt:with-lock-held (*remote-lock*) (copy-list *remote-windows*)))
+   (when (eq w (remote-window-owner child)) (close-window child) (finalize-remote-window child)))
  (let ((remote (bt:with-lock-held (*remote-lock*)
                  (find w *remote-windows* :key #'remote-window-root :test #'eq))))
    (when remote (close-window remote) (finalize-remote-window remote))))

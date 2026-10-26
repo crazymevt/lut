@@ -73,12 +73,20 @@ callback registration and error recovery.
 
 ## Native windows and dialogs
 
-In-window dialogs are draggable by their title/empty surface. Drag past the
-main window boundary to detach into a real OS window. `detach-window` also does
-this programmatically. `spawn-window` opens another root; calling `start` while
-the primary loop runs opens a worker as well.
+With the raylib backend running, `show-dialog` opens dialogs directly in a
+separate OS window. Dialogs queued before `run` open when the loop starts,
+without first appearing inside the main window. The OS title bar handles moving
+the window. Popovers, context menus and tooltips remain in-window overlays.
+Dialogs are modal by default: owner input is blocked and clicking the owner
+returns focus to its active dialog. Modal windows use the OS topmost flag so
+they stay above the owner even when cross-process focus requests are ignored.
+Use `:modal-p nil` for a modeless dialog.
+Nested dialogs block their immediate owner and redirect focus to the deepest modal.
+`spawn-window` opens an independent root; `start` during the primary loop opens
+a worker as well.
+The backend-free core retains overlays for non-native use and headless tests.
 
-Use `dismiss-dialog` in dialog response callbacks so they also close a detached
+Use `dismiss-dialog` in dialog response callbacks so they also close a native
 native host. App styles and selectors inherit across roots through `style-source`.
 
 Each native worker owns one raylib context. The original Lisp retains all widget

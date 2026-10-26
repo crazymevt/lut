@@ -51,8 +51,8 @@ it never evaluates supplied Lisp. `shortcuts` displays grouped help;
 `shortcut_triggers` recognizes chords and an ordered G G sequence with timeout.
 
 `dialog` edits two fields with Apply/Cancel, retaining only committed values.
-Drag the dialog title inside its root or past the root edge to detach it. Response
-callbacks locate the current host, so detachment preserves their behavior.
+Dialogs open directly in native windows. Response callbacks locate the current
+host, preserving their behavior across native windows.
 `expander` exposes an editable detailed error report. `errorstates` styles invalid
 input and gates confirmation. `infobar` has independent informational/warning/error
 responses. `read_more` and `revealer` expose collapsed content; `sidebar` selects

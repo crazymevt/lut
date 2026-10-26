@@ -88,8 +88,10 @@
  ((scroll-offset 0 (real 0 *) "Vertical scroll in pixels.")))
 (defwidget drawing-area (widget) "Custom drawing callback receives widget during rendering."
  ((draw-function nil (or null function) "Backend-specific drawing callback.")))
-(defwidget dialog (box) "Draggable modal surface; the raylib backend detaches it into a native worker window."
- ((text "Dialog" string "Dialog title.")
+(defwidget dialog (box) "Dialog surface; the raylib backend opens it in a native worker window."
+ ((modal-p t boolean "Block input to the owner while this native dialog is open.")
+  (native-p nil boolean "Backend-managed native dialog presentation.")
+  (text "Dialog" string "Dialog title.")
   (position-mode :center (member :center :absolute) "Centered until dragged, then absolute coordinates.")
   (draggable-p t boolean "Drag unoccupied dialog surface to move it.")
   (detach-on-drag-p t boolean "Detach as a native window when dragged beyond the root bounds.")))
@@ -217,21 +219,29 @@ Return CALLBACK and, as a second value, a CONNECTION handle for DISCONNECT."
  (:report (lambda (c s) (format s "Backend does not support ~a." (capability c)))))
 (defgeneric detach-window (dialog)
  (:documentation "Move DIALOG to a native worker window, retaining its authoritative objects and callbacks in the parent REPL."))
+(defgeneric modal-blocker (window) (:documentation "Return the active native modal blocking WINDOW, or NIL."))
+(defmethod modal-blocker ((window widget)) nil)
+(defgeneric focus-modal (blocker))
+(defgeneric present-dialog (window dialog))
+(defmethod present-dialog ((window window) (dialog dialog)) dialog)
 (defun show-dialog (window dialog)
- "Push DIALOG as a modal overlay; return it."
+ "Show DIALOG and return it. Native backends use separate windows; the core uses overlays."
  (ensure-live window) (ensure-live dialog)
  (unless (and (typep dialog 'dialog) (not (eq window dialog)))
    (error "Expected a separate dialog instance."))
  (when (parent dialog) (error "Dialog already belongs to a tree."))
  (when (slot-value window 'pressed-widget) (setf (pressed-p (slot-value window 'pressed-widget)) nil))
  (setf (parent dialog) window) (push dialog (slot-value window 'overlays))
- (setf (focused-widget window) nil (slot-value window 'pressed-widget) nil) dialog)
+ (setf (focused-widget window) nil (slot-value window 'pressed-widget) nil)
+ (present-dialog window dialog))
 (defgeneric surface-closed (dialog))
 (defmethod surface-closed ((d widget)) nil)
 (defun close-dialog (window)
- "Close the top modal overlay and clear its focus."
+ "Close the top overlay, or dismiss the native dialog hosted by WINDOW."
  (let ((d (find-if-not (lambda (overlay) (typep overlay 'tooltip)) (slot-value window 'overlays))))
-   (when d (remove-child window d) (surface-closed d)) d))
+   (if d (progn (remove-child window d) (surface-closed d) d)
+       (let ((native (find-if (lambda (c) (and (typep c 'dialog) (native-p c))) (children window))))
+         (when native (dismiss-dialog native)) native))))
 (defgeneric render (widget) (:documentation "Draw WIDGET using the loaded backend."))
 (defgeneric run (window &key frames) (:documentation "Open WINDOW and run its event loop; FRAMES bounds smoke runs."))
 (defun validate-widget (w)
