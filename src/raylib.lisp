@@ -172,7 +172,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
            (multiple-value-bind (v found) (property (getf rule :style) :surface)
              (when found (return-from surface-color v))))))))
  (case (widget-state w) (:disabled (style-value w :disabled-color))
-   (:pressed (style-value w :pressed-color)) (:hover (style-value w (if (typep w 'entry) :surface :hover-color)))
+   (:pressed (style-value w (if (typep w 'entry) :surface :pressed-color))) (:hover (style-value w (if (typep w 'entry) :surface :hover-color)))
    (otherwise (style-value w :surface))))
 (defun resolved-roundness (w &optional (width (width w)) (height (height w))
                                       (proportion (style-value w :border-radius)))

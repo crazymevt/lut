@@ -2,6 +2,13 @@
 (load (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname)))
 (asdf:load-asd (truename "lut.asd"))
 (ql:quickload "lut/raylib" :silent t)
+(dolist (class '(lut:entry lut:text-view lut:combo-box))
+ (let ((field (lut:make-widget class)))
+   (setf (lut::pressed-p field) t)
+   (assert (equal (lut::surface-color field) (lut:style-value field :surface)))
+   ;; Applications may still deliberately style a pressed field.
+   (setf (lut:state-style field) '(:pressed (:surface (30 40 50 255))))
+   (assert (equal (lut::surface-color field) '(30 40 50 255)))))
 (loop for theme in (list lut:*light-theme* lut:*dark-theme*) for name in '("light" "dark") do
  (let* ((root (lut:make-widget 'lut:window :width 600 :height 700 :theme theme))
         (spin (lut:add-child root (lut:make-widget 'lut:spin-button :value 5 :height 40)))
@@ -18,6 +25,12 @@
      (when (= (incf frame) 3)
        (lut:dispatch root (lut:make-event :kind :move :x (+ (lut:x button) 20) :y (+ (lut:y button) 10)))
        (setf tip (first (lut::overlays root)) (lut::hovered-p text) t)
+       ;; Capture the mouse-down frame: fields must not flash their entire
+       ;; surface while placing the caret or starting a selection drag.
+       (lut:dispatch root (lut:make-event :kind :down
+                            :x (+ (lut:x text) 100) :y (+ (lut:y text) 80)))
+       (assert (lut::pressed-p text))
+       (multiple-value-bind (start end) (lut:selection text) (assert (= start end)))
        (lut:focus root expander)
        (assert (equal (lut::surface-color text) (lut:style-value text :surface)))
        (rl:with-drawing ((lut:style-value root :background))
@@ -39,4 +52,4 @@
                   thereis (loop for x from (ceiling (+ (lut:x tip) 10)) below (floor (+ (lut:x tip) (lut:width tip) -5))
                     thereis (= (pixel x y) (rl:color-to-int (lut:style-value tip :foreground)))))))
        (rl:unload-image image)))))
-(format t "Text hover, expander heading focus, visible scrollbar and first-frame tooltip pixels passed in both themes.~%")
+(format t "Text hover/press, expander heading focus, visible scrollbar and first-frame tooltip pixels passed in both themes.~%")
