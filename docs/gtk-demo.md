@@ -156,7 +156,9 @@ material difference from Pango, not simulated OpenType support.
 Paintables share one owned CLOS drawing model at several display sizes. Animated,
 symbolic, emblem and media-stream variants add invalidation/time, theme colors,
 composition and seeking/pause. Video loading requires `ffmpeg` on PATH. Click
-Load after setting a path. The loader caps decoding at 600 frames (10 fps, at most
+Load video above the preview after setting a path. The initial path points to
+the bundled two-second test clip, and status/errors appear beside the loading
+controls. The loader caps decoding at 600 frames (10 fps, at most
 60 seconds) and 640-pixel width. Audio, when present, is decoded to PCM and played
 through raylib with seeking, volume and pause synchronization. Clips without
 sound remain valid. Longer/large videos need a streaming decoder backend; decoding
