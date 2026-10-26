@@ -293,6 +293,9 @@ This is an intentional REPL evaluation API over private child-process pipes; nev
 
 (defun finalize-remote-window (remote)
  (let ((root (remote-window-root remote)))
+   (when root
+     (handler-case (cancel-drag root)
+       (error (e) (unless (remote-window-error remote) (setf (remote-window-error remote) e)))))
    (when (and (remote-window-target remote) *active-window*)
      (retire-render-target (remote-window-target remote)))
    (setf (remote-window-owner remote) nil (remote-window-dialog remote) nil

@@ -390,6 +390,28 @@ Return FUNCTION and, as a second value, a cancellable job handle."
        (if (= i (value w)) (style-value w :accent) (surface-color w)))
      (draw-string w title (+ (x w) (* i tab-width) (style-value w :padding)) (y w)
        (when (= i (value w)) (style-value w :on-accent))))))
+(defmethod render-drag-feedback ((window window))
+ (let ((session (current-drag window)))
+   (when (and session (eq (drag-state session) :dragging))
+     (let ((target (drag-target session)) (source (drag-source session)))
+       (when target
+         (let ((clip (list 0 0 (width window) (height window))))
+           (loop for node = target then (parent node) while node do
+             (setf clip (intersect-rectangles clip (list (x node) (y node) (width node) (height node)))))
+           (rl:with-scissor-mode ((round (first clip)) (round (second clip))
+                                  (round (third clip)) (round (fourth clip)))
+             (rl:draw-rectangle-rounded-lines-ex
+               (rl:rect (x target) (y target) (width target) (height target))
+               (resolved-roundness target) 12 2 (style-value target :focus-color))
+             (when (and (typep target 'notebook) (notebook-tab-p (drag-payload session)))
+               (let ((px (+ (x target) (min (max 0 (- (width target) 2))
+                              (* (notebook-drop-index target (drag-x session))
+                                 (/ (width target) (max 1 (length (children target)))))))))
+                 (rl:draw-rectangle px (y target) 2 (style-value target :title-height)
+                                    (style-value target :focus-color)))))))
+       ;; A small pointer marker remains visible even over a rejected target.
+       (rl:draw-circle (drag-x session) (drag-y session) 4
+                      (style-value source (if target :accent :disabled-color)))))))
 (defmethod render ((w expander))
  (draw-string w (concatenate 'string (if (value w) "- " "+ ") (text w)) (x w) (y w)))
 (defmethod render ((w tree-view)) (refresh-items w) (call-next-method))
@@ -520,7 +542,8 @@ Return FUNCTION and, as a second value, a cancellable job handle."
  (sweep-native-resources))
 (defun render-window (w)
  (render w)
- (dolist (d (reverse (slot-value w 'overlays))) (render d)))
+ (dolist (d (reverse (slot-value w 'overlays))) (render d))
+ (render-drag-feedback w))
 (defmethod run ((w window) &key frames)
  "Run on OS main thread. Loop exit closes secondary workers and releases library-owned references."
  (ensure-live w)
@@ -536,7 +559,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
          (rl:game-loop (dt :on-error (if frames :signal :pause))
            (frame-step w dt)
            (when (and frames (>= (incf count) frames)) (rl:stop)))
-         (unwind-protect (emit w :context-close)
+         (unwind-protect (progn (cancel-drag w) (emit w :context-close))
          (when (fboundp 'shutdown-native-windows) (shutdown-native-windows))
          (flush-retired-targets)
          (mapc (lambda (pair) (rl:unload-font (cdr pair))) *font-cache*)

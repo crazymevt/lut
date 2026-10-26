@@ -1,4 +1,4 @@
-(defpackage #:lut-examples (:use #:cl) (:export #:hello-world #:todo #:editor #:drawing #:clock #:adwaita #:gallery))
+(defpackage #:lut-examples (:use #:cl) (:export #:hello-world #:todo #:editor #:drawing #:clock #:adwaita #:gallery #:drag-tabs))
 (in-package #:lut-examples)
 (defun action (title function)
  (let ((b (lut:make-widget 'lut:button :text title)))
@@ -63,3 +63,25 @@
        (lut:add-child d (lut:make-widget 'lut:label :text "Modal dialog"))
        (lut:add-child d (action "Close" (lambda () (lut:dismiss-dialog d))))
        (lut:show-dialog w d))))) w))
+
+(defun drag-tabs ()
+ "Two grouped notebooks demonstrate reusable in-window tab reordering and transfer."
+ (let* ((root (lut:make-widget 'lut:window :text "Drag notebook tabs" :width 800 :height 430))
+        (panes (lut:make-widget 'lut:paned :height 280))
+        (left (lut:make-widget 'lut:notebook :id :left-tabs :reorderable-p t :tab-group :sample
+                              :items '("One" "Two")))
+        (right (lut:make-widget 'lut:notebook :id :right-tabs :reorderable-p t :tab-group :sample
+                               :items '("Three")))
+        (status (lut:make-widget 'lut:label :text "Escape cancels a drag.")))
+   (lut:add-child root (lut:make-widget 'lut:label :text "Drag a tab within a strip or into the other strip."))
+   (lut:add-child root panes)
+   (lut:add-child panes left) (lut:add-child panes right)
+   (dolist (caption '("First page" "Second page"))
+     (lut:add-child left (lut:make-widget 'lut:entry :text caption)))
+   (lut:add-child right (lut:make-widget 'lut:entry :text "Third page"))
+   (lut:add-child root status)
+   (dolist (book (list left right))
+     (lut:on book :pages-changed (lambda (w change)
+       (declare (ignore w change))
+       (setf (lut:text status) (format nil "Left: ~d pages; right: ~d pages."
+                               (length (lut:children left)) (length (lut:children right))))))) root))

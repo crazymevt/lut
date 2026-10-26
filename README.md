@@ -166,3 +166,9 @@ Core behavior and native windows run on macOS/ARM64 under SBCL and the upstream
 CCL 1.13 ARM64 prerelease. The backend bridges both implementations onto the OS
 main thread. Linux and Windows runtime verification is deferred by user direction;
 no claim is made that those native paths have passed.
+
+## Drag-and-drop
+
+Reusable in-window drag sessions and opt-in notebook tab reordering/transfer are
+available. See [drag-and-drop](docs/drag-and-drop.md) for extension hooks, lifecycle
+and the `lut-examples:drag-tabs` example.

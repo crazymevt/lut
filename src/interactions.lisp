@@ -104,8 +104,10 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
  (when (disposed-p window) (return-from dispatch nil))
  (let ((blocker (modal-blocker window)))
    (when blocker
+     (cancel-drag window)
      (when (member (event-kind event) '(:down :key :text :context)) (focus-modal blocker))
      (return-from dispatch nil)))
+ (when (dispatch-drag window event) (return-from dispatch nil))
  (when (eq (event-kind event) :key)
    (setf (focus-visible-p window) t)
    (emit window :key event)
@@ -145,6 +147,7 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
        (setf (slot-value window 'interaction-state)
              (list :drag root (- (event-x event) (x root)) (- (event-y event) (y root))))
        (return-from dispatch root)))
+   (when (eq kind :down) (arm-pointer-drag window event target))
    ;; Scrollbar capture belongs to the scroll view even while over its children.
    (when (and (eq kind :down) target)
      (let ((view (ancestor-of-type target 'scroll-view)))

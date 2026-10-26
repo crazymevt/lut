@@ -13,8 +13,10 @@
   (expanded-p nil boolean "Whether the option popup is open.")))
 (defwidget stack (widget) "Only child at selected page VALUE participates in layout and input."
  ((value 0 (integer 0 *) "Visible zero-based page index.")))
-(defwidget notebook (stack) "Tabbed stack; click tab header or use Left/Right to select a page."
- ((items nil list "Tab labels corresponding to children.")))
+(defwidget notebook (stack) "Tabbed stack with optional page reordering and grouped tab transfer."
+ ((reorderable-p nil boolean "Enable pointer tab reordering; disabled by default.")
+  (tab-group nil (or null symbol string) "Equal non-NIL groups permit transfers between reorderable notebooks in one window.")
+  (items nil list "Tab labels corresponding to children.")))
 (defwidget grid (widget) "Uniform grid layout with configurable COLUMNS and SPACING."
  ((columns 2 (integer 1 *) "Positive number of equal-width columns.")
   (spacing 8 (real 0 *) "Gap between rows and columns.")))
