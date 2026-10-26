@@ -80,28 +80,10 @@
  (setf (slot-value buffer 'buffer-views) nil (slot-value buffer 'undo-history) nil
        (slot-value buffer 'redo-history) nil (slot-value buffer 'text) ""
        (slot-value buffer 'text-root) nil (slot-value buffer 'text-snapshot-p) t))
-(defun text-difference (old new)
- "Find the minimal single contiguous replacement from OLD to NEW."
- (let* ((a (length old)) (b (length new)) (start 0) (suffix 0))
-   (loop while (and (< start (min a b)) (char= (char old start) (char new start))) do (incf start))
-   (loop while (and (< suffix (- (min a b) start))
-                    (char= (char old (- a suffix 1)) (char new (- b suffix 1)))) do (incf suffix))
-   (values start (- a suffix) (subseq new start (- b suffix)))))
 (defun remap-text-position (position start old-end new-end)
  (cond ((< position start) position)
        ((> position old-end) (+ position (- new-end old-end)))
        (t new-end)))
-(defstruct (buffer-history-entry (:constructor %make-buffer-history-entry))
- ;; Only changed substrings and numeric selections; never full-buffer snapshots
- ;; or references to views. Strings are immutable once stored in the record.
- start removed inserted before-cursor before-anchor after-cursor after-anchor)
-(defun buffer-history-characters (entry)
- (+ (length (buffer-history-entry-removed entry)) (length (buffer-history-entry-inserted entry))))
-(defun bounded-buffer-history (buffer entries)
- (loop for entry in entries for count from 1
-       for characters = (buffer-history-characters entry) then (+ characters (buffer-history-characters entry))
-       while (and (<= count (history-limit buffer)) (<= characters (history-character-limit buffer)))
-       collect entry))
 (defparameter *builtin-text-validators*
  (list (find-method #'validate-slot nil (list (find-class 't) (find-class 't) (find-class 't)))
        (find-method #'validate-slot '(:before) (list (find-class 'widget) (find-class 't) (find-class 't)))
@@ -138,7 +120,8 @@
      (when validators
        (let ((new (index-substring new-root 0 new-length)))
          (dolist (object validators) (validate-slot object 'text new)))))
-   (let ((record (when *record-buffer-history*
+   (let ((overflow-record nil) (overflow-stack nil)
+         (record (when *record-buffer-history*
                    (%make-buffer-history-entry :start start :removed removed
                      :inserted (copy-seq replacement) :before-cursor (when origin (cursor origin))
                      :before-anchor (when origin (slot-value origin 'anchor))))))
@@ -154,7 +137,8 @@
              (setf (buffer-history-entry-before-cursor inverse) (when origin (cursor origin))
                    (buffer-history-entry-before-anchor inverse) (when origin (slot-value origin 'anchor))))
          (setf (slot-value buffer to) (bounded-buffer-history buffer (cons inverse (slot-value buffer to)))
-               (slot-value buffer from) (rest (slot-value buffer from)))))
+               (slot-value buffer from) (rest (slot-value buffer from))
+               overflow-record inverse overflow-stack (if (eq history-direction :undo) :redo :undo))))
      (let* ((views (copy-list (buffer-views buffer)))
             (revision (incf (slot-value buffer 'revision)))
             (edit (%make-buffer-edit :start start :old-end end :new-end new-end :revision revision :origin origin)))
@@ -175,14 +159,17 @@
          (setf (buffer-history-entry-after-cursor record) (when origin (cursor origin))
                (buffer-history-entry-after-anchor record) (when origin (slot-value origin 'anchor))
                (undo-history buffer) (bounded-buffer-history buffer (cons record (undo-history buffer)))
-               (redo-history buffer) nil))
-       (setf (slot-value buffer 'buffer-notifying-p) t)
-       (unwind-protect
-         (progn
-           (emit buffer :edit edit) (emit-text-change buffer buffer)
-           (dolist (view views)
-             (when (and (not (disposed-p view)) (eq (view-buffer view) buffer)) (emit-text-change view buffer))))
-         (setf (slot-value buffer 'buffer-notifying-p) nil)) edit))))
+               (redo-history buffer) nil
+               overflow-record record overflow-stack :undo))
+       (let ((overflow (history-overflow-payload buffer overflow-record (or history-direction :edit) overflow-stack)))
+         (setf (slot-value buffer 'buffer-notifying-p) t)
+         (unwind-protect
+           (progn
+             (emit buffer :edit edit) (emit-text-change buffer buffer)
+             (dolist (view views)
+               (when (and (not (disposed-p view)) (eq (view-buffer view) buffer)) (emit-text-change view buffer)))
+             (emit-history-overflow buffer overflow))
+           (setf (slot-value buffer 'buffer-notifying-p) nil))) edit))))
 (defun replace-buffer-range (buffer start end string &key origin)
  "Replace character range [START,END), remap attached view positions, and notify. ORIGIN optionally places that view's caret at the inserted text's end. Return BUFFER-EDIT or NIL."
  (commit-buffer-edit buffer start end string :origin origin :collapse-origin t))

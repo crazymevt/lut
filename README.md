@@ -188,3 +188,4 @@ remaining toolkit work and the boundary with application-specific behavior.
 `text-buffer` shares text/history across independent entry/text views. See
 [shared text buffers and indexed geometry](docs/text-buffers.md),
 `lut-examples:shared-text` and the 50,000-line `lut-examples:indexed-text`.
+`lut-examples:standalone-history` demonstrates range undo/redo and oversized-record feedback.

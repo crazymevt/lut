@@ -2,7 +2,7 @@
 (defun signatures ()
  (let ((result (make-hash-table)) (*package* (find-package :lut)) (*read-eval* nil))
    (dolist (file '("src/core.lisp" "src/widgets.lisp" "src/styles.lisp" "src/input.lisp"
-                  "src/text-buffers.lisp" "src/text-index.lisp" "src/text-geometry.lisp" "src/commands.lisp" "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/windows.lisp"))
+                  "src/text-buffers.lisp" "src/text-history.lisp" "src/text-index.lisp" "src/text-geometry.lisp" "src/commands.lisp" "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/windows.lisp"))
      (with-open-file (in (asdf:system-relative-pathname "lut" file))
        (loop for form = (read in nil :eof) until (eq form :eof)
              when (and (consp form) (member (first form) '(defun defmacro defgeneric)) (symbolp (second form)))
@@ -89,6 +89,7 @@
                     (t "Backend capability error condition; CAPABILITY initarg identifies the unavailable operation."))
                   :sections (("Description" (:p "See the functions accepting or returning this type.")))) entries)))))
    (dolist (event '(("edit" "TEXT-BUFFER: BUFFER-EDIT after text and all attached view positions have been synchronized. Then the buffer and each still-attached live view emit :CHANGE with the new text. Reentrant edits to this buffer are rejected; queue follow-up edits.")
+                    ("history-overflow" "Standalone entry or shared TEXT-BUFFER: plist :OPERATION (:EDIT/:UNDO/:REDO), :STACK (:UNDO/:REDO), :CHARACTERS and :LIMIT after a committed range record exceeds a positive character budget and positive record limit. The destination stack is empty. Zero limits and ordinary eviction of older records are silent. Shared buffers notify after :EDIT/:CHANGE under the same reentrancy guard; standalone entries notify before the operation's :CHANGE, when applicable. Errors propagate without rolling back committed content/history.")
                     ("drag-start" "Source: DRAG-SESSION after the movement threshold. No drag lifecycle events are emitted for an ordinary click.")
                     ("drag-enter" "Accepted target: DRAG-SESSION when entering this target. DRAG-TARGET identifies it.")
                     ("drag-over" "Accepted target: DRAG-SESSION on movement and release. DRAG-X/Y are current root coordinates.")

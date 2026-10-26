@@ -21,7 +21,7 @@ between independent entry histories.
 
 `text` reads the buffer contents from any attached view. Existing text input,
 `replace-selection`, `undo` and `redo` work with shared views. An entry without
-`view-buffer` keeps its existing standalone editing/history behavior.
+`view-buffer` keeps its standalone text and selection behavior, using range history.
 
 `replace-buffer-range` replaces the half-open character range `[start,end)`:
 
@@ -55,8 +55,8 @@ clusters. This model does not add shaping, bidi or IME support.
 
 History belongs to the model, so editing either view contributes to the same
 undo/redo stacks. Configure `history-limit` and `history-character-limit` on the
-buffer; view-local limits apply only when the view is standalone. Shared history
-stores range records: start position, removed text, inserted text and numeric
+buffer; view-local limits apply only when the view is standalone. Both histories
+store range records: start position, removed text, inserted text and numeric
 selection data. The character budget counts removed plus inserted characters per
 stack, not the size of the buffer. Small edits to large files therefore retain
 undo normally. New content edits clear redo. A no-op content replacement does
@@ -71,7 +71,8 @@ selection. Histories never retain view objects. Limits retain a contiguous newes
 prefix; a single edit whose removed+inserted text exceeds the budget is not undoable and
 clears older undo history, since skipping it would make older range operations
 unsafe. Raise the budget for large paste/replacement operations. A zero history
-limit intentionally disables retention; no warning is emitted for these limits.
+limit or zero character budget intentionally disables retention silently. A
+single oversized record with positive limits emits `:history-overflow`; see below.
 
 `can-undo-p`, `can-redo-p` and `editable-p` are suitable command predicates.
 `read-only-p` can be set on one view or on the shared model. Read-only prevents
@@ -203,11 +204,69 @@ still need full strings and can incur O(n) work. Existing validation and
 notification ordering remain intact. Prefer range queries and `:edit` observers
 for large-buffer applications. Attaching/detaching views preserves the existing
 snapshot/validation contract and can also materialize text. Standalone editing
-continues to use flat strings and snapshot history; its migration is the next
-roadmap item.
+continues to use flat strings, with range records for undo/redo. Its edit storage
+still copies the current string; the migration removes full-text history copies.
 
 Try `(lut:start (lut-examples:indexed-text))` after loading `lut/examples`: a
 50,000-line shared model with EOF navigation, append operations and indexed
 status reporting. Automated checks cover tree balance/sharing, Unicode offsets,
 EOF edits, viewport geometry and cache invalidation. Native/platform verification
 limits are recorded in the foundation roadmap.
+
+
+## Standalone history and budget feedback
+
+Standalone entries/text views own the same range-record format as shared models.
+Their character budget now counts removed plus inserted text, rather than full
+snapshots. Full-text setters find the smallest contiguous difference. A new
+content edit clears redo; an identical setter preserves it. `replace-selection`
+with identical selected text still collapses the selection, as before.
+Programmatic setters still clamp the existing cursor/anchor and do not emit
+`:change`; text input/selection replacement and undo/redo emit it as before.
+
+Undo restores the pre-edit cursor and anchor, including selection direction.
+Redo restores the selection captured when undo was invoked, even if navigation
+changed it after the edit. Repeated undo/redo captures the invoking selection for
+the inverse operation, preserving the original snapshot contract. Rejected text
+validation leaves content, selection and both history stacks unchanged. Disposing
+or rebinding a view clears its standalone history.
+
+Both standalone and shared histories retain a contiguous newest prefix. Older
+records evicted by count/total payload limits are silent. If a single record is
+too large for a positive character budget and record count is also positive,
+the destination stack becomes empty and the history owner emits
+`:history-overflow` with a fresh plist:
+
+```lisp
+(:operation :edit :stack :undo :characters 13 :limit 8)
+```
+
+`:operation` is `:edit`, `:undo` or `:redo`; `:stack` is the destination `:undo`
+or `:redo` stack. `:characters` counts removed plus inserted characters and
+`:limit` is the budget used for that operation. The edit still succeeds. After
+lowering limits, undo/redo may restore text while its inverse record cannot fit;
+feedback then identifies that inverse's destination stack. Zero limits mean
+intentional disabling and emit no overflow feedback. No-op or rejected content
+edits emit no overflow feedback either.
+
+Observe the standalone entry, or the shared buffer (not every attached view):
+
+```lisp
+(lut:on owner :history-overflow
+  (lambda (owner payload)
+    (declare (ignore owner))
+    (format t "History record requires ~d characters; budget is ~d.~%"
+            (getf payload :characters) (getf payload :limit))))
+```
+
+Notifications observe committed text, selection and histories. For standalone
+edits feedback runs after the setter commits, before `replace-selection` emits
+`:change`; for standalone undo/redo it also precedes `:change`. Shared buffers
+emit it after their existing `:edit`/`:change` sequence, under the same reentrant
+edit guard. A notification error propagates without rolling back the committed
+operation, and can prevent later notifications. Feedback describes the budget
+at commit time, even if a prior observer changes the configured limits.
+Applications decide how to present it; LUT emits no dialog or global warning.
+
+Try `(lut:start (lut-examples:standalone-history))` for small edits, undo/redo,
+and a deliberately oversized insertion with status feedback.

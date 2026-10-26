@@ -39,12 +39,15 @@ See [drag-and-drop](drag-and-drop.md), [commands](commands.md) and
   and change listeners still materialize snapshots. First horizontal queries
   far into an unmeasured line measure its prefix; repeated queries cache it.
   Linux/Windows checks remain unrun. See [text buffers](text-buffers.md).
-- [ ] **Standalone history migration and budget feedback — next.** Standalone entries
-  still use full-text snapshots; migrate them without changing their existing
-  selection/undo contract. Consider explicit feedback when a single oversized
-  edit exceeds the configured history budget; zero limits may intentionally
-  disable retention.
-- [ ] **Selection and navigation behavior.** Word/line navigation and selection,
+- [x] **Standalone history migration and budget feedback — delivered.**
+  Standalone entries/text views now retain changed-range records with the same
+  cursor/selection and undo/redo behavior as snapshot history. Budgets count
+  removed plus inserted text. Owners emit `:history-overflow` for a single
+  oversized record with positive limits; zero limits disable retention silently.
+  Verified snapshot-oracle comparisons, 1 Mi-character small-edit history,
+  validation failures, budget boundaries and the native example on macOS.
+  Standalone edit storage remains flat strings. See [text buffers](text-buffers.md).
+- [ ] **Selection and navigation behavior — next.** Word/line navigation and selection,
   double/triple click, caret reveal and autoscroll during selection. Use the
   same geometry for drawing and hit testing.
 
