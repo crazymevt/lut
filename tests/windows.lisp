@@ -25,7 +25,7 @@
        (:start
         (lut::layout-window main)
         (lut:dispatch main (lut:make-event :kind :down :x (+ (lut:x dialog) 8) :y (+ (lut:y dialog) 8)))
-        (lut:dispatch main (lut:make-event :kind :move :x (+ (lut:width main) 20) :y (+ (lut:y dialog) 40)))
+        (lut:dispatch main (lut:make-event :kind :move :x (- (lut:width main) 20) :y (+ (lut:y dialog) 40)))
         (setf remote (find (lut::root-of dialog) lut::*remote-windows* :key #'lut::remote-window-root)
               phase :waiting)
         (assert remote))

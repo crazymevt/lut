@@ -153,7 +153,8 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
    (let ((remote (spawn-window w :position pos :style-source (when (typep old-root 'window) old-root))))
      (when (typep old-root 'window)
        (setf (slot-value old-root 'overlays) (remove d (slot-value old-root 'overlays)))
-       (setf (focused-widget old-root) nil))
+       (setf (focused-widget old-root) nil
+             (slot-value old-root 'pressed-widget) nil (pressed-p d) nil))
      (setf (parent d) nil (position-mode d) :absolute (x d) 0 (y d) 0 (detach-on-drag-p d) nil)
      (add-child w d)
      remote)))

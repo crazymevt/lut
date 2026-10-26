@@ -56,7 +56,7 @@
                 (loop for p = widget then (parent p) while p thereis (eq p (input-root window)))
                 (loop for p = widget then (parent p) while p always (and (visible-p p) (enabled-p p))))
      (error "Invalid focus target.")))
- (setf (focused-widget window) widget))
+ (setf (focused-widget window) widget (focus-visible-p window) t))
 (defun input-root (window) (or (find-if-not (lambda (d) (typep d 'tooltip)) (slot-value window 'overlays)) window))
 (defun tab-focus (window backwards)
  (let (nodes)
@@ -153,7 +153,7 @@ Callbacks receive (widget payload). Pointer capture supports text drag selection
    (case (event-kind event)
      (:down
       (setf (slot-value window 'pressed-widget) target)
-      (when (and target (focusable-p target)) (focus window target))
+      (when (and target (focusable-p target)) (focus window target) (setf (focus-visible-p window) (typep target 'entry)))
       (when (typep target 'entry)
         (setf (cursor target) (text-position target event))
         (unless (event-shift-p event) (setf (slot-value target 'anchor) (cursor target))))
@@ -174,11 +174,11 @@ Callbacks receive (widget payload). Pointer capture supports text drag selection
      (:wheel
       (loop for node = target then (parent node) while node
         when (or (typep node 'scroll-view) (typep node 'list-view))
-          do (let ((extent (if (typep node 'list-view) (* (row-height node) (length (items node)))
-                            (+ 16 (loop for c in (children node) when (visible-p c)
-                                        sum (+ (height c) (spacing node)))))))
-               (setf (scroll-offset node) (max 0 (min (max 0 (- extent (height node)))
-                                                     (- (scroll-offset node) (* (row-height node) (event-delta event)))))))
+          do (let ((range (if (typep node 'list-view)
+                              (max 0 (- (* (row-height node) (length (items node))) (height node)))
+                              (scroll-range node))))
+               (setf (scroll-offset node) (max 0 (min range
+                   (- (scroll-offset node) (* (row-height node) (event-delta event)))))))
              (return)
         when (and (typep node 'slider) (not (typep node 'progress-bar)))
           do (change-number node (+ (value node) (* (step node) (event-delta event)))) (return)))

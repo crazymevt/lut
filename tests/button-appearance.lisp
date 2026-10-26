@@ -27,6 +27,10 @@
           (assert (= clicks 1))
           (assert (eq normal (lut:focused-widget w)))
           (assert (not (lut::button-depressed-p normal)))
+          (assert (not (lut::focus-visible-p w)))
+          (lut:dispatch w (lut:make-event :kind :key :key :enter))
+          (assert (= clicks 2))
+          (assert (lut::focus-visible-p w))
           ;; Move away so this also covers the focused, non-hovered state.
           (lut:dispatch w (lut:make-event :kind :move :x -1 :y -1))))
       (setf (lut::hovered-p hover) t (lut::pressed-p pressed) t)
