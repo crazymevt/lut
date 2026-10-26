@@ -60,7 +60,9 @@
   (overlays nil list "Internal modal dialog stack.")
   (pressed-widget nil (or null widget) "Internal pointer capture.")
   (drag-context nil t "Internal pending or active drag session.")
-  (interaction-state nil list "Internal pointer gesture state.")))
+  (interaction-state nil list "Internal pointer gesture state.")
+  (text-selection-state nil list "Internal captured text selection gesture.")
+  (text-click-state nil list "Internal repeated-click target, time and coordinates.")))
 (defwidget label (widget) "Noninteractive text." ((text "" string "Displayed text.")
   (text-root nil t "Internal indexed text cache.")
   (indexed-string nil (or null string) "Internal source identity for standalone indexing.")
@@ -91,7 +93,8 @@
   (redo-history nil list "Internal undone range edit records.")
   (history-limit 100 (integer 0 *) "Maximum range records per undo/redo stack; zero disables history.")
   (history-character-limit 262144 (integer 0 *) "Maximum removed plus inserted characters retained per history stack; zero disables retention.")
-  (last-cursor -1 (integer -1 *) "Internal previous caret position for viewport tracking.")))
+  (last-cursor -1 (integer -1 *) "Internal previous caret position for viewport tracking.")
+  (navigation-x nil (or null real) "Internal preferred horizontal pixel position for vertical navigation.")))
 (defwidget text-view (entry) "Multiline editable text; Enter inserts a newline." ())
 (defwidget slider (widget) "Numeric control with pointer, wheel and arrow-key input."
  ((value 0 real "Current number, clamped to bounds by input.")
@@ -137,6 +140,8 @@
 (defmethod cancel-drag ((window widget)) nil)
 (defgeneric cancel-subtree-drag (window subtree))
 (defmethod cancel-subtree-drag ((window widget) subtree) (declare (ignore subtree)) nil)
+(defgeneric cancel-text-selection (window &key forget-clicks))
+(defmethod cancel-text-selection ((window widget) &key forget-clicks) (declare (ignore forget-clicks)) nil)
 (defun release-input-references (root subtree)
  (cancel-subtree-drag root subtree)
  (let ((nodes nil))
@@ -144,6 +149,8 @@
    (when (typep root 'window)
      (when (member (focused-widget root) nodes) (setf (focused-widget root) nil))
      (when (member (slot-value root 'pressed-widget) nodes) (setf (slot-value root 'pressed-widget) nil))
+     (when (member (first (slot-value root 'text-selection-state)) nodes) (cancel-text-selection root))
+     (when (member (first (slot-value root 'text-click-state)) nodes) (setf (slot-value root 'text-click-state) nil))
      (when (intersection nodes (slot-value root 'interaction-state) :test #'eq)
        (setf (slot-value root 'interaction-state) nil)))))
 (defun remove-child (container child &key dispose)
@@ -257,6 +264,7 @@ Return CALLBACK and, as a second value, a CONNECTION handle for DISCONNECT."
  (when (parent dialog) (error "Dialog already belongs to a tree."))
  (when (slot-value window 'pressed-widget) (setf (pressed-p (slot-value window 'pressed-widget)) nil))
  (cancel-drag window)
+ (cancel-text-selection window :forget-clicks t)
  (setf (parent dialog) window) (push dialog (slot-value window 'overlays))
  (setf (focused-widget window) nil (slot-value window 'pressed-widget) nil)
  (present-dialog window dialog))
@@ -339,6 +347,7 @@ Return CALLBACK and, as a second value, a CONNECTION handle for DISCONNECT."
        (dolist (overlay (copy-list (slot-value w 'overlays))) (destroy overlay))
        (setf (slot-value w 'overlays) nil (slot-value w 'focused-widget) nil
              (slot-value w 'pressed-widget) nil (slot-value w 'interaction-state) nil
+             (slot-value w 'text-selection-state) nil (slot-value w 'text-click-state) nil
              (slot-value w 'style-source) nil (slot-value w 'style-rules) nil (slot-value w 'theme) nil)))
    (dolist (c (append (copy-list (slot-value w 'handlers)) (copy-list (slot-value w 'connections)))) (disconnect c))
    (setf (slot-value w 'children) nil (slot-value w 'handlers) nil (slot-value w 'connections) nil
@@ -346,7 +355,7 @@ Return CALLBACK and, as a second value, a CONNECTION handle for DISCONNECT."
    (when (or (typep w 'label) (typep w 'window) (typep w 'dialog) (typep w 'expander)) (setf (slot-value w 'text) ""))
    (when (typep w 'entry)
      (setf (slot-value w 'cursor) 0 (slot-value w 'anchor) 0
-           (slot-value w 'text-offset) 0 (slot-value w 'vertical-offset) 0
+           (slot-value w 'text-offset) 0 (slot-value w 'vertical-offset) 0 (slot-value w 'navigation-x) nil
            (slot-value w 'undo-history) nil (slot-value w 'redo-history) nil))
    (when (typep w 'popover) (setf (slot-value w 'popup-owner) nil))
    (when (or (typep w 'combo-box) (typep w 'notebook) (typep w 'list-view)) (setf (slot-value w 'items) nil))

@@ -1,7 +1,7 @@
 (in-package #:lut)
 (defstruct event
- "Normalized input. KIND: :DOWN :MOVE :UP :WHEEL :KEY :TEXT :CONTEXT :GESTURE. KEY: keyword. TEXT: string. X/Y/DELTA: real. SHIFT-P/CONTROL-P/ALT-P/SUPER-P: booleans; BASE-KEY is the key before shortcut aliases."
- kind (x 0) (y 0) key base-key (text "") (delta 0) shift-p control-p alt-p super-p)
+ "Normalized input. KIND: :DOWN :MOVE :UP :WHEEL :KEY :TEXT :CONTEXT :GESTURE. KEY: keyword. TEXT: string. X/Y/DELTA: real. SHIFT-P/CONTROL-P/ALT-P/SUPER-P: booleans; BASE-KEY is the key before shortcut aliases. TIMESTAMP is optional monotonic seconds; CLICK-COUNT optionally forces 1/2/3 on pointer down."
+ kind (x 0) (y 0) key base-key (text "") (delta 0) shift-p control-p alt-p super-p timestamp click-count)
 (defmethod (setf text) :around (new-text (entry entry))
  (if (and (slot-boundp entry 'view-buffer) (view-buffer entry))
      (set-buffer-view-text entry new-text)
@@ -58,6 +58,9 @@
                 (loop for p = widget then (parent p) while p thereis (eq p (input-root window)))
                 (loop for p = widget then (parent p) while p always (and (visible-p p) (enabled-p p))))
      (error "Invalid focus target.")))
+ (when (and (slot-value window 'text-selection-state)
+            (not (eq widget (first (slot-value window 'text-selection-state)))))
+   (cancel-text-selection window :forget-clicks t))
  (setf (focused-widget window) widget (focus-visible-p window) t))
 (defun input-root (window) (or (find-if-not (lambda (d) (typep d 'tooltip)) (slot-value window 'overlays)) window))
 (defun tab-focus (window backwards)
@@ -101,21 +104,17 @@
          (:cut (when (editable-p w) (setf (clipboard-text w) (selected-text w)) (replace-selection w "")))
          (:paste (when (editable-p w) (replace-selection w (clipboard-text w))))
          ((:left :right :home :end :up :down)
-          (let* ((position (cursor w))
-                 (line (text-position-line w position))
-                 (bounds (multiple-value-list (text-line-range w line)))
-                 (column (- position (first bounds))))
-            (setf (cursor w)
-              (case key
-                (:left (if (and (not (event-shift-p e)) (/= position (slot-value w 'anchor)))
-                           (min position (slot-value w 'anchor)) (max 0 (1- position))))
-                (:right (if (and (not (event-shift-p e)) (/= position (slot-value w 'anchor)))
-                            (max position (slot-value w 'anchor)) (min n (1+ position))))
-                (:home (first bounds)) (:end (second bounds))
-                ((:up :down)
-                 (let ((destination (multiple-value-list (text-line-range w (max 0 (min (1- (text-line-count w)) (+ line (if (eq key :up) -1 1))))))))
-                   (min (second destination) (+ (first destination) column))))))
-            (unless (event-shift-p e) (setf (slot-value w 'anchor) (cursor w)))))
+          (move-text-cursor w
+            (case key
+              (:left (cond ((event-super-p e) :line-start)
+                           ((or (event-control-p e) (event-alt-p e)) :word-left) (t :left)))
+              (:right (cond ((event-super-p e) :line-end)
+                            ((or (event-control-p e) (event-alt-p e)) :word-right) (t :right)))
+              (:home (if (or (event-control-p e) (event-super-p e)) :document-start :line-start))
+              (:end (if (or (event-control-p e) (event-super-p e)) :document-end :line-end))
+              (:up (if (event-super-p e) :document-start :up))
+              (:down (if (event-super-p e) :document-end :down)))
+            :extend (event-shift-p e)))
          ((:backspace :delete)
           (when (editable-p w)
            (when (= (cursor w) (slot-value w 'anchor))
@@ -148,16 +147,15 @@ Callbacks receive (widget payload). Pointer capture supports text drag selection
      (:down
       (setf (slot-value window 'pressed-widget) target)
       (when (and target (focusable-p target)) (focus window target) (setf (focus-visible-p window) (typep target 'entry)))
-      (when (typep target 'entry)
-        (setf (cursor target) (text-position target event))
-        (unless (event-shift-p event) (setf (slot-value target 'anchor) (cursor target))))
+      (when (typep target 'entry) (begin-text-selection window target event))
       (when (and (typep target 'slider) (not (typep target 'progress-bar)))
         (change-number target (+ (minimum target) (* (- (maximum target) (minimum target))
                                (/ (- (event-x event) (x target)) (max 1 (width target))))))))
      (:move
-      (let ((pressed (slot-value window 'pressed-widget)))
-        (when (typep pressed 'entry) (setf (cursor pressed) (text-position pressed event)))))
+      (when (slot-value window 'text-selection-state) (update-text-selection window event)))
      (:up
+      (when (slot-value window 'text-selection-state)
+        (update-text-selection window event) (cancel-text-selection window))
       (when (and target (eq target (slot-value window 'pressed-widget)))
         (cond ((typep target 'button) (activate target))
               ((typep target 'list-view)
@@ -186,10 +184,15 @@ Callbacks receive (widget payload). Pointer capture supports text drag selection
                     (remove #\Newline (remove #\Return (event-text event))))))))
    target))
 (defmethod (setf text) :after (new-text (w entry))
- ;; Live edits to TEXT preserve valid selection indices.
+ ;; Live edits to TEXT preserve valid selection indices and stop stale gestures.
+ (cancel-view-text-selection w)
  (setf (cursor w) (min (cursor w) (length new-text))
        (slot-value w 'anchor) (min (slot-value w 'anchor) (length new-text))))
 
 (defmethod validate-slot ((w entry) slot v)
  (when (and (eq slot 'cursor) (slot-boundp w 'text) (> v (text-length w)))
    (error "Caret index exceeds text length.")) v)
+
+(defmethod (setf cursor) :after (position (view entry))
+ (declare (ignore position))
+ (setf (slot-value view 'navigation-x) nil))

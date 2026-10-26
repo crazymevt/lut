@@ -41,6 +41,7 @@
 (defun attach-buffer-view (view buffer &key quiet)
  (let ((old (view-buffer view)))
    (unless (eq old buffer)
+     (cancel-view-text-selection view)
      (when buffer (validate-slot view 'text (text buffer)))
      (let ((previous (copy-seq (text view))))
        (when old (setf (slot-value old 'buffer-views) (remove view (buffer-views old))))
@@ -147,6 +148,8 @@
        ;; All views are consistent before any application notification is emitted.
        (dolist (view views)
          (when (and (not (disposed-p view)) (eq (view-buffer view) buffer))
+           (if (eq view origin) (cancel-view-text-selection view)
+               (remap-view-text-selection view start end new-end))
            (setf (slot-value view 'text) ""
                  (slot-value view 'cursor) (remap-text-position (cursor view) start end new-end)
                  (slot-value view 'anchor) (remap-text-position (slot-value view 'anchor) start end new-end))

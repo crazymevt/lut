@@ -2,7 +2,7 @@
 (defun signatures ()
  (let ((result (make-hash-table)) (*package* (find-package :lut)) (*read-eval* nil))
    (dolist (file '("src/core.lisp" "src/widgets.lisp" "src/styles.lisp" "src/input.lisp"
-                  "src/text-buffers.lisp" "src/text-history.lisp" "src/text-index.lisp" "src/text-geometry.lisp" "src/commands.lisp" "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/windows.lisp"))
+                  "src/text-buffers.lisp" "src/text-history.lisp" "src/text-index.lisp" "src/text-geometry.lisp" "src/text-selection.lisp" "src/commands.lisp" "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/windows.lisp"))
      (with-open-file (in (asdf:system-relative-pathname "lut" file))
        (loop for form = (read in nil :eof) until (eq form :eof)
              when (and (consp form) (member (first form) '(defun defmacro defgeneric)) (symbolp (second form)))
@@ -12,7 +12,7 @@
    (dolist (name '(lut:edit-start lut:edit-old-end lut:edit-new-end lut:edit-revision lut:edit-origin))
      (setf (gethash name result) '(edit)))
    (setf (gethash 'lut:command-binding-active-p result) '(binding))
-   (setf (gethash 'lut:make-event result) '(&key kind x y key base-key text delta shift-p control-p alt-p super-p)) result))
+   (setf (gethash 'lut:make-event result) '(&key kind x y key base-key text delta shift-p control-p alt-p super-p timestamp click-count)) result))
 (defun inherited-slots (name)
  (let ((record (assoc name lut:*api*)))
    (remove-duplicates (append (fourth record) (mapcan #'inherited-slots (copy-list (second record))))

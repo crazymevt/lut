@@ -20,7 +20,8 @@
 (defun event-data (e)
  (list :kind (event-kind e) :x (event-x e) :y (event-y e) :key (event-key e)
        :text (event-text e) :delta (event-delta e) :shift-p (event-shift-p e)
-       :control-p (event-control-p e) :alt-p (event-alt-p e) :super-p (event-super-p e) :base-key (event-base-key e)))
+       :control-p (event-control-p e) :alt-p (event-alt-p e) :super-p (event-super-p e) :base-key (event-base-key e)
+       :timestamp (event-timestamp e) :click-count (event-click-count e)))
 (defun encode-remote-frame (remote)
  "Render every frame for live code/custom drawing, but PNG-encode only changed pixels.
 NIL means keep the worker's existing texture; control/input round trips continue."
@@ -106,7 +107,9 @@ NIL means keep the worker's existing texture; control/input round trips continue
      (when (and (remote-window-alive-p remote) root (not (disposed-p root)))
        (emit root :tick (if *active-window* (rl:get-frame-time) 0))
        (when (and (eq root (remote-window-root remote)) (not (disposed-p root)))
-         (open-pending-dialogs root) (layout-window root) (send-snapshot remote))))))
+         (open-pending-dialogs root) (layout-window root)
+         (advance-text-selection root (if *active-window* (rl:get-frame-time) 0))
+         (send-snapshot remote))))))
 (defun spawn-window (window &key position (style-source *active-window*) (flags '(:window-resizable)))
  "Open WINDOW in a native worker process. Its objects and event callbacks stay in this REPL.
 Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list."
@@ -140,6 +143,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                             (when (and root (not (disposed-p root)) (not (remote-window-closing-p remote))
                                        (eq (first packet) :input))
                               (setf (remote-window-focused-p remote) (fifth packet))
+                              (unless (fifth packet) (cancel-text-selection root :forget-clicks t))
                               (layout root 0 0 (second packet) (third packet))
                               (dolist (data (fourth packet)) (dispatch root (apply #'make-event data)))))
                           (incf (remote-window-frames remote))

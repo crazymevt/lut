@@ -270,3 +270,7 @@ Applications decide how to present it; LUT emits no dialog or global warning.
 
 Try `(lut:start (lut-examples:standalone-history))` for small edits, undo/redo,
 and a deliberately oversized insertion with status feedback.
+
+
+Word/line navigation, repeated-click selection, caret reveal and captured
+selection autoscroll are described in [text selection and navigation](text-selection.md).

@@ -189,3 +189,5 @@ remaining toolkit work and the boundary with application-specific behavior.
 [shared text buffers and indexed geometry](docs/text-buffers.md),
 `lut-examples:shared-text` and the 50,000-line `lut-examples:indexed-text`.
 `lut-examples:standalone-history` demonstrates range undo/redo and oversized-record feedback.
+See [text selection and navigation](docs/text-selection.md) and `lut-examples:text-selection`
+for word/line selection, caret reveal and selection autoscroll.

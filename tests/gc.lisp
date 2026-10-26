@@ -41,6 +41,10 @@
         (weak (trivial-garbage:make-weak-pointer view)))
    (lut:on buffer :change (lambda (w text) (declare (ignore w text)) (lut:cursor view)) :owner view)
    (lut:replace-buffer-range buffer 0 0 "x" :origin view)
+   ;; Retain both active gesture and repeated-click metadata in the live root.
+   ;; Disposal must release these references without native font measurement.
+   (setf (slot-value root 'lut::text-selection-state) (list view 0 0 :word 0 1)
+         (slot-value root 'lut::text-click-state) (list view 1 0 0 2))
    (lut:dispose view) weak))
 (defun make-buffer-gc-fixture ()
  (let* ((root (lut:make-widget 'lut:window)) (buffer (lut:make-text-buffer :text "text" :history-limit 5))

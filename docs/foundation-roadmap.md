@@ -47,13 +47,19 @@ See [drag-and-drop](drag-and-drop.md), [commands](commands.md) and
   Verified snapshot-oracle comparisons, 1 Mi-character small-edit history,
   validation failures, budget boundaries and the native example on macOS.
   Standalone edit storage remains flat strings. See [text buffers](text-buffers.md).
-- [ ] **Selection and navigation behavior — next.** Word/line navigation and selection,
-  double/triple click, caret reveal and autoscroll during selection. Use the
-  same geometry for drawing and hit testing.
+- [x] **Selection and navigation behavior — delivered.** Portable word/run and
+  logical-line navigation/selection, Shift extension, preferred pixel X,
+  double/triple-click unit dragging, shared caret reveal and time-based selection
+  autoscroll. Drawing and hit testing use the same geometry. Verified read-only
+  and independent shared views, stationary-pointer reveal edges, capture/GC
+  cleanup and native worker click/timestamp/modifier IPC on macOS. Word rules
+  are character runs, not Unicode word breaking or language syntax; logical
+  lines remain unwrapped. Linux/Windows checks remain unrun. See
+  [text selection](text-selection.md) and `lut-examples:text-selection`.
 
 ## Phase 2: Reusable document presentation
 
-- [ ] **Styled text runs and decorations.** Font/color spans, underlines,
+- [ ] **Styled text runs and decorations — next.** Font/color spans, underlines,
   selection, gutters and annotations with explicit invalidation. Applications
   supply syntax/diagnostic data; LUT does not supply a language server or parser.
 - [ ] **Read-only document view.** Selectable formatted text, links, embedded
