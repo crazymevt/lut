@@ -14,7 +14,7 @@ They are not exact replicas of GTK, Pango, GSK, GIO or OS integration.
 (lut-gtk-demo:demo-names) ; sorted list of all 108 names
 ```
 
-The searchable browser opens selections as native secondary windows while the
+The fuzzy-search browser opens selections as native secondary windows while the
 controller remains active. Every demo is placed in a scrollable viewport so
 controls below the current window height remain reachable. Edits to builders
 affect the next instance; re-evaluated CLOS methods affect existing instances.
@@ -178,3 +178,10 @@ canvas. The DND demo moves/recolors/rotates objects and shares context menus;
 OS cross-application drag-and-drop is not implemented. Cursor choices apply to the
 appropriate native worker. Gestures accept raylib touch events plus pointer/
 keyboard equivalents; desktop trackpads may expose fewer events than GTK.
+
+The launcher's search field accepts ordered abbreviations: `cbx` finds
+`combobox`, and `lvfb` finds `listview_filebrowser`. Matching ignores case,
+spaces, underscores and hyphens. Exact, prefix and substring matches rank ahead
+of looser subsequences; compact matches rank higher. The best result is selected
+automatically, and Enter opens it. Clearing the field restores the alphabetical
+list. No matches clears the selection and shows a message.
