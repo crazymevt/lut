@@ -57,6 +57,9 @@
    #:dispatch #:make-event #:event-kind #:event-x #:event-y #:event-key
    #:event-drop-data #:event-text #:event-delta #:event-shift-p #:event-control-p #:event-alt-p #:event-super-p #:event-timestamp #:event-click-count #:event-base-key #:focus #:modal-p #:focused-widget
    #:undo #:redo #:history-limit #:history-character-limit #:selection #:cursor #:select-all #:selected-text #:replace-selection
+   #:launch-uri #:launch-file #:default-application-capabilities #:*default-application-command*
+   #:target-launch-error #:launch-error-target #:launch-error-reason #:launch-error-detail #:launch-error-exit-code
+   #:window-state #:set-window-state #:normal-window-size #:set-normal-window-size
    #:scroll-geometry #:scroll-to #:reveal-rectangle #:reveal-widget #:reveal-text-range
    #:follow-end-distance #:set-follow-end #:scroll-offset #:minimum #:maximum #:step #:draw-function #:render
    #:on-widget #:cancel-ui #:on-ui #:enqueue-ui #:run #:start #:stop #:*window* #:frame-step #:show-dialog #:close-dialog #:dismiss-dialog #:unsupported-capability #:detach-window

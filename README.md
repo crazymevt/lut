@@ -223,3 +223,12 @@ Query content/page/offset with `scroll-geometry`, clamp with `scroll-to`, and
 reveal nested children or text ranges with `reveal-widget` / `reveal-text-range`.
 Applications explicitly enable or pause `set-follow-end`. See
 [scrolling and reveal](docs/scrolling.md) and `lut-examples:scrolling`.
+
+## Application adapters
+
+Explicit `launch-uri` / `launch-file` actions use a discovered or configured
+argv launcher with availability/error reporting. `window-state` and
+`set-window-state` query/request native maximize/restore; `normal-window-size`
+preserves normal logical dimensions separately from allocated geometry,
+including worker windows. See [application adapters](docs/application-adapters.md)
+and `lut-examples:application-adapters`.

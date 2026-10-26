@@ -131,7 +131,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                                       :directory root #+ccl :sharing #+ccl :lock))
         (remote (make-remote-window :process process :root window
                   :topmost-p (not (null (member :window-topmost flags))))))
-   (write-message (uiop:process-info-input process) (list :open (list (width window) (height window) (text window)) position flags (ui-scale window)))
+   (write-message (uiop:process-info-input process) (list :open (list (nth-value 0 (normal-window-size window)) (nth-value 1 (normal-window-size window)) (text window)) position flags (ui-scale window) (native-operation-generation window)))
    (setf (remote-window-pending-p remote) t)
    (bt:with-lock-held (*remote-lock*) (push remote *remote-windows*))
    (setf (remote-window-reader remote)
@@ -146,6 +146,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                           (let ((root (remote-window-root remote)))
                             (when (and root (not (disposed-p root)) (not (remote-window-closing-p remote))
                                        (eq (first packet) :input))
+                              (accept-native-window-report root (sixth packet))
                               (setf (remote-window-focused-p remote) (fifth packet))
                               (unless (fifth packet) (cancel-text-selection root :forget-clicks t))
                               (layout root 0 0 (/ (second packet) (ui-scale root)) (/ (third packet) (ui-scale root)))
@@ -258,6 +259,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                         (error () (bt:with-lock-held (lock) (setf closed t)))))
                     :name "LUT worker snapshot reader")))
      (declare (ignore reader))
+     (setf (native-operation-generation w) (or (sixth opening) 0))
      (rl:with-window ((round (* (width w) (ui-scale w))) (round (* (height w) (ui-scale w))) (text w) :flags flags :exit-key :null)
        (when position (rl:set-window-position (round (first position)) (round (second position))))
        (unwind-protect
@@ -274,6 +276,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                    (when texture (rl:unload-texture texture)) (setf texture new)))
                (setf acknowledge t)))
            (when (or (bt:with-lock-held (lock) closed) (rl:window-should-close)) (return))
+           (sync-native-window-state w)
            (layout-window w (/ (rl:get-screen-width) (ui-scale w)) (/ (rl:get-screen-height) (ui-scale w)))
            (let ((*event-sink* #'forward-native-event)) (poll-input w))
            (rl:with-drawing (:black)
@@ -281,7 +284,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                (rl:draw-texture-pro texture (rl:rect 0 0 (rl:texture-width texture) (rl:texture-height texture))
                  (rl:rect 0 0 (rl:get-screen-width) (rl:get-screen-height)) (rl:vec2 0 0) 0 :white)))
            (when acknowledge
-             (write-message output (list :input (rl:get-screen-width) (rl:get-screen-height) (nreverse *forwarded-events*) (rl:is-window-focused)))
+             (write-message output (list :input (rl:get-screen-width) (rl:get-screen-height) (nreverse *forwarded-events*) (rl:is-window-focused) (native-window-report w)))
              (setf *forwarded-events* nil acknowledge nil)))
          (when texture (rl:unload-texture texture))
          (mapc (lambda (pair) (rl:unload-font (cdr pair))) *font-cache*)

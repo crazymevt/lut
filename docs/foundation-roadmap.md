@@ -206,13 +206,22 @@ manual interaction, and Linux/Windows native behavior remain unverified.
 
 ## Phase 9: Native application adapters (G6, G7)
 
-- [ ] **Default-application launching (G6).** Opt-in URI/file launching with native
+- [x] **Default-application launching (G6) — delivered.** Opt-in URI/file launching with native
   adapters, portable fallback and explicit availability/error reporting. The
   application decides which targets to launch; document links continue emitting
   application targets without opening them automatically.
-- [ ] **Native window state (G7).** Query and set maximized/restored state and
+- [x] **Native window state (G7) — delivered.** Query and set maximized/restored state and
   preserve normal window size separately from allocated content geometry,
   including worker IPC. Settings persistence stays application-owned.
+
+See [application adapters](application-adapters.md) and
+`lut-examples:application-adapters`. macOS uses the native `open` helper;
+`xdg-open` discovery and configured argv prefixes provide portable fallback.
+Windows requires explicit launcher configuration. Native primary/worker
+maximize/restore and saved normal size pass on macOS/SBCL and CCL at
+100/125/200% scale, including stale IPC rejection. Launch tests use injected
+failures and a real argv helper, without opening external applications.
+Manual window-manager actions and Linux/Windows execution remain unverified.
 
 ## Phase 10: Terminal integration boundary (G5)
 

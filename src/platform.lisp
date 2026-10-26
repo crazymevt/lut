@@ -235,7 +235,9 @@
 (defun platform-capabilities (window)
  "Return fresh capability audit records. Native availability requires an eligible primary macOS context; text gaps are explicit."
  (let ((native (native-platform-available-p window)))
-   (list (list :name :menus :status (if native :native :portable) :scope :primary-window)
+   (list (list :name :default-application :status (if (getf (default-application-capabilities) :available-p) :available :unsupported))
+         (list :name :window-state :status (if (native-window-state-available-p window) :native :unavailable))
+         (list :name :menus :status (if native :native :portable) :scope :primary-window)
          (list :name :path-pickers :status (if native :native :portable) :scope :primary-window)
          (list :name :ui-scaling :status :portable :units :logical)
          (list :name :unicode-glyphs :status :partial :detail "Font coverage; character indices, no grapheme/shaping engine.")

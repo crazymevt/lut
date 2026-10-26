@@ -684,6 +684,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
  (unless (equal *native-title* (text w))
    (rl:set-window-title (text w)) (setf *native-title* (text w)))
  (when (fboundp 'pump-remote-windows) (pump-remote-windows))
+ (sync-native-window-state w)
  (emit w :tick dt)
  (when (disposed-p w) (return-from frame-step nil))
  (refresh-platform-integration w)
@@ -714,7 +715,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
        (*used-fonts* nil) (*used-textures* nil) (*retired-targets* nil) (count 0))
    (setf *controller-running-p* t *primary-window* w)
    (unwind-protect
-     (rl:with-window ((round (* (width w) (ui-scale w))) (round (* (height w) (ui-scale w))) (text w)
+     (rl:with-window ((round (* (nth-value 0 (normal-window-size w)) (ui-scale w))) (round (* (nth-value 1 (normal-window-size w)) (ui-scale w))) (text w)
                      :flags '(:window-resizable :vsync-hint) :exit-key :null)
        (unwind-protect
          (rl:game-loop (dt :on-error (if frames :signal :pause))

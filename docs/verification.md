@@ -183,3 +183,41 @@ matches measure at most 256 characters, a match at column 2,048 measures at most
 measure no text. All reveal requests perform zero full horizontal extent queries;
 selection/cursor and expected offsets are checked. Cost remains proportional to
 affected line prefixes through the range endpoints, including chunk rounding.
+
+## Phase 9: Native application adapters
+
+All commands use `/Users/jessie/.local/bin/quiet-run.sh --`.
+
+- `tests/portable.lisp` on SBCL (`--script`) and CCL
+  (`--no-init --batch --load`): core suites, 108 demo behaviors, GC and generated
+  API-doc validation pass. New adapter tests verify literal URI/path argv,
+  copied capabilities, disabled/missing launchers, invalid targets, process and
+  nonzero-exit failures, a real printf helper, normal-size isolation from layout,
+  native operation routing and validation. No browsers or user files are opened.
+- The macOS native test also invokes the actual `open --` error route with a
+  guaranteed nonexistent target and checks its nonzero-exit diagnostic; no
+  external application is opened.
+- `tests/application-native.lisp` on both implementations: actual macOS primary
+  and worker maximize/restore, changing normal size while maximized, matching
+  restored OS content allocations, and normal-size independence from explicit
+  layout pass at 100/125/200%. Worker observations/generations traverse real IPC;
+  deterministic packet tests additionally reject stale/malformed state reports.
+- Existing `tests/windows.lisp` verifies window/modal IPC and cleanup. Existing
+  scrolling native checks guard the phase-8 behavior after startup/IPC changes.
+
+Manual window-manager buttons, actual external default-app launches, and
+Linux/Windows execution are not verified. Launching is tested at the argv/process
+boundary. Native transitions are asynchronous; normal capture skips transition
+frames, then reflects OS-reported sizes/constraints. Persistent settings remain
+application-owned.
+
+### Phase 9 review: Legacy pre-open sizing (F1)
+
+Before any normal size is saved or configured, `normal-window-size` falls back
+to current `width`/`height`, matching legacy native startup behavior. Once saved,
+normal size remains independent of layout allocations. Portable tests cover
+pre-open setters, the unsaved layout fallback, and explicit size configuration
+followed by a different layout allocation. Native tests construct primary and
+worker windows at smaller sizes, update both dimensions with legacy setters
+before opening, and verify actual OS/IPC opening dimensions at 100/125/200%
+on SBCL and CCL, then retain maximize/restore isolation checks.
