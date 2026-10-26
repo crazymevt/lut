@@ -1,4 +1,4 @@
-(in-package #:lui)
+(in-package #:lut)
 (defvar *api* nil "Declarative class metadata used by the docset generator.")
 (defgeneric validate-slot (widget slot value)
  (:documentation "Validate a proposed live slot update before assignment; signal an error to reject it."))
@@ -45,7 +45,7 @@
  ((orientation :vertical (member :vertical :horizontal) "Stack direction.")
   (spacing 8 (real 0 *) "Space between children.")))
 (defwidget window (box) "Root of a GUI tree. One native raylib window per process."
- ((text "LUI" string "Native title.") (theme *light-theme* list "Inherited theme property list.")
+ ((text "LUT" string "Native title.") (theme *light-theme* list "Inherited theme property list.")
   (theme-explicit-p nil boolean "Internal flag distinguishing an explicit theme from the default palette.")
   (style-source nil (or null window) "Optional application window whose styles, selectors and theme are inherited across native windows.")
   (style-rules nil list "Ordered rules: (:CLASS class :STATE state-or-NIL :STYLE token-plist). Later rules win.")

@@ -1,4 +1,4 @@
-(defpackage #:lui
+(defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
   (:export #:toggle-button #:switch #:radio-button #:spin-button #:dropdown #:combo-box
@@ -22,4 +22,4 @@
    #:on-window #:evaluate-in-window #:spawn-window #:close-window #:remote-window #:remote-alive-p #:*worker-command*
    #:open-context-menu #:clipboard-text #:choose-file #:choose-color #:choose-font
    #:display-text #:handle-event #:text-width #:range-fraction #:validate-slot #:*api* #:defwidget #:walk-widgets))
-(in-package #:lui)
+(in-package #:lut)

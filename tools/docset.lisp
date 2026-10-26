@@ -1,22 +1,22 @@
-(in-package #:lui-docs)
+(in-package #:lut-docs)
 (defun signatures ()
- (let ((result (make-hash-table)) (*package* (find-package :lui)) (*read-eval* nil))
+ (let ((result (make-hash-table)) (*package* (find-package :lut)) (*read-eval* nil))
    (dolist (file '("src/core.lisp" "src/widgets.lisp" "src/styles.lisp" "src/input.lisp"
                   "src/interactions.lisp" "src/raylib.lisp" "src/windows.lisp"))
-     (with-open-file (in (asdf:system-relative-pathname "lui" file))
+     (with-open-file (in (asdf:system-relative-pathname "lut" file))
        (loop for form = (read in nil :eof) until (eq form :eof)
              when (and (consp form) (member (first form) '(defun defmacro defgeneric)) (symbolp (second form)))
                do (setf (gethash (second form) result) (third form)))))
-   (setf (gethash 'lui:make-event result) '(&key kind x y key text delta shift-p)) result))
+   (setf (gethash 'lut:make-event result) '(&key kind x y key text delta shift-p)) result))
 (defun inherited-slots (name)
- (let ((record (assoc name lui:*api*)))
+ (let ((record (assoc name lut:*api*)))
    (remove-duplicates (append (fourth record) (mapcan #'inherited-slots (copy-list (second record))))
                       :key #'first :from-end t)))
 (defun accessor-records (symbol)
- (loop for record in lui:*api* for slot = (find symbol (fourth record) :key #'first)
+ (loop for record in lut:*api* for slot = (find symbol (fourth record) :key #'first)
        when slot collect (list (first record) slot)))
 (defun printed (value)
- (let ((*package* (find-package :lui)) (*print-case* :downcase)) (prin1-to-string value)))
+ (let ((*package* (find-package :lut)) (*print-case* :downcase)) (prin1-to-string value)))
 (defun event-accessor-p (symbol) (search "EVENT-" (symbol-name symbol)))
 (defun function-contract (symbol)
  (or (assoc symbol *contracts*)
@@ -28,44 +28,44 @@
                (loop for (owner slot) in records collect
                  (format nil "~a: ~a (valid values ~a)" owner (fourth slot) (printed (third slot)))))
              "Current slot value. SETF returns the assigned value; invalid edits leave the slot unchanged."
-             (format nil "(let ((w (lui:make-widget 'lui:~(~a~)))) (lui:~(~a~) w))" class symbol)))))
+             (format nil "(let ((w (lut:make-widget 'lut:~(~a~)))) (lut:~(~a~) w))" class symbol)))))
      (when (event-accessor-p symbol)
        (list symbol "EVENT is a normalized event returned by MAKE-EVENT. This accessor also supports SETF. See MAKE-EVENT for field types and valid KIND values."
-         "The named event field." (format nil "(lui:~(~a~) (lui:make-event :kind :key :key :tab))" symbol)))
+         "The named event field." (format nil "(lut:~(~a~) (lut:make-event :kind :key :key :tab))" symbol)))
      (error "Missing API contract for ~s" symbol)))
 (defun validate-example (string)
  (with-input-from-string (in string)
-   (let ((*read-eval* nil) (*package* (find-package :lui)))
+   (let ((*read-eval* nil) (*package* (find-package :lut)))
      (loop for form = (read in nil :eof) until (eq form :eof)))))
-(defun generate (&optional (directory (asdf:system-relative-pathname "lui" "docs/docset/")))
+(defun generate (&optional (directory (asdf:system-relative-pathname "lut" "docs/docset/")))
  "Generate and validate the complete exported API docset. Missing function contracts or unreadable examples are errors."
- (let ((entries nil) (signatures (signatures)) (class-names (mapcar #'first lui:*api*)))
-   (dolist (record (reverse lui:*api*))
+ (let ((entries nil) (signatures (signatures)) (class-names (mapcar #'first lut:*api*)))
+   (dolist (record (reverse lut:*api*))
      (destructuring-bind (name supers description slots) record
        (declare (ignore slots))
        (push `(:entry ,(format nil "class/~(~a~)" name) :names (,(symbol-name name)) :kind :class :kind-name "Class"
-               :package "LUI" :summary ,description
+               :package "LUT" :summary ,description
                :sections (("Description" (:p ,description)) ("Superclasses" (:p ,(printed supers)))
                  ("Initargs, defaults and valid values"
                    ,@(loop for (slot init type doc) in (inherited-slots name) collect
                      `(:p ,(format nil ":~(~a~) — ~a Valid values: ~a. Default form: ~a. Accessor: ~a."
                                     slot doc (printed type) (printed init) (printed slot)))))
-                 ("Example" (:code-block "lisp" ,(format nil "(lui:make-widget 'lui:~(~a~))" name))))) entries)))
-   (do-external-symbols (symbol :lui)
+                 ("Example" (:code-block "lisp" ,(format nil "(lut:make-widget 'lut:~(~a~))" name))))) entries)))
+   (do-external-symbols (symbol :lut)
      (unless (member symbol class-names)
        (cond
          ((boundp symbol)
           (push `(:entry ,(format nil "variable/~(~a~)" symbol) :names (,(symbol-name symbol))
-                  :kind :variable :kind-name "Variable" :package "LUI"
+                  :kind :variable :kind-name "Variable" :package "LUT"
                   :summary ,(or (documentation symbol 'variable) "Public library state.")
                   :sections (("Description" (:p ,(or (documentation symbol 'variable) "Public library state.")))
-                    ("Example" (:code-block "lisp" ,(format nil "lui:~(~a~)" symbol))))) entries))
+                    ("Example" (:code-block "lisp" ,(format nil "lut:~(~a~)" symbol))))) entries))
          ((fboundp symbol)
           (destructuring-bind (name args returns example) (function-contract symbol)
             (declare (ignore name)) (validate-example example)
             (let ((kind (if (macro-function symbol) :macro :function)))
               (push `(:entry ,(format nil "symbol/~(~a~)" symbol) :names (,(symbol-name symbol))
-                      :kind ,kind :kind-name ,(if (eq kind :macro) "Macro" "Function") :package "LUI"
+                      :kind ,kind :kind-name ,(if (eq kind :macro) "Macro" "Function") :package "LUT"
                       :summary ,(or (documentation symbol 'function) args)
                       :sections (("Signature" (:code-block "lisp"
                                     ,(format nil "(~(~a~) ~{~a~^ ~})" symbol
@@ -75,9 +75,9 @@
                                  ("Results and errors" (:p ,returns)) ("Example" (:code-block "lisp" ,example)))) entries))))
          ((find-class symbol nil)
           (push `(:entry ,(format nil "type/~(~a~)" symbol) :names (,(symbol-name symbol)) :kind :class
-                  :kind-name "Type" :package "LUI" :summary ,(cond ((eq symbol 'lui:remote-window)
+                  :kind-name "Type" :package "LUT" :summary ,(cond ((eq symbol 'lut:remote-window)
                     "Native worker handle returned by SPAWN-WINDOW and DETACH-WINDOW. Root/process/reader references are cleared after closure.")
-                    ((eq symbol 'lui:connection) "Event connection handle returned as ON's second value; DISCONNECT clears its references.")
+                    ((eq symbol 'lut:connection) "Event connection handle returned as ON's second value; DISCONNECT clears its references.")
                     (t "Backend capability error condition; CAPABILITY initarg identifies the unavailable operation."))
                   :sections (("Description" (:p "See the functions accepting or returning this type.")))) entries)))))
    (dolist (event '(("activate" "Button, check, toggle, radio: NIL. Entry: NIL on Enter. Check state changes before activation.")
@@ -88,11 +88,11 @@
                     ("context-close" "Root window: NIL, while its native context is still current. Release owned GPU/audio resources here; native teardown continues even if a handler signals. CPU widget trees remain usable for a later START.")
                     ("context" "Target widget: normalized EVENT with pointer X/Y. A registered handler replaces the default entry context menu.")))
      (push `(:entry ,(concatenate 'string "event/" (first event)) :names (,(concatenate 'string ":" (string-upcase (first event))))
-             :kind :event :kind-name "Event" :package "LUI" :summary ,(second event)
+             :kind :event :kind-name "Event" :package "LUT" :summary ,(second event)
              :sections (("Payload and ordering" (:p ,(second event)))
                ("Callback contract" (:p "Callbacks take (widget payload), execute on the GUI/controller thread, and propagate errors to the event loop."))
-               ("Example" (:code-block "lisp" ,(format nil "(lui:on widget :~a (lambda (widget payload) (declare (ignore widget)) (print payload)))" (first event)))))) entries))
-   (docset:write-docset directory '(:id "lui" :title "LUI" :packages ("LUI") :toc ())
+               ("Example" (:code-block "lisp" ,(format nil "(lut:on widget :~a (lambda (widget payload) (declare (ignore widget)) (print payload)))" (first event)))))) entries))
+   (docset:write-docset directory '(:id "lut" :title "LUT — Lisp User Toolkit" :packages ("LUT") :toc ())
                          (sort entries #'string< :key #'second))
    (let ((issues (docset:check-docset directory)))
      (unless (zerop issues) (error "Docset has ~d issues." issues))) directory))

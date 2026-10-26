@@ -1,7 +1,7 @@
-(in-package #:lui)
-(defstruct remote-window process root reader (alive-p t) (pending-p nil) (frames 0) (forms nil) (closing-p nil) (write-lock (bt:make-lock "LUI worker writer")) (dispose-on-close-p t) target last-pixels last-size (encoded-frames 0) error)
+(in-package #:lut)
+(defstruct remote-window process root reader (alive-p t) (pending-p nil) (frames 0) (forms nil) (closing-p nil) (write-lock (bt:make-lock "LUT worker writer")) (dispose-on-close-p t) target last-pixels last-size (encoded-frames 0) error)
 (defvar *remote-windows* nil)
-(defvar *remote-lock* (bt:make-lock "LUI window registry"))
+(defvar *remote-lock* (bt:make-lock "LUT window registry"))
 (defvar *forwarded-events* nil)
 (defun forward-native-event (event)
  (push (event-data event) *forwarded-events*))
@@ -90,10 +90,10 @@ NIL means keep the worker's existing texture; control/input round trips continue
 Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list."
  (check-type window window)
  (when (and style-source (not (eq window style-source)))
-   (setf (lui:style-source window) style-source)
+   (setf (lut:style-source window) style-source)
    (unless (theme-explicit-p window) (setf (theme window) nil)))
- (let* ((script (asdf:system-relative-pathname "lui" "tools/window-worker.lisp"))
-        (root (asdf:system-source-directory "lui"))
+ (let* ((script (asdf:system-relative-pathname "lut" "tools/window-worker.lisp"))
+        (root (asdf:system-source-directory "lut"))
         (command (append *worker-command* (list "--load" (namestring script))))
         (process (uiop:launch-program command :input :stream :output :stream :error-output *error-output*
                                       :directory root #+ccl :sharing #+ccl :lock))
@@ -133,7 +133,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
          (if *controller-running-p*
              (enqueue-ui (lambda () (finalize-remote-window remote)))
              (finalize-remote-window remote)))
-       :name "LUI native-window IPC")) remote))
+       :name "LUT native-window IPC")) remote))
 (defun close-window (remote &key (dispose t))
  "Request closure of a remote native window; return REMOTE."
  (bt:with-lock-held ((remote-window-write-lock remote))
@@ -163,7 +163,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                               :text (third (second opening)))) (position (third opening))
           (texture nil)
           (*font-cache* nil) (*texture-cache* nil) (*active-window* w)
-          (lock (bt:make-lock "LUI worker inbox")) (inbox nil) (closed nil)
+          (lock (bt:make-lock "LUT worker inbox")) (inbox nil) (closed nil)
           (*forwarded-events* nil) (acknowledge t)
           (reader (bt:make-thread
                     (lambda ()
@@ -174,7 +174,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                                        (setf closed t) (setf inbox message)))
                               when (or (eq message :eof) (eq (first message) :close)) return nil)
                         (error () (bt:with-lock-held (lock) (setf closed t)))))
-                    :name "LUI worker snapshot reader")))
+                    :name "LUT worker snapshot reader")))
      (declare (ignore reader))
      (rl:with-window ((round (width w)) (round (height w)) (text w) :flags '(:window-resizable) :exit-key :null)
        (when position (rl:set-window-position (round (first position)) (round (second position))))

@@ -40,5 +40,34 @@ for those checks. Nor do passing tests imply exact GTK/Pango/GSK feature parity;
 see gtk-demo.md for material adaptation differences.
 
 Changes are in `src/`, `examples/gtk-demo.lisp`, `examples/gtk/`, demo/font assets,
-`lui.asd`, `tests/`, `tools/`, `docs/` (including the generated docset), and README.
+`lut.asd`, `tests/`, `tools/`, `docs/` (including the generated docset), and README.
 The repository began with all project files untracked; no commit was created.
+
+## LUT rename and Quicklisp registration — task revision 1
+
+The checkout moved from `/Users/jessie/projects/lisp/lui` to
+`/Users/jessie/projects/lisp/lut`. Systems/packages, worker bootstrap paths,
+examples, documentation and generated docset identity were renamed. No LUI
+compatibility system/package is provided.
+
+Quicklisp now has `~/quicklisp/local-projects/lut` as a symlink to the checkout;
+`ql:register-local-projects` refreshed its `system-index.txt`. Fresh SBCL and CCL
+processes started from `/tmp` loaded LUT through Quicklisp without manually
+loading its ASD. The source directory resolved to the new checkout. CCL also
+constructed/disposed the browser and confirmed the old package was absent.
+
+All shell checks used `/Users/jessie/.local/bin/quiet-run.sh --`:
+
+- `sbcl --script tests/portable.lisp` and
+  `ccl --no-init --batch --load tests/portable.lisp`: passed the core, review,
+  widget/lifecycle, 108 demo, GC and 165-entry generated-docset checks.
+- Both invocation forms passed `tests/smoke.lisp`, `tests/backend.lisp`,
+  `tests/windows.lisp` and `tests/review-native.lisp`: native startup, live reload,
+  renamed worker bootstrap/IPC, shutdown and global/frame cleanup passed.
+- Regenerated coverage/docset files; `git diff --check` passed. No stale old name
+  remains in executable sources, tests, generated docs or ASDF definitions.
+
+The full 108-window native sweep and codec tests recorded above were not repeated
+for this naming-only change; focused native/worker checks cover its path/package
+risks. Linux/Windows execution remains deferred. No external docset reader/schema
+change was required, and no commit was created.

@@ -1,4 +1,4 @@
-(in-package #:lui)
+(in-package #:lut)
 (defstruct event
  "Normalized input. KIND: :DOWN :MOVE :UP :WHEEL :KEY :TEXT :CONTEXT :GESTURE. KEY: keyword. TEXT: string. X/Y/DELTA: real. SHIFT-P: boolean."
  kind (x 0) (y 0) key (text "") (delta 0) shift-p)

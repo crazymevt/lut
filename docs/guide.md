@@ -8,11 +8,11 @@ has one parent; `add-child` reparents and rejects cycles. `remove-child` clears
 focus if necessary. Do not assign `parent`/`children` directly.
 
 ```lisp
-(lui:with-ui (lui:window :text "Counter" :width 500 :height 320)
-  (lui:make-widget 'lui:label :text "Welcome")
-  (lui:with-ui (lui:box :orientation :horizontal :height 50)
-    (lui:make-widget 'lui:button :text "One")
-    (lui:make-widget 'lui:button :text "Two")))
+(lut:with-ui (lut:window :text "Counter" :width 500 :height 320)
+  (lut:make-widget 'lut:label :text "Welcome")
+  (lut:with-ui (lut:box :orientation :horizontal :height 50)
+    (lut:make-widget 'lut:button :text "One")
+    (lut:make-widget 'lut:button :text "Two")))
 ```
 
 Boxes stack vertically or horizontally with `spacing` and inherited `:padding`.

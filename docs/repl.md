@@ -3,7 +3,7 @@
 ## Keep the objects
 
 The builder returns an ordinary CLOS object tree. Store it before calling
-`start`; the library does not rebuild it on each frame. `lui:*window*` also
+`start`; the library does not rebuild it on each frame. `lut:*window*` also
 holds the most recently started active root and is cleared on loop teardown. Use your own variable when several roots
 exist. `find-widget` looks up an application-supplied `:id` with `equal`.
 
@@ -13,10 +13,10 @@ The macro returns the closure immediately, not the eventual body result.
 Callbacks can mutate directly because they already run on that thread.
 
 ```lisp
-(defparameter *app* (lui:with-ui (lui:window :width 640 :height 480)
-                     (lui:make-widget 'lui:entry :id :name :text "Hello")))
-(lui:start *app*)
-(lui:on-ui (setf (lui:text (lui:find-widget *app* :name)) "Updated"))
+(defparameter *app* (lut:with-ui (lut:window :width 640 :height 480)
+                     (lut:make-widget 'lut:entry :id :name :text "Hello")))
+(lut:start *app*)
+(lut:on-ui (setf (lut:text (lut:find-widget *app* :name)) "Updated"))
 ```
 
 ## Redefine a widget class
@@ -26,18 +26,18 @@ specifications are `(name initform type documentation)`. Avoid names inherited
 from the CL package (such as COUNT) unless your application package shadows them.
 
 ```lisp
-(lui:defwidget counter-label (lui:label) "Live counter label."
+(lut:defwidget counter-label (lut:label) "Live counter label."
   ((tally 0 (integer 0 *) "Number of updates.")))
-(defvar *counter* (lui:make-widget 'counter-label :text "Counter"))
-(lui:on-ui (lui:add-child *app* *counter*))
+(defvar *counter* (lut:make-widget 'counter-label :text "Counter"))
+(lut:on-ui (lut:add-child *app* *counter*))
 ```
 
 Now evaluate this definition on the GUI thread. It keeps the original instance
 and adds a slot using standard CLOS lazy instance updating:
 
 ```lisp
-(lui:on-ui
-  (eval '(lui:defwidget counter-label (lui:label) "Counter with a live badge."
+(lut:on-ui
+  (eval '(lut:defwidget counter-label (lut:label) "Counter with a live badge."
            ((tally 0 (integer 0 *) "Number of updates.")
             (badge "new" string "Badge text added during development.")))))
 ```
@@ -55,13 +55,13 @@ clipping, focus decoration and active-child traversal, so a subclass only draws
 its own content. `call-next-method` reuses its superclass rendering.
 
 ```lisp
-(defmethod lui:render ((w counter-label))
-  (setf (lui:text w) (format nil "~a: ~d" (badge w) (tally w)))
+(defmethod lut:render ((w counter-label))
+  (setf (lut:text w) (format nil "~a: ~d" (badge w) (tally w)))
   (call-next-method))
 (defun update-counter (widget payload)
   (declare (ignore widget payload))
   (incf (tally *counter*)))
-(lui:on-ui (lui:on *app* :tick 'update-counter))
+(lut:on-ui (lut:on *app* :tick 'update-counter))
 ```
 
 A symbol callback is resolved through its current function definition. Redefining
@@ -73,13 +73,13 @@ application code or a rebuilt tree.
 ## Reload source files
 
 ```lisp
-(lui:on-ui (asdf:load-system "my-application" :force t))
+(lut:on-ui (asdf:load-system "my-application" :force t))
 ```
 
 Define builders, callbacks and classes at top level. A source reload does not
 call your builder or replace the existing tree automatically. Preserve live
 state and update children explicitly, or stop and start a new builder result.
-Reloading LUI itself resets its default palette variables; roots retaining old
+Reloading LUT itself resets its default palette variables; roots retaining old
 palette lists keep them until their THEME is reassigned.
 
 ## Errors and validation
@@ -120,7 +120,7 @@ dialog itself; that closes its current modal owner or detached native host. Work
 system; deployment needs an appropriate executable/registry setup.
 
 On macOS the OS main thread owns native GUI operations. SBCL uses the binding's
-main-thread runner. LUI adds a CCL bridge because CCL's listener process is a
+main-thread runner. LUT adds a CCL bridge because CCL's listener process is a
 different thread; invoking Cocoa directly there causes a native trace trap.
 
 See [object ownership and disposal](lifecycle.md) for owned callbacks, cancellable

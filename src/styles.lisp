@@ -1,4 +1,4 @@
-(in-package #:lui)
+(in-package #:lut)
 (defparameter *style-defaults*
  '(:font nil :font-size 18 :font-spacing 0 :line-height 26 :row-height 30
    :padding 8 :caret-width 2 :border-width 1 :border-radius 0.15

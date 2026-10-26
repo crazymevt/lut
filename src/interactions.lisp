@@ -1,4 +1,4 @@
-(in-package #:lui)
+(in-package #:lut)
 (defvar *clipboard* "")
 (defgeneric clipboard-text (widget) (:documentation "Read clipboard text; the core uses an in-memory clipboard."))
 (defgeneric (setf clipboard-text) (text widget))

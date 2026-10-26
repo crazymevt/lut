@@ -1,17 +1,17 @@
 # GTK demo suite
 
 The registry covers all 108 C demo entry points in GTK 4.20.2. These are portable
-LUI adaptations: each builds a working widget tree and has a named behavioral
+LUT adaptations: each builds a working widget tree and has a named behavioral
 test. They share models and drawing utilities instead of copying GTK internals.
 They are not exact replicas of GTK, Pango, GSK, GIO or OS integration.
 
 ```lisp
-(ql:quickload '("lui/raylib" "lui/gtk-demo"))
-(lui:start (lui-gtk-demo:browser))
+(ql:quickload '("lut/raylib" "lut/gtk-demo"))
+(lut:start (lut-gtk-demo:browser))
 ;; Or choose a builder directly:
-(defparameter *example* (lui-gtk-demo:demo "constraints_interactive"))
-(lui:start *example*)
-(lui-gtk-demo:demo-names) ; sorted list of all 108 names
+(defparameter *example* (lut-gtk-demo:demo "constraints_interactive"))
+(lut:start *example*)
+(lut-gtk-demo:demo-names) ; sorted list of all 108 names
 ```
 
 The searchable browser opens selections as native secondary windows while the
@@ -29,16 +29,16 @@ exact 108-name upstream manifest, checks the coverage file, builds each tree,
 allocates it, exercises its behavior and disposes it even on a failed assertion.
 
 ```lisp
-(asdf:test-system "lui/gtk-demo-tests")
+(asdf:test-system "lut/gtk-demo-tests")
 ;; After intentionally changing descriptions/entries:
-(lui-gtk-demo::write-coverage)
+(lut-gtk-demo::write-coverage)
 ```
 
 Headless behavioral tests exercise normalized input, model changes, numerical
 invariants, error handling and ownership. Native smoke checks render every demo;
 they do not prove every visual detail or hardware gesture. `tests/demo-native.lisp`
 loads a real media fixture, renders decoded frames, checks cleanup and repeatedly
-recompiles shaders. `lui/gtk-demo-gc-tests` checks that disposed widgets from every
+recompiles shaders. `lut/gtk-demo-gc-tests` checks that disposed widgets from every
 demo become unreachable, including callback cycles.
 
 ## Applications, dialogs and editing
@@ -89,7 +89,7 @@ provides codepoint jumping. Weather is deterministic sample data, not a network
 forecast. Clock offsets are examples, not a timezone/DST database. Word lists can
 be loaded from a local dictionary. File browsers navigate the real filesystem;
 editable icons support rename/reorder/add/delete. The application launcher opens
-LUI demos rather than invoking arbitrary OS desktop applications.
+LUT demos rather than invoking arbitrary OS desktop applications.
 
 `iconscroll` measures bounded virtual scrolling. These examples do not reproduce
 GTK's full GListModel, sorting/filter signal protocol, accessibility or OS launch
@@ -113,7 +113,7 @@ image regions behind translucent overlays.
 
 `themes` previews inherited light/dark palettes and local overrides.
 `theming_style_classes` uses CLOS subclasses as semantic style selectors, with
-hover/pressed/disabled states. `css_basics` edits validated LUI token data, not
+hover/pressed/disabled states. `css_basics` edits validated LUT token data, not
 CSS. The other CSS examples reproduce accordion, shadow, orbiting image,
 background and blend behaviors through portable drawing operations and GLSL.
 
@@ -172,7 +172,7 @@ spooler/dialog. Unicode embedding, printer discovery and native printing remain
 backend work.
 
 Clipboard text uses the OS clipboard. Image/file paths and colors use a validated
-`LUI-TRANSFER-1` text envelope for portable interchange; this is not native image
+`LUT-TRANSFER-1` text envelope for portable interchange; this is not native image
 or file MIME clipboard integration. The demo also drags typed data inside its
 canvas. The DND demo moves/recolors/rotates objects and shares context menus;
 OS cross-application drag-and-drop is not implemented. Cursor choices apply to the

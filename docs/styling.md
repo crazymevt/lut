@@ -10,14 +10,14 @@ NIL is an override. State priority is inherited disabled, pressed, hover, focus,
 normal. A root class selector matches subclasses as well.
 
 ```lisp
-(lui:on-ui
-  (setf (lui:theme *app*) lui:*dark-theme*
-        (lui:style-rules *app*)
-        '((:class lui:button :style (:border-radius 0.4 :border-width 2))
-          (:class lui:button :state :hover :style (:surface (60 95 130 255)))
-          (:class lui:entry :state :focus :style (:border-color :skyblue)))))
-(lui:on-ui
-  (setf (lui:state-style (lui:find-widget *app* :name))
+(lut:on-ui
+  (setf (lut:theme *app*) lut:*dark-theme*
+        (lut:style-rules *app*)
+        '((:class lut:button :style (:border-radius 0.4 :border-width 2))
+          (:class lut:button :state :hover :style (:surface (60 95 130 255)))
+          (:class lut:entry :state :focus :style (:border-color :skyblue)))))
+(lut:on-ui
+  (setf (lut:state-style (lut:find-widget *app* :name))
         '(:focus (:foreground :yellow) :disabled (:foreground :gray))))
 ```
 
@@ -61,8 +61,8 @@ class-rule edits and root style overrides therefore reach detached controls too.
 `style-source` chains reject cycles.
 
 ```lisp
-(lui:on-ui
-  (setf (lui:theme *app*) lui:*dark-theme*)) ; includes inheriting detached roots
+(lut:on-ui
+  (setf (lut:theme *app*) lut:*dark-theme*)) ; includes inheriting detached roots
 ```
 
 Set a secondary root's theme to NIL to resume inheritance. Give it a palette to

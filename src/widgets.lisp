@@ -1,4 +1,4 @@
-(in-package #:lui)
+(in-package #:lut)
 (defwidget toggle-button (check-button) "Persistent on/off button; VALUE is boolean." ())
 (defwidget switch (toggle-button) "Boolean switch with the same keyboard semantics as a toggle." ())
 (defwidget radio-button (check-button) "Exclusive selection in GROUP. Activation deselects peers."

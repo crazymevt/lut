@@ -1,4 +1,4 @@
-# LUI
+# LUT — Lisp User Toolkit
 
 A retained-mode Common Lisp GUI library with CLOS widgets, portable core logic,
 and a raylib backend. Applications build widget trees and register callbacks;
@@ -12,8 +12,21 @@ rendering parity. See [acceptance status](docs/status.md).
 
 ## Install and run
 
-Register this checkout with ASDF, alongside the existing local `raylib` and
-`docset` projects. Raylib requires its native library and a C compiler; follow
+For Quicklisp, link the checkout into its local projects and refresh the index:
+
+```sh
+ln -s /path/to/lut ~/quicklisp/local-projects/lut
+```
+
+```lisp
+(ql:register-local-projects)
+```
+
+This machine is registered as `~/quicklisp/local-projects/lut` pointing to
+`/Users/jessie/projects/lisp/lut`. The ASDF system and public package are both
+`lut`; application helpers use `lut-examples` and `lut-gtk-demo`. After upgrading
+from LUI, start a fresh Lisp session to avoid stale packages and cached old paths.
+The existing local `raylib` and `docset` projects must also be registered. Raylib requires its native library and a C compiler; follow
 that binding's installation instructions. Quicklisp supplies CFFI, Alexandria,
 Bordeaux Threads and CL-BASE64. The demo system additionally uses portable
 Classowary (constraint solving), XMLS (markup) and CL-PDF/parser (printing).
@@ -21,9 +34,9 @@ Video loading uses an optional `ffmpeg` executable on PATH. Noto Sans regular,
 bold and italic faces are bundled under the SIL OFL.
 
 ```lisp
-(ql:quickload "lui/examples")
-(defparameter *app* (lui-examples:gallery))
-(lui:start *app*)
+(ql:quickload "lut/examples")
+(defparameter *app* (lut-examples:gallery))
+(lut:start *app*)
 ```
 
 The example builders `hello-world`, `todo`, `editor`, `drawing`, `clock`, and
@@ -31,9 +44,9 @@ The example builders `hello-world`, `todo`, `editor`, `drawing`, `clock`, and
 examples, not full replicas. `gallery` demonstrates the basic controls.
 
 ```lisp
-(ql:quickload '("lui/raylib" "lui/gtk-demo"))
-(lui-gtk-demo:demo-names)
-(lui:start (lui-gtk-demo:demo "stack"))
+(ql:quickload '("lut/raylib" "lut/gtk-demo"))
+(lut-gtk-demo:demo-names)
+(lut:start (lut-gtk-demo:demo "stack"))
 ```
 
 ## REPL workflow
@@ -42,10 +55,10 @@ Keep the actual widget tree in a variable. Use `on-ui` for mutations from an
 editor REPL; its closures execute FIFO on the GUI/controller thread.
 
 ```lisp
-(lui:on-ui
-  (setf (lui:theme *app*) lui:*dark-theme*)
-  (lui:add-child *app* (lui:make-widget 'lui:entry :id :name :text "Added live")))
-(lui:on-ui (setf (lui:text (lui:find-widget *app* :name)) "Changed live"))
+(lut:on-ui
+  (setf (lut:theme *app*) lut:*dark-theme*)
+  (lut:add-child *app* (lut:make-widget 'lut:entry :id :name :text "Added live")))
+(lut:on-ui (setf (lut:text (lut:find-widget *app* :name)) "Changed live"))
 ```
 
 Re-evaluate named functions, CLOS methods and `defwidget` forms. Existing CLOS
@@ -73,11 +86,11 @@ this backend is not intended for high-frame-rate multiwindow animation.
 
 ```lisp
 (defvar *second*)
-(lui:on-ui
-  (setf *second* (lui:spawn-window
-    (lui:with-ui (lui:window :text "Second" :width 400 :height 240)
-      (lui:make-widget 'lui:button :text "Another native window")))))
-(lui:close-window *second*)
+(lut:on-ui
+  (setf *second* (lut:spawn-window
+    (lut:with-ui (lut:window :text "Second" :width 400 :height 240)
+      (lut:make-widget 'lut:button :text "Another native window")))))
+(lut:close-window *second*)
 ```
 
 The primary controller loop services secondary input and render updates. Workers continue handling OS movement/close events while the
@@ -112,12 +125,12 @@ frame. See [ownership and cleanup](docs/lifecycle.md), including GC tests.
 ## Documentation and tests
 
 ```lisp
-(asdf:test-system "lui")
-(asdf:test-system "lui/gtk-demo-tests")
-(ql:quickload "lui/gc-tests")
-(asdf:test-system "lui/gc-tests")
-(ql:quickload "lui/docs")
-(lui-docs:generate)
+(asdf:test-system "lut")
+(asdf:test-system "lut/gtk-demo-tests")
+(ql:quickload "lut/gc-tests")
+(asdf:test-system "lut/gc-tests")
+(ql:quickload "lut/docs")
+(lut-docs:generate)
 ```
 
 The generated `docs/docset/` is the shared Cadre/spec-browser Lisp-data format,
@@ -129,7 +142,7 @@ Native checks are in `tests/smoke.lisp`, `tests/gtk-smoke.lisp`,
 `tests/backend.lisp`, `tests/windows.lisp`, `tests/text.lisp`, `tests/cache.lisp`,
 `tests/review-native.lisp`, and `tests/demo-native.lisp`.
 `tests/portable.lisp` runs all headless, GC and docset checks, including
-`lui/gtk-demo-gc-tests`.
+`lut/gtk-demo-gc-tests`.
 Run them as load scripts from this checkout in SBCL or CCL. Use the project's
 required quiet command wrapper for shell invocations.
 
