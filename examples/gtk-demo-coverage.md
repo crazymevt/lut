@@ -18,7 +18,7 @@ Run `(asdf:test-system "lut/gtk-demo-tests")` for all behavioral checks.
 | `assistant.c` | Four-page guided operation with required data, optional preferences, confirmation, progress and cancellation. |
 | `builder.c` | Declarative UI tree with action wiring and status/help/about menus. |
 | `clipboard.c` | Copy/paste and pointer drag of text, image/file paths and RGBA colors; portable tagged text carries non-text clipboard data. |
-| `combobox.c` | Icon choices, hierarchical grouped choices, and editable custom values demonstrate selection models independently of their display. |
+| `combobox.c` | Color choices, hierarchical grouped choices, and editable custom values demonstrate selection models independently of their display. |
 | `constraints.c` | Cassowary solves equal widths, minimum sizes and a spacer guide; resizing recomputes geometry. |
 | `constraints_interactive.c` | Drag the common button edge to update Cassowary constraints while preserving total width and minima. |
 | `constraints_vfl.c` | Editable two-button VFL specification with equal-width constraints, explicit spacing and parse errors. |

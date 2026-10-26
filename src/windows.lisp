@@ -95,7 +95,10 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
  (let* ((script (asdf:system-relative-pathname "lut" "tools/window-worker.lisp"))
         (root (asdf:system-source-directory "lut"))
         (command (append *worker-command* (list "--load" (namestring script))))
-        (process (uiop:launch-program command :input :stream :output :stream :error-output *error-output*
+        (process (uiop:launch-program command ;; Inherit the OS stderr descriptor. Editor REPLs can bind
+                                      ;; *ERROR-OUTPUT* to a Gray stream; SBCL's process I/O copier
+                                      ;; for that stream can stall PROCESS-WAIT during GUI teardown.
+                                      :input :stream :output :stream :error-output :interactive
                                       :directory root #+ccl :sharing #+ccl :lock))
         (remote (make-remote-window :process process :root window)))
    (write-message (uiop:process-info-input process) (list :open (list (width window) (height window) (text window)) position))
@@ -155,6 +158,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
      (add-child w d)
      remote)))
 (defun worker-main ()
+ (with-native-logging
  (let* ((input *standard-input*) (output *standard-output*)
         (*standard-output* *error-output*) (*trace-output* *error-output*)
         (opening (read-message input)))
@@ -203,7 +207,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
          (when texture (rl:unload-texture texture))
          (mapc (lambda (pair) (rl:unload-font (cdr pair))) *font-cache*)
          (mapc (lambda (pair) (rl:unload-texture (cdr pair))) *texture-cache*)))
-   (write-message output '(:closed)))))
+   (handler-case (write-message output '(:closed)) (stream-error () nil))))))
 
 (defun evaluate-in-window (remote forms)
  "Queue explicit Lisp FORMS for evaluation on the native worker GUI thread before its next snapshot.

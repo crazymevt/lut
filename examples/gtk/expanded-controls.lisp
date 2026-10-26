@@ -11,8 +11,8 @@
    (when (lut:value matches) (set-entry entry (nth (lut:value matches) (lut:items matches))) (status r (lut:text entry))))) r)
  (edit root :completion "gno") (assert (= 4 (length (lut:items (control root :matches)))) )
  (choose-index root :matches 2) (press root :accept) (assert (string= "Gnomonic projection" (lut:text (control root :completion)))))
-(defdemo "combobox" "Icon choices, hierarchical grouped choices, and editable custom values demonstrate selection models independently of their display."
- (let* ((choice (node 'lut:dropdown :icons :items '("◆ Red" "● Green" "■ Blue") :value 0))
+(defdemo "combobox" "Color choices, hierarchical grouped choices, and editable custom values demonstrate selection models independently of their display."
+ (let* ((choice (node 'lut:dropdown :icons :items '("Red" "Green" "Blue") :value 0))
         (tree (node 'lut:tree-view :groups :height 170 :nodes
            (copy-tree '((:text "Europe" :open t :children ((:text "Berlin") (:text "Paris")))
                         (:text "America" :children ((:text "Boston") (:text "Lima")))))))

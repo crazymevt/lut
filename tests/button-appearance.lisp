@@ -24,8 +24,8 @@
       (when (= (incf frame) 3)
         (setf points
           (list (list (round (+ (lut:x normal) (/ (lut:width normal) 2))) (+ (round (lut:y normal)) 1))
-                (list (round (+ (lut:x normal) (/ (lut:width normal) 2))) (- (round (+ (lut:y normal) (lut:height normal))) 2))
-                (list (round (+ (lut:x pressed) (/ (lut:width pressed) 2))) (+ (round (lut:y pressed)) 1))))
+                (list (round (+ (lut:x normal) (/ (lut:width normal) 2))) (- (round (+ (lut:y normal) (lut:height normal))) 1))
+                (list (round (+ (lut:x pressed) (/ (lut:width pressed) 2))) (round (lut:y pressed)))))
         (rl:take-screenshot path))))
     (lut:run w :frames 4)
     (let ((image (rl:load-image path)))

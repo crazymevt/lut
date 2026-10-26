@@ -37,7 +37,7 @@ normal. A root class selector matches subclasses as well.
 | `:max-border-radius` | Non-negative real pixel corner-radius cap; default 8 |
 | `:border-color`, `:focus-color` | Border and focus decoration colors |
 | `:hover-color`, `:pressed-color`, `:disabled-color` | Default interactive surface colors; a state-specific `:surface` overrides them |
-| `:button-depth` | Non-negative pixel elevation for buttons and toggles, default 3; 0 gives flat surfaces |
+| `:button-depth` | Non-negative pixel elevation for buttons and toggles, default 2; 0 gives flat surfaces |
 | `:button-shadow`, `:button-highlight` | Button depth-edge and raised top-highlight colors |
 | `:caret-width` | Non-negative real pixel width |
 
@@ -102,3 +102,25 @@ button class rule to adjust it; use zero to restore flat styling.
 
 In the GTK demo launcher, open `combobox` for the dropdown option selector
 (the first control), or `application_demo` for application action menus.
+
+Dropdown selectors use a button face, a divider, and a geometric chevron that
+points up while the option popup is open. Their indicator space is reserved so
+long selected values cannot cover the chevron. The `combobox` demo uses plain
+color names that the bundled font covers.
+
+Editable combo boxes retain a text entry area and have a separately clickable
+chevron segment. Click that segment or press Down to open suggestions; choosing
+one replaces the text and emits the usual text change. Clicks in the text area
+continue to position the cursor and allow custom values. Both selector types
+share the divider/chevron renderer; long closed dropdown values use `...`.
+
+On a font-atlas cache miss, LUT probes font coverage and builds the final atlas
+from supported codepoints only. The probe's expected missing-glyph diagnostic
+is suppressed; other native diagnostics remain visible. Missing characters
+still render with the font's fallback glyph: automatic fallback-font selection
+is not implemented. Native windows already use raylib's warning log level.
+
+Opening either selector focuses its popup list immediately. Up/Down move the
+highlight without changing the owner; Enter commits the highlighted option.
+Escape cancels the preview. Selection and cancellation return focus to the
+owner, so no Tab step is needed to continue keyboard use.

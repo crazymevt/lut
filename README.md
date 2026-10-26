@@ -33,6 +33,10 @@ Classowary (constraint solving), XMLS (markup) and CL-PDF/parser (printing).
 Video loading uses an optional `ffmpeg` executable on PATH. Noto Sans regular,
 bold and italic faces are bundled under the SIL OFL.
 
+Run the searchable demo launcher from this checkout with `make demo` (SBCL and
+Quicklisp must be installed). Override `SBCL` to select its executable. For an
+automatically closing smoke run, use `LUT_DEMO_FRAMES=4 make demo`.
+
 ```lisp
 (ql:quickload "lut/examples")
 (defparameter *app* (lut-examples:gallery))

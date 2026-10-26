@@ -1,7 +1,7 @@
 (in-package #:lut)
 (defparameter *style-defaults*
  '(:wrap-text nil :font nil :font-size 18 :font-spacing 0 :line-height 26 :row-height 30
-   :button-depth 3 :button-shadow (0 0 0 100) :button-highlight (255 255 255 100)
+   :button-depth 2 :button-shadow (0 0 0 35) :button-highlight (255 255 255 45)
    :surface (255 255 255 255) :on-accent (255 255 255 255)
    :padding 8 :caret-width 2 :border-width 1 :border-radius 0.3 :max-border-radius 8
    :border-color (130 140 160 255) :focus-color (40 120 240 255)

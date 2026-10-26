@@ -6,8 +6,11 @@
 (defwidget spin-button (slider) "Numeric field incremented by arrows, wheel or its +/- actions." ())
 (defwidget dropdown (list-view) "Closed selection opens a reusable popup list."
  ((expanded-p nil boolean "Whether the option popup is open.")))
+(defclass selection-list (list-view) ()
+ (:documentation "Internal popup list: arrows preview, Enter commits, Escape cancels."))
 (defwidget combo-box (entry) "Editable selection with suggested string ITEMS."
- ((items nil list "Available completion strings.")))
+ ((items nil list "Available completion strings.")
+  (expanded-p nil boolean "Whether the option popup is open.")))
 (defwidget stack (widget) "Only child at selected page VALUE participates in layout and input."
  ((value 0 (integer 0 *) "Visible zero-based page index.")))
 (defwidget notebook (stack) "Tabbed stack; click tab header or use Left/Right to select a page."
@@ -116,4 +119,13 @@
  (refresh-items table) (emit table :change (value table)) table)
 
 (defmethod surface-closed ((d popover))
- (when (typep (popup-owner d) 'dropdown) (setf (expanded-p (popup-owner d)) nil)))
+ (let ((owner (popup-owner d)))
+   (when (typep owner '(or dropdown combo-box))
+     (setf (expanded-p owner) nil)
+     (let ((root (root-of owner)))
+       (when (and (typep root 'window) (not (disposed-p owner))
+                  (loop for node = owner then (parent node) while node
+                        always (and (visible-p node) (enabled-p node)))
+                  (loop for node = owner then (parent node) while node
+                        thereis (eq node (input-root root))))
+         (focus root owner))))))

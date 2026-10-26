@@ -125,3 +125,9 @@ different thread; invoking Cocoa directly there causes a native trace trap.
 
 See [object ownership and disposal](lifecycle.md) for owned callbacks, cancellable
 work, subtree destruction, and the difference between temporary stop and disposal.
+
+Native raylib diagnostics are formatted through a C log callback and sent to
+Lisp's `*error-output*` while LUT owns the native window. This keeps warnings
+out of stdout-based editor protocols, including Argon's framed REPL. Worker
+processes inherit OS stderr rather than an editor's captured Gray stream, so
+native worker shutdown does not depend on the editor's stream copier.

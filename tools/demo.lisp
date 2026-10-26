@@ -1,0 +1,10 @@
+(require :asdf)
+(unless (find-package :ql)
+  (load (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname))))
+(asdf:load-asd (truename (merge-pathnames "../lut.asd" *load-truename*)))
+(uiop:symbol-call :ql :quickload '("lut/raylib" "lut/gtk-demo") :silent t)
+;; An optional frame limit lets native smoke checks close the launcher cleanly.
+(let* ((limit (uiop:getenv "LUT_DEMO_FRAMES"))
+       (frames (and limit (parse-integer limit))))
+  (when (and frames (not (plusp frames))) (error "LUT_DEMO_FRAMES must be positive."))
+  (uiop:symbol-call :lut :run (uiop:symbol-call :lut-gtk-demo :browser) :frames frames))
