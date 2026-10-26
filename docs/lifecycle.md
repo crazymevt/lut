@@ -160,3 +160,12 @@ provider closures even when a custom restoration setter signals. Owner teardown
 continues through other bindings and child disposal before reporting such an
 error. The command GC fixture retains unbound handles and verifies collection of
 100 disposed controls and their context/provider closures.
+
+## Shared text buffers
+
+Buffers retain attached views. View disposal detaches without changing shared
+text or destroying the model; window disposal therefore leaves external/shared
+models usable. Explicit buffer disposal detaches surviving views as read-only
+snapshots. Shared history stores only changed substrings and numeric selection data, not
+full-buffer copies or view objects. The GC suite keeps history/models alive and checks collection of 100
+disposed views with owned change subscriptions. See [text buffers](text-buffers.md).

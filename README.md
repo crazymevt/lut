@@ -177,3 +177,13 @@ and the `lut-examples:drag-tabs` example.
 
 Commands share actions, labels, availability and shortcuts across buttons/menu
 buttons. See [commands](docs/commands.md) and `lut-examples:command-actions`.
+
+## Foundation roadmap
+
+The [foundation roadmap](docs/foundation-roadmap.md) records delivered components,
+remaining toolkit work and the boundary with application-specific behavior.
+
+## Shared text models
+
+`text-buffer` shares text/history across independent entry/text views. See
+[shared text buffers](docs/text-buffers.md) and `lut-examples:shared-text`.

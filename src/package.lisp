@@ -1,7 +1,10 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:command #:make-command #:command-label #:command-action #:command-predicate
+  (:export #:text-buffer #:make-text-buffer #:view-buffer #:read-only-p #:editable-p
+   #:buffer-revision #:replace-buffer-range #:can-undo-p #:can-redo-p
+   #:buffer-edit #:edit-start #:edit-old-end #:edit-new-end #:edit-revision #:edit-origin
+   #:command #:make-command #:command-label #:command-action #:command-predicate
    #:command-shortcut #:command-available-p #:invoke-command #:bind-command #:unbind-command
    #:refresh-commands #:window-commands #:command-binding #:command-binding-active-p
    #:drag-session #:current-drag #:drag-source #:drag-payload #:drag-target

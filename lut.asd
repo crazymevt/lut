@@ -1,7 +1,7 @@
 (asdf:defsystem "lut"
   :description "Lisp User Toolkit: portable retained-mode CLOS GUI"
   :version "0.1.0" :license "MIT" :serial t
-  :components ((:file "src/package") (:file "src/core") (:file "src/widgets") (:file "src/styles") (:file "src/input") (:file "src/notebook") (:file "src/drag-and-drop") (:file "src/interactions") (:file "src/commands"))
+  :components ((:file "src/package") (:file "src/core") (:file "src/widgets") (:file "src/styles") (:file "src/input") (:file "src/text-buffers") (:file "src/notebook") (:file "src/drag-and-drop") (:file "src/interactions") (:file "src/commands"))
   :in-order-to ((asdf:test-op (asdf:test-op "lut/tests"))))
 (asdf:defsystem "lut/raylib" :depends-on ("lut" "raylib" "bordeaux-threads" "cl-base64")
   :serial t :components ((:file "src/raylib") (:file "src/windows")))
@@ -10,7 +10,7 @@
 (asdf:defsystem "lut/docs" :depends-on ("lut/raylib" "docset")
   :serial t :components ((:file "tools/contracts") (:file "tools/docset")))
 (asdf:defsystem "lut/tests" :depends-on ("lut")
-  :serial t :components ((:file "tests/core") (:file "tests/review") (:file "tests/lifecycle") (:file "tests/demo-findings") (:file "tests/drag-and-drop") (:file "tests/notebook-overflow") (:file "tests/commands"))
+  :serial t :components ((:file "tests/core") (:file "tests/review") (:file "tests/lifecycle") (:file "tests/demo-findings") (:file "tests/drag-and-drop") (:file "tests/notebook-overflow") (:file "tests/commands") (:file "tests/text-buffers"))
   :perform (asdf:test-op (op c) (declare (ignore op c))
              (uiop:symbol-call :lut-tests :run-tests)
              (uiop:symbol-call :lut-tests :review-tests)
@@ -19,7 +19,8 @@
              (uiop:symbol-call :lut-tests :demo-findings-tests)
              (uiop:symbol-call :lut-tests :drag-and-drop-tests)
              (uiop:symbol-call :lut-tests :notebook-overflow-tests)
-             (uiop:symbol-call :lut-tests :commands-tests)))
+             (uiop:symbol-call :lut-tests :commands-tests)
+             (uiop:symbol-call :lut-tests :text-buffer-tests)))
 
 (asdf:defsystem "lut/gtk-demo" :depends-on ("lut" "classowary" "xmls" "cl-pdf-parser")
  :serial t :components ((:file "examples/gtk-demo") (:file "examples/gtk/common") (:file "examples/gtk/controls") (:file "examples/gtk/text-and-widgets") (:file "examples/gtk/data") (:file "examples/gtk/games") (:file "examples/gtk/graphics") (:file "examples/gtk/paths") (:file "examples/gtk/layouts") (:file "examples/gtk/input-and-transfer") (:file "examples/gtk/typography") (:file "examples/gtk/media") (:file "examples/gtk/appearance") (:file "examples/gtk/expanded-controls") (:file "examples/gtk/coverage")))

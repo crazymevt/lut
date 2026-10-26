@@ -1,0 +1,48 @@
+(require :asdf)
+(load (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname)))
+(asdf:load-asd (truename "lut.asd"))
+(ql:quickload "lut/raylib" :silent t)
+(let* ((root (lut:make-widget 'lut:window :width 320 :height 180))
+       (buffer (lut:make-text-buffer :text "one"))
+       (a (lut:add-child root (lut:make-widget 'lut:text-view :view-buffer buffer :cursor 2)))
+       (dialog (lut:make-widget 'lut:dialog :text "Shared buffer peer" :width 320 :height 180))
+       (b (lut:add-child dialog (lut:make-widget 'lut:text-view :view-buffer buffer)))
+       (remote nil) (phase :open)
+       (deadline (+ (get-internal-real-time) (* 15 internal-time-units-per-second))))
+ ;; Keep A's selection collapsed at its independent caret.
+ (setf (slot-value a 'lut::anchor) 2)
+ (lut:on root :tick (lambda (w dt)
+   (declare (ignore w dt))
+   (when (> (get-internal-real-time) deadline) (error "Shared native buffer timeout: ~a" phase))
+   (when (and remote (lut::remote-window-error remote)) (error (lut::remote-window-error remote)))
+   (case phase
+     (:open
+       (lut:show-dialog root dialog)
+       (let ((host (lut::root-of b)))
+         (setf remote (find host lut::*remote-windows* :key #'lut::remote-window-root))
+         (assert remote) (lut:focus host b))
+       (setf phase :ready))
+     (:ready
+       (when (>= (lut::remote-window-frames remote) 2)
+         (lut:on-window remote (lut::forward-native-event (lut:make-event :kind :text :text "X")))
+         (setf phase :edited)))
+     (:edited
+       (when (= 1 (lut:buffer-revision buffer))
+         (assert (string= "Xone" (lut:text a))) (assert (string= (lut:text a) (lut:text b)))
+         (assert (= 3 (lut:cursor a))) (assert (= 1 (lut:cursor b)))
+         (lut:on-window remote (lut::forward-native-event (lut:make-event :kind :key :key :undo)))
+         (setf phase :undone)))
+     (:undone
+       (when (= 2 (lut:buffer-revision buffer))
+         (assert (string= "one" (lut:text a))) (assert (= 2 (lut:cursor a))) (assert (zerop (lut:cursor b)))
+         (lut:dismiss-dialog dialog) (setf phase :closing)))
+     (:closing
+       (when (null (lut::remote-window-root remote))
+         (assert (lut:disposed-p b))
+         (assert (equal (lut::buffer-views buffer) (list a)))
+         (assert (not (lut:disposed-p buffer)))
+         (setf phase :done) (lut:stop))))))
+ (unwind-protect
+   (progn (lut:run root :frames 1500) (assert (eq phase :done)))
+   (lut:dispose root) (assert (null (lut::buffer-views buffer))) (lut:dispose buffer)))
+(format t "Native peer editing, shared undo, independent carets and model-preserving worker disposal passed.~%")

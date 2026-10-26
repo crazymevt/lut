@@ -11,10 +11,12 @@
  "Open a pointer-positioned menu. ACTIONS are (caption callback enabled-p) lists.
 Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no arguments."
  (let* ((actions (or actions (when (typep target 'entry)
-                 (list (list "Cut" (lambda () (setf (clipboard-text target) (selected-text target))
-                                                   (replace-selection target "")) t)
+                 (list (list "Cut" (lambda () (when (editable-p target)
+                                         (setf (clipboard-text target) (selected-text target))
+                                         (replace-selection target ""))) (editable-p target))
                        (list "Copy" (lambda () (setf (clipboard-text target) (selected-text target))) t)
-                       (list "Paste" (lambda () (replace-selection target (clipboard-text target))) t)
+                       (list "Paste" (lambda () (when (editable-p target)
+                                         (replace-selection target (clipboard-text target)))) (editable-p target))
                        (list "Select all" (lambda () (select-all target)) t)))))
         (pad (style-value target :padding)) (row (row-height target))
         (menu (make-widget 'context-menu :width 220 :height (+ (* 2 pad) (* (length actions) (+ row 4)))
