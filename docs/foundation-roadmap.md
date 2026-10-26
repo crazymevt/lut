@@ -79,14 +79,23 @@ rendering/interaction checks pass on macOS. Linux/Windows remain unverified.
 
 ## Phase 3: Data model and selection foundations
 
-- [ ] **Virtualized list model — next.** Extract reusable model/viewport contracts from
-  demo-only implementations; avoid allocating one widget/string per row.
-- [ ] **Selection models.** Single/multiple/range selection with keyboard and
-  pointer behavior independent of a particular list/tree/table.
-- [ ] **Sorting/filtering and tree models.** Stable identity and explicit change
-  notifications; preserve valid selection through model changes.
-- [ ] **Table cell presentation/editing.** Reusable column/cell factories,
-  navigation and edit commit/cancel hooks. Database access stays outside LUT.
+- [x] **Virtualized list model — delivered.** Reusable lazy/vector data models
+  and fixed-height viewport contracts, promoted from the demo approach. Views
+  request only visible rows, without allocating a widget/string for every row.
+- [x] **Selection models — delivered.** Independent single/multiple/range keyed
+  selection with shared keyboard/pointer handling and optional multi-view sharing.
+- [x] **Sorting/filtering and tree models — delivered.** Stable keyed projections,
+  explicit change notifications, tree expansion and retained hidden selection.
+  Projection sorting/filtering and tree indexing build metadata eagerly; they
+  do not claim lazy database queries or unbounded trees.
+- [x] **Table cell presentation/editing — delivered.** Reusable column/cell
+  factories, row/column navigation and one active entry editor with application
+  setters and commit/cancel events. Database access stays outside LUT.
+
+See [data models](data-models.md) and `lut-examples:data-models`. The opt-in model
+views preserve the existing list/tree/table APIs. Portable, GC and native
+light/dark rendering/input checks pass on macOS, including a million-row lazy
+model. Linux/Windows remain unverified.
 
 ## Phase 4: Platform and application integration
 

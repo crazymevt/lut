@@ -193,3 +193,5 @@ See [text selection and navigation](docs/text-selection.md) and `lut-examples:te
 for word/line selection, caret reveal and selection autoscroll.
 Phase 2 presentation APIs and the `lut-examples:document-presentation` showcase are
 documented in [text presentation](docs/text-presentation.md).
+Phase 3 keyed data models, virtual views, selection, trees and editable cells are
+documented in [data models](docs/data-models.md); try `lut-examples:data-models`.

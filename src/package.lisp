@@ -1,7 +1,17 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:styled-text-view #:document-view #:gutter-width #:set-text-presentation
+  (:export #:data-model #:make-function-model #:make-vector-model #:replace-model-items
+   #:model-count #:model-item #:model-key #:model-index #:model-contains-key-p #:model-revision #:notify-model-change
+   #:make-projection-model #:set-model-query #:make-tree-model #:replace-tree-roots #:set-tree-expanded
+   #:tree-expanded-p #:model-depth #:model-branch-p
+   #:selection-model #:make-selection-model #:selected-keys #:selection-focus #:selection-anchor
+   #:select-model-index #:clear-model-selection #:selection-contains-p #:handle-selection-event
+   #:model-list-view #:model-tree-view #:model-table-view #:view-model #:view-selection
+   #:row-label-function #:visible-model-range #:map-visible-model-rows #:reveal-model-index
+   #:data-column #:make-data-column #:data-column-title #:data-column-id #:table-columns
+   #:cell-presentation #:active-column #:begin-cell-edit #:commit-cell-edit #:cancel-cell-edit #:cell-editor
+   #:styled-text-view #:document-view #:gutter-width #:set-text-presentation
    #:invalidate-text-presentation #:text-presentation-revision #:text-runs #:text-decorations
    #:text-style-at #:document-links #:document-images #:document-hit-test
    #:anchored-surface #:suggestion-surface #:show-anchored-surface #:dismiss-anchored-surface
