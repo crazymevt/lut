@@ -1,7 +1,9 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:closable-p #:tab-badge #:request-page-close #:page-close-request
+  (:export #:measure #:measured-box #:flow-box #:row-spacing #:column-spacing
+   #:width-request #:height-request #:min-width #:min-height #:max-width #:max-height #:hexpand #:vexpand
+   #:closable-p #:tab-badge #:request-page-close #:page-close-request
    #:close-request-page #:close-request-reason #:close-request-veto-p
    #:drag-controller #:make-drag-controller #:register-drag-window #:unregister-drag-window
    #:window-drag-controller #:begin-keyboard-drag #:keyboard-drag-to #:advance-drag

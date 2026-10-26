@@ -152,6 +152,65 @@ routing and IPC, not physical cross-window pointer delivery. Physical pointer
 transfer is unsupported pending capture-aware routing and manual acceptance.
 Physical Finder drops and Linux/Windows native behavior remain unverified.
 
+## Phase 6: Content measurement and responsive layout (G2)
+
+- [x] **Content measurement and constraints — first slice delivered.** Public minimum/natural size
+  queries, height-for-width measurement, independent size requests and expansion
+  constraints. Keep allocated geometry separate from content requests and retain
+  existing explicit-size layouts for compatibility.
+- [x] **Measured boxes and flow layout — delivered.** Opt-in containers that allocate measured
+  children and wrap controls into rows. Application breakpoints and saved panel
+  layouts stay outside LUT.
+
+See [measured layout](measured-layout.md) and `lut-examples:measured-layout`.
+The delivered measurement covers basic labels/buttons, measured/flow containers
+and explicit fallback hints for other widgets; editor/document reflow remains
+Phase 7 work. Portable behavior and native font/render/input checks at explicit
+wide/narrow/wide allocations and 100/125/200% scale pass. A separate macOS OS-window
+resize check intermittently reported 680 after requesting 340 and remains
+unresolved; these checks do not establish native window-size semantics.
+Linux/Windows native behavior remains unverified.
+
+## Phase 7: Wrapped text and rich document blocks (G1, G3)
+
+- [ ] **Selectable/editable wrapped text (G1).** Shared visual-line geometry for
+  rendering, hit testing, cursor navigation, selection and scrolling. Support
+  composers that grow to a configured height limit using Phase 6 measurement.
+  Paint-only label wrapping is not completion of this item.
+- [ ] **Variable-height document blocks (G3).** Paragraph spacing, heading metrics
+  and block images whose size is independent of a global line height. Keep
+  Markdown parsing, link routing and document models in applications.
+
+## Phase 8: General scrolling and reveal (G4)
+
+- [ ] **Public scrolling geometry.** Query content extent/page size and reveal
+  child rectangles or text ranges after layout, including nested containers.
+- [ ] **Optional follow-end behavior.** Preserve a requested end relationship as
+  streaming content grows; applications decide when to follow, suspend it for
+  search or user scrolling, and restore it. Do not bake chat policy into LUT.
+
+## Phase 9: Native application adapters (G6, G7)
+
+- [ ] **Default-application launching (G6).** Opt-in URI/file launching with native
+  adapters, portable fallback and explicit availability/error reporting. The
+  application decides which targets to launch; document links continue emitting
+  application targets without opening them automatically.
+- [ ] **Native window state (G7).** Query and set maximized/restored state and
+  preserve normal window size separately from allocated content geometry,
+  including worker IPC. Settings persistence stays application-owned.
+
+## Phase 10: Terminal integration boundary (G5)
+
+- [ ] **Terminal extension or native host adapter.** Define how an application
+  embeds a terminal alongside LUT widgets, including focus, input, clipping,
+  resizing and disposal. Choose an explicit supported backend boundary rather
+  than treating a drawing area as a native-widget host. PTY/shell/process policy
+  stays outside toolkit core.
+
+The G1–G7 references come from the Agent Duet UI review. Text shaping, bidi, IME
+composition and accessibility remain separate unsupported capabilities recorded
+in Phase 4; these phases do not implicitly implement them.
+
 ## Delivery rule
 
 For each item, add the reusable API, focused behavior/lifecycle tests, an example

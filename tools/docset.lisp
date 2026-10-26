@@ -1,7 +1,7 @@
 (in-package #:lut-docs)
 (defun signatures ()
  (let ((result (make-hash-table)) (*package* (find-package :lut)) (*read-eval* nil))
-   (dolist (file '("src/core.lisp" "src/widgets.lisp" "src/styles.lisp" "src/input.lisp"
+   (dolist (file '("src/core.lisp" "src/measurement.lisp" "src/widgets.lisp" "src/styles.lisp" "src/input.lisp"
                   "src/text-buffers.lisp" "src/text-history.lisp" "src/text-index.lisp" "src/text-geometry.lisp" "src/text-selection.lisp" "src/text-presentation.lisp" "src/anchored-surfaces.lisp" "src/commands.lisp" "src/data-models.lisp" "src/data-views.lisp" "src/platform.lisp" "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/presentation-raylib.lisp" "src/data-raylib.lisp" "src/windows.lisp"))
      (with-open-file (in (asdf:system-relative-pathname "lut" file))
        (loop for form = (read in nil :eof) until (eq form :eof)

@@ -208,3 +208,7 @@
    (lut:os-drop-mime "PAYLOAD is an OS-DROP received during a drop callback. Private file-path-list type denotes decoded strings, not URI-list text." "MIME string." "(lut:os-drop-mime payload)")
    (lut:os-drop-data "PAYLOAD is an OS-DROP. File adapter data is a list of decoded path strings. No files are opened. Copy data needed after callback completion." "Transient adapter data." "(lut:os-drop-data payload)"))
  *contracts*))
+
+(push '(lut:measure "WIDGET is live; AXIS :HORIZONTAL/:VERTICAL, optional FOR-SIZE NIL or nonnegative offered size on the other axis. Returns minimum/natural logical size without allocating or changing geometry. Built-ins support height-for-width, not width-for-height. Labels share word-wrap measurement and painting; entries/documents retain initial size hints pending reflow. Common around method applies requests and min/max bounds. Queries share a temporary cache keyed by widget/axis/bounded offered size within one outer layout or standalone measure call; results and widget references are discarded on return/errors. Measurement and layout inputs must stay stable within that pass; changes between passes need no explicit invalidation. Hidden nodes measure zero; disposed nodes signal. Loaded raylib text metrics require an active context. See docs/measured-layout.md for allocation and overflow rules."
+  "Two values: minimum and natural, 0 <= minimum <= natural."
+  "(lut:measure (lut:make-widget 'lut:label :text \"Content\") :vertical 320)") *contracts*)

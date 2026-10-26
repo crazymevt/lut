@@ -205,3 +205,7 @@ drag autoscroll, split/drop zones and incoming OS file paths are documented in
 Try `lut-examples:advanced-interaction`. Arbitrary MIME and outgoing OS drags
 remain unsupported. Physical cross-window pointer transfer is unfinished;
 Finder drag acceptance and Linux/Windows native behavior remain unverified.
+
+Content measurement, minimum/natural size requests, measured boxes and wrapping
+control rows are available as opt-in APIs. See [measured layout](docs/measured-layout.md)
+and `lut-examples:measured-layout`. Selectable/editor reflow remains pending.
