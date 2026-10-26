@@ -286,7 +286,7 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
 
 (defmethod handle-event ((w text-view) e)
  (when (eq (event-kind e) :wheel)
-   (let ((extent (+ (* 2 (style-value w :padding)) (* (length (text-lines (text w))) (line-height w)))))
+   (let ((extent (+ (* 2 (style-value w :padding)) (* (text-line-count w) (line-height w)))))
      (setf (vertical-offset w) (max 0 (min (max 0 (- extent (height w)))
                                (- (vertical-offset w) (* (line-height w) (event-delta e))))))) t))
 (defun bind-key (window key function &key owner)

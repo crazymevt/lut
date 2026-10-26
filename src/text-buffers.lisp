@@ -8,7 +8,14 @@
  (make-widget 'text-buffer :text text :read-only-p read-only-p
               :history-limit history-limit :history-character-limit history-character-limit))
 (defmethod initialize-instance :after ((buffer text-buffer) &key)
- (setf (slot-value buffer 'text) (copy-seq (text buffer))))
+ (let ((initial (slot-value buffer 'text)))
+   (setf (slot-value buffer 'text-root) (index-string initial)
+         (slot-value buffer 'text) (copy-seq initial))))
+(defmethod text :around ((buffer text-buffer))
+ (unless (slot-value buffer 'text-snapshot-p)
+   (setf (slot-value buffer 'text) (index-substring (slot-value buffer 'text-root) 0 (text-length buffer))
+         (slot-value buffer 'text-snapshot-p) t))
+ (call-next-method))
 (defun buffer-revision (buffer)
  "Return BUFFER's monotonically increasing content revision."
  (slot-value buffer 'revision))
@@ -37,11 +44,13 @@
      (when buffer (validate-slot view 'text (text buffer)))
      (let ((previous (copy-seq (text view))))
        (when old (setf (slot-value old 'buffer-views) (remove view (buffer-views old))))
-       (setf (slot-value view 'view-buffer) buffer)
+       (setf (slot-value view 'view-buffer) buffer
+             (slot-value view 'text-root) nil (slot-value view 'indexed-string) nil
+             (slot-value view 'geometry-cache) nil)
        (when buffer
          (setf (slot-value buffer 'buffer-views) (append (buffer-views buffer) (list view))))
        (let* ((contents (if buffer (text buffer) previous)) (length (length contents)))
-         (setf (slot-value view 'text) contents
+         (setf (slot-value view 'text) (if buffer "" contents)
                (slot-value view 'cursor) (min (cursor view) length)
                (slot-value view 'anchor) (min (slot-value view 'anchor) length)
                (slot-value view 'undo-history) nil (slot-value view 'redo-history) nil
@@ -69,7 +78,8 @@
    (setf (slot-value view 'read-only-p) t)))
 (defmethod dispose :after ((buffer text-buffer))
  (setf (slot-value buffer 'buffer-views) nil (slot-value buffer 'undo-history) nil
-       (slot-value buffer 'redo-history) nil (slot-value buffer 'text) ""))
+       (slot-value buffer 'redo-history) nil (slot-value buffer 'text) ""
+       (slot-value buffer 'text-root) nil (slot-value buffer 'text-snapshot-p) t))
 (defun text-difference (old new)
  "Find the minimal single contiguous replacement from OLD to NEW."
  (let* ((a (length old)) (b (length new)) (start 0) (suffix 0))
@@ -92,30 +102,44 @@
        for characters = (buffer-history-characters entry) then (+ characters (buffer-history-characters entry))
        while (and (<= count (history-limit buffer)) (<= characters (history-character-limit buffer)))
        collect entry))
+(defparameter *builtin-text-validators*
+ (list (find-method #'validate-slot nil (list (find-class 't) (find-class 't) (find-class 't)))
+       (find-method #'validate-slot '(:before) (list (find-class 'widget) (find-class 't) (find-class 't)))
+       (find-method #'validate-slot nil (list (find-class 'entry) (find-class 't) (find-class 't)))
+       (find-method #'validate-slot '(:before) (list (find-class 'entry) (find-class 't) (find-class 't)))))
+(defun full-text-validator-p (object)
+ ;; Built-in TEXT validators are no-ops. Custom class/slot/string methods keep
+ ;; receiving an actual proposed string before any content/history mutation.
+ (some (lambda (method) (not (member method *builtin-text-validators*)))
+       (compute-applicable-methods #'validate-slot (list object 'text ""))))
+(defun emit-text-change (object buffer)
+ ;; Do not construct a compatibility string unless somebody requests one.
+ (when (has-handler-p object :change) (emit object :change (text buffer))))
 (defun commit-buffer-edit (buffer start end replacement &key origin collapse-origin selection force history-direction history-entry)
  (ensure-live buffer) (check-type replacement string)
  (when (buffer-notifying-p buffer) (error "Queue edits made in buffer change callbacks instead of editing reentrantly."))
  (unless (and (typep start '(integer 0 *)) (typep end '(integer 0 *))
-              (<= start end (length (text buffer)))) (error "Invalid text buffer edit range."))
+              (<= start end (text-length buffer))) (error "Invalid text buffer edit range."))
  (when origin
    (unless (and (typep origin 'entry) (not (disposed-p origin)) (eq (view-buffer origin) buffer))
      (error "Edit origin must be a live view of this buffer.")))
  (unless (or force (and (editable-p buffer) (or (null origin) (editable-p origin))))
    (return-from commit-buffer-edit nil))
- (let* ((old (text buffer))
-        (new (concatenate 'string (subseq old 0 start) replacement (subseq old end)))
+ (let* ((removed (text-range buffer start end))
+        (new-root (replace-index-range (slot-value buffer 'text-root) start end replacement))
+        (new-length (node-size new-root))
         (new-end (+ start (length replacement))))
-   (when (string= old new)
+   (when (string= removed replacement)
      (when (and origin collapse-origin)
        (setf (cursor origin) new-end (slot-value origin 'anchor) new-end))
      (return-from commit-buffer-edit nil))
    ;; Preserve extensible text invariants before changing any model/view state.
-   (validate-slot buffer 'text new)
-   (dolist (view (copy-list (buffer-views buffer)))
-     (when (and (not (disposed-p view)) (eq (view-buffer view) buffer))
-       (validate-slot view 'text new)))
+   (let ((validators (remove-if-not #'full-text-validator-p (cons buffer (copy-list (buffer-views buffer))))))
+     (when validators
+       (let ((new (index-substring new-root 0 new-length)))
+         (dolist (object validators) (validate-slot object 'text new)))))
    (let ((record (when *record-buffer-history*
-                   (%make-buffer-history-entry :start start :removed (subseq old start end)
+                   (%make-buffer-history-entry :start start :removed removed
                      :inserted (copy-seq replacement) :before-cursor (when origin (cursor origin))
                      :before-anchor (when origin (slot-value origin 'anchor))))))
      ;; Move history only after all validation has succeeded. Replaying a range
@@ -134,18 +158,19 @@
      (let* ((views (copy-list (buffer-views buffer)))
             (revision (incf (slot-value buffer 'revision)))
             (edit (%make-buffer-edit :start start :old-end end :new-end new-end :revision revision :origin origin)))
-       (setf (slot-value buffer 'text) new)
+       (setf (slot-value buffer 'text-root) new-root
+             (slot-value buffer 'text) "" (slot-value buffer 'text-snapshot-p) nil)
        ;; All views are consistent before any application notification is emitted.
        (dolist (view views)
          (when (and (not (disposed-p view)) (eq (view-buffer view) buffer))
-           (setf (slot-value view 'text) new
+           (setf (slot-value view 'text) ""
                  (slot-value view 'cursor) (remap-text-position (cursor view) start end new-end)
                  (slot-value view 'anchor) (remap-text-position (slot-value view 'anchor) start end new-end))
            (when (and (eq view origin) collapse-origin)
              (setf (slot-value view 'cursor) new-end (slot-value view 'anchor) new-end))
            (when (and (eq view origin) selection)
-             (setf (slot-value view 'cursor) (min (first selection) (length new))
-                   (slot-value view 'anchor) (min (second selection) (length new))))))
+             (setf (slot-value view 'cursor) (min (first selection) new-length)
+                   (slot-value view 'anchor) (min (second selection) new-length)))))
        (when record
          (setf (buffer-history-entry-after-cursor record) (when origin (cursor origin))
                (buffer-history-entry-after-anchor record) (when origin (slot-value origin 'anchor))
@@ -154,9 +179,9 @@
        (setf (slot-value buffer 'buffer-notifying-p) t)
        (unwind-protect
          (progn
-           (emit buffer :edit edit) (emit buffer :change new)
+           (emit buffer :edit edit) (emit-text-change buffer buffer)
            (dolist (view views)
-             (when (and (not (disposed-p view)) (eq (view-buffer view) buffer)) (emit view :change new))))
+             (when (and (not (disposed-p view)) (eq (view-buffer view) buffer)) (emit-text-change view buffer))))
          (setf (slot-value buffer 'buffer-notifying-p) nil)) edit))))
 (defun replace-buffer-range (buffer start end string &key origin)
  "Replace character range [START,END), remap attached view positions, and notify. ORIGIN optionally places that view's caret at the inserted text's end. Return BUFFER-EDIT or NIL."

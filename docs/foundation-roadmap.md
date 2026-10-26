@@ -30,14 +30,16 @@ See [drag-and-drop](drag-and-drop.md), [commands](commands.md) and
   inserted text and numeric selection data rather than full-buffer copies.
   Verified multiple small-edit undo/redo steps on a 1 Mi-character buffer larger
   than the default history budget; limits now count changed-text payload.
-- [ ] **Indexed text and viewport geometry — next.** Reusable line indexing,
-  position-to-rectangle and point-to-position APIs, visible-line iteration and
-  bounded work for large buffers. Verify long lines, Unicode character offsets,
-  edits near EOF and cache invalidation. Replace the current flat-string edit
-  storage so a small edit does not rebuild/copy the entire buffer. Range history
-  removes full-text history copies but does not remove that remaining O(n) edit
-  cost. This is infrastructure, not syntax analysis.
-- [ ] **Standalone history migration and budget feedback.** Standalone entries
+- [x] **Indexed text and viewport geometry — delivered.** Balanced chunk storage
+  replaces flat-string range edits. Shared line/range queries, caret rectangles,
+  point hit testing and visible-line iteration drive drawing, navigation and
+  wheel extents. Verified AVL balance/sharing, Unicode character offsets, EOF
+  edits and geometry/cache invalidation; the 50,000-line example and native
+  peer-window regressions pass on macOS. Full-string getters, validation hooks
+  and change listeners still materialize snapshots. First horizontal queries
+  far into an unmeasured line measure its prefix; repeated queries cache it.
+  Linux/Windows checks remain unrun. See [text buffers](text-buffers.md).
+- [ ] **Standalone history migration and budget feedback — next.** Standalone entries
   still use full-text snapshots; migrate them without changing their existing
   selection/undo contract. Consider explicit feedback when a single oversized
   edit exceeds the configured history budget; zero limits may intentionally

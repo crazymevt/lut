@@ -45,10 +45,10 @@
          (max (cursor entry) (slot-value entry 'anchor))))
 (defun select-all (entry)
  "Select all text."
- (setf (slot-value entry 'anchor) 0 (cursor entry) (length (text entry))) entry)
+ (setf (slot-value entry 'anchor) 0 (cursor entry) (text-length entry)) entry)
 (defun selected-text (entry)
  "Return the selected substring."
- (multiple-value-bind (a b) (selection entry) (subseq (text entry) a b)))
+ (multiple-value-bind (a b) (selection entry) (text-range entry a b)))
 (defun replace-selection (entry string)
  "Replace selected text when editable and notify listeners. Shared views edit their buffer once."
  (when (editable-p entry)
@@ -99,21 +99,12 @@
  (loop for start = 0 then (1+ end) for end = (position #\Newline string :start start)
        collect (list start (or end (length string))) while end))
 (defun text-position (w e)
- (let* ((pad (style-value w :padding))
-        (line (if (typep w 'text-view) (max 0 (floor (+ (- (event-y e) (y w) pad) (vertical-offset w)) (line-height w))) 0))
-        (bounds (or (nth line (text-lines (text w))) (list (length (text w)) (length (text w)))))
-        (offset (+ (- (event-x e) (x w) pad) (text-offset w))))
-   (destructuring-bind (start end) bounds
-     (loop for i from start below end
-           for left = (text-width w (subseq (display-text w) start i))
-           for right = (text-width w (subseq (display-text w) start (1+ i)))
-           when (< offset (/ (+ left right) 2)) return i
-           finally (return end)))))
+ (text-point-position w (event-x e) (event-y e)))
 (defun handle-key (w e)
  (let ((key (event-key e)))
    (cond
     ((typep w 'entry)
-     (let ((n (length (text w))))
+     (let ((n (text-length w)))
        (case key
          (:undo (undo w)) (:redo (redo w))
          (:select-all (select-all w))
@@ -122,9 +113,9 @@
          (:paste (when (editable-p w) (replace-selection w (clipboard-text w))))
          ((:left :right :home :end :up :down)
           (let* ((position (cursor w))
-                 (lines (text-lines (text w)))
-                 (line (or (position-if (lambda (bounds) (<= (first bounds) position (second bounds))) lines) 0))
-                 (bounds (nth line lines)) (column (- position (first bounds))))
+                 (line (text-position-line w position))
+                 (bounds (multiple-value-list (text-line-range w line)))
+                 (column (- position (first bounds))))
             (setf (cursor w)
               (case key
                 (:left (if (and (not (event-shift-p e)) (/= position (slot-value w 'anchor)))
@@ -133,7 +124,7 @@
                             (max position (slot-value w 'anchor)) (min n (1+ position))))
                 (:home (first bounds)) (:end (second bounds))
                 ((:up :down)
-                 (let ((destination (nth (max 0 (min (1- (length lines)) (+ line (if (eq key :up) -1 1)))) lines)))
+                 (let ((destination (multiple-value-list (text-line-range w (max 0 (min (1- (text-line-count w)) (+ line (if (eq key :up) -1 1))))))))
                    (min (second destination) (+ (first destination) column))))))
             (unless (event-shift-p e) (setf (slot-value w 'anchor) (cursor w)))))
          ((:backspace :delete)
@@ -211,5 +202,5 @@ Callbacks receive (widget payload). Pointer capture supports text drag selection
        (slot-value w 'anchor) (min (slot-value w 'anchor) (length new-text))))
 
 (defmethod validate-slot ((w entry) slot v)
- (when (and (eq slot 'cursor) (slot-boundp w 'text) (> v (length (text w))))
+ (when (and (eq slot 'cursor) (slot-boundp w 'text) (> v (text-length w)))
    (error "Caret index exceeds text length.")) v)

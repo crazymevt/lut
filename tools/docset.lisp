@@ -2,7 +2,7 @@
 (defun signatures ()
  (let ((result (make-hash-table)) (*package* (find-package :lut)) (*read-eval* nil))
    (dolist (file '("src/core.lisp" "src/widgets.lisp" "src/styles.lisp" "src/input.lisp"
-                  "src/text-buffers.lisp" "src/commands.lisp" "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/windows.lisp"))
+                  "src/text-buffers.lisp" "src/text-index.lisp" "src/text-geometry.lisp" "src/commands.lisp" "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/windows.lisp"))
      (with-open-file (in (asdf:system-relative-pathname "lut" file))
        (loop for form = (read in nil :eof) until (eq form :eof)
              when (and (consp form) (member (first form) '(defun defmacro defgeneric)) (symbolp (second form)))

@@ -1,7 +1,9 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:text-buffer #:make-text-buffer #:view-buffer #:read-only-p #:editable-p
+  (:export #:text-length #:text-range #:text-line-count #:text-line-range #:text-position-line
+   #:text-position-rectangle #:text-point-position #:map-visible-text-lines #:invalidate-text-geometry
+   #:text-buffer #:make-text-buffer #:view-buffer #:read-only-p #:editable-p
    #:buffer-revision #:replace-buffer-range #:can-undo-p #:can-redo-p
    #:buffer-edit #:edit-start #:edit-old-end #:edit-new-end #:edit-revision #:edit-origin
    #:command #:make-command #:command-label #:command-action #:command-predicate

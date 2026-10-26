@@ -186,4 +186,5 @@ remaining toolkit work and the boundary with application-specific behavior.
 ## Shared text models
 
 `text-buffer` shares text/history across independent entry/text views. See
-[shared text buffers](docs/text-buffers.md) and `lut-examples:shared-text`.
+[shared text buffers and indexed geometry](docs/text-buffers.md),
+`lut-examples:shared-text` and the 50,000-line `lut-examples:indexed-text`.
