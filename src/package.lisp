@@ -60,7 +60,7 @@
    #:remove-child #:bind-key #:on #:emit #:make-widget #:with-ui #:layout #:hit-test
    #:dispatch #:make-event #:event-kind #:event-x #:event-y #:event-key
    #:event-drop-data #:event-text #:event-delta #:event-shift-p #:event-control-p #:event-alt-p #:event-super-p #:event-timestamp #:event-click-count #:event-base-key #:focus #:modal-p #:focused-widget
-   #:undo #:redo #:history-limit #:history-character-limit #:selection #:cursor #:select-all #:selected-text #:replace-selection
+   #:undo #:redo #:history-limit #:history-character-limit #:history-retain-newest-p #:selection #:cursor #:select-all #:selected-text #:replace-selection
    #:launch-uri #:launch-file #:default-application-capabilities #:*default-application-command*
    #:target-launch-error #:launch-error-target #:launch-error-reason #:launch-error-detail #:launch-error-exit-code
    #:window-state #:set-window-state #:normal-window-size #:set-normal-window-size

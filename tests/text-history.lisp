@@ -98,6 +98,101 @@
    (lut:dispose view))
  (history-overflow-tests)
  (format t "Standalone range history, snapshot-oracle selections, large text, failed validation and budget feedback passed.~%"))
+(defun history-retention-tests ()
+ ;; Opt-in retention applies to shared and standalone owners, both stack
+ ;; directions, and the invoking peer's selection. Older records still evict.
+ (dolist (shared '(nil t))
+   (dolist (class '(lut:entry lut:text-view))
+     (let* ((owner (if shared
+                       (lut:make-text-buffer :text "ab" :history-character-limit 4 :history-retain-newest-p t)
+                       (lut:make-widget class :text "ab" :history-character-limit 4 :history-retain-newest-p t)))
+            (view (if shared (lut:make-widget class :view-buffer owner) owner))
+            (peer (if shared (lut:make-widget class :view-buffer owner) view)) (events nil))
+       (unwind-protect
+         (progn
+           (assert (lut:history-retain-newest-p owner))
+           (setf (lut:cursor view) 2 (slot-value view 'lut::anchor) 2)
+           (lut:replace-selection view "c")
+           (lut:on owner :history-overflow (lambda (w payload)
+             (assert (eq w owner)) (push payload events)))
+           (lut:replace-selection view "DEFGHI")
+           (assert (string= "abcDEFGHI" (lut:text peer)))
+           (assert (= 1 (length (lut::undo-history owner))))
+           (assert (equal '((:operation :edit :stack :undo :characters 6 :limit 4)) events))
+           (assert (lut:undo peer))
+           (assert (equal '("abc" 3 3) (history-view-state peer)))
+           (assert (lut:can-redo-p owner))
+           (assert (lut:redo view))
+           ;; Redo restores the selection captured from the invoking undo peer,
+           ;; whose independent caret remained before this inserted range.
+           (assert (equal (list "abcDEFGHI" (if shared 0 9) (if shared 0 9)) (history-view-state view)))
+           (assert (equal '(:redo :undo :edit) (mapcar (lambda (p) (getf p :operation)) events)))
+           (assert (equal '(:undo :redo :undo) (mapcar (lambda (p) (getf p :stack)) events)))
+           ;; A no-op neither emits overflow nor changes the retained record.
+           (let ((past (lut::undo-history owner)))
+             (lut:replace-selection view "")
+             (assert (eq past (lut::undo-history owner))) (assert (= 3 (length events))))
+           (lut:replace-selection view "x")
+           (assert (= 1 (length (lut::undo-history owner))))
+           (assert (lut:undo peer)) (assert (string= "abcDEFGHI" (lut:text owner)))
+           (assert (not (lut:can-undo-p owner)))
+           (assert (= 3 (length events))))
+         (lut:dispose view) (unless (eq peer view) (lut:dispose peer))
+         (unless (eq owner view) (lut:dispose owner))))))
+ ;; A zero count or character budget overrides the opt-in, silently.
+ (dolist (shared '(nil t))
+   (dolist (limits '((0 4) (10 0)))
+     (let ((owner (if shared (lut:make-text-buffer :history-retain-newest-p t)
+                             (lut:make-widget 'lut:entry :history-retain-newest-p t))) (events 0))
+       (unwind-protect
+         (progn
+           (setf (lut:history-limit owner) (first limits) (lut:history-character-limit owner) (second limits))
+           (lut:on owner :history-overflow (lambda (w p) (declare (ignore w p)) (incf events)))
+           (setf (lut:text owner) "oversized")
+           (assert (not (lut:can-undo-p owner))) (assert (zerop events)))
+         (lut:dispose owner)))))
+ ;; Validation/read-only refusals must not mutate retained history or notify.
+ (dolist (shared '(nil t))
+   (let* ((owner (if shared (lut:make-text-buffer :history-character-limit 1 :history-retain-newest-p t)
+                            (lut:make-widget 'guarded-history-view :history-character-limit 1 :history-retain-newest-p t)))
+          (view (if shared (lut:make-widget 'guarded-history-view :view-buffer owner) owner)) (events 0))
+     (unwind-protect
+       (progn
+         (lut:replace-selection view "large")
+         (lut:on owner :history-overflow (lambda (w p) (declare (ignore w p)) (incf events)))
+         (setf (reject-history-text view) "rejected")
+         (let ((past (lut::undo-history owner)))
+           (assert (handler-case (progn (setf (lut:text owner) "rejected") nil) (error () t)))
+           (assert (eq past (lut::undo-history owner)))
+           (setf (lut:read-only-p view) t)
+           (lut:replace-selection view "blocked") (assert (not (lut:undo view)))
+           (assert (eq past (lut::undo-history owner)))
+           (assert (string= "large" (lut:text owner))) (assert (zerop events)))
+         (assert (handler-case (progn (setf (lut:history-retain-newest-p owner) :invalid) nil) (type-error () t)))
+         (assert (lut:history-retain-newest-p owner)))
+       (lut:dispose view) (unless (eq owner view) (lut:dispose owner)))))
+ ;; Larger configurable budgets/counts retain more edits; changing the opt-in
+ ;; affects the next history push rather than eagerly pruning either stack.
+ (dolist (shared '(nil t))
+   (let ((owner (if shared (lut:make-text-buffer :history-character-limit 4)
+                           (lut:make-widget 'lut:entry :history-character-limit 4))))
+     (unwind-protect
+       (progn
+         (dotimes (i 6) (setf (lut:text owner) (concatenate 'string (lut:text owner) "x")))
+         (assert (= 4 (length (lut::undo-history owner))))
+         (setf (lut:history-character-limit owner) 16 (lut:history-limit owner) 8)
+         (dotimes (i 4) (setf (lut:text owner) (concatenate 'string (lut:text owner) "x")))
+         (assert (= 8 (length (lut::undo-history owner))))
+         (setf (lut:history-limit owner) 2 (lut:text owner) (concatenate 'string (lut:text owner) "x"))
+         (assert (= 2 (length (lut::undo-history owner))))
+         (setf (lut:history-retain-newest-p owner) t (lut:text owner) "a much longer replacement text")
+         (assert (lut:can-undo-p owner))
+         (setf (lut:history-retain-newest-p owner) nil)
+         (assert (lut:undo owner))
+         (assert (not (lut:can-redo-p owner))))
+       (lut:dispose owner))))
+ (format t "Configurable history budgets, newest oversized retention, shared peers, undo/redo and zero limits passed.~%"))
+
 (defun history-overflow-tests ()
  ;; Model and standalone owners report oversized committed records identically.
  (dolist (shared '(nil t))

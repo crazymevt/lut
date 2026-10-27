@@ -68,11 +68,28 @@ restores the numeric selection saved with the history record, when one exists,
 into that invoking view, even if a different view originated the edit. Other
 views remap their current positions. Model-only edits have no saved view
 selection. Histories never retain view objects. Limits retain a contiguous newest
-prefix; a single edit whose removed+inserted text exceeds the budget is not undoable and
-clears older undo history, since skipping it would make older range operations
-unsafe. Raise the budget for large paste/replacement operations. A zero history
-limit or zero character budget intentionally disables retention silently. A
-single oversized record with positive limits emits `:history-overflow`; see below.
+prefix; by default a single edit whose removed+inserted text exceeds the budget
+is not undoable and clears older undo history, since skipping it would make
+older range operations unsafe. Raise the budget for more retained history, or
+opt into `history-retain-newest-p` to keep the newest oversized record alone:
+
+```lisp
+(lut:make-text-buffer :history-limit 200 :history-character-limit (* 32 1024 1024)
+                      :history-retain-newest-p t)
+```
+
+The same initargs/accessors apply to standalone entries/text views; attached
+views use the shared buffer's policy. Defaults remain 100 records, 262,144
+changed characters and `history-retain-newest-p` NIL. The opt-in overrides only
+the character budget for the first record in each undo/redo stack. Older records
+still evict; a later small edit may evict an older oversized record. It can retain
+an arbitrarily large replacement, so the character budget is no longer a hard
+memory bound with this option enabled. These budgets count changed ranges,
+not full snapshots, and do not replicate an application's snapshot-history policy.
+Policy changes apply when history is next pushed; they do not eagerly trim stacks.
+A zero history limit or zero character budget intentionally disables retention
+silently. A single oversized record with positive limits emits
+`:history-overflow`; see below.
 
 `can-undo-p`, `can-redo-p` and `editable-p` are suitable command predicates.
 `read-only-p` can be set on one view or on the shared model. Read-only prevents
@@ -234,8 +251,9 @@ or rebinding a view clears its standalone history.
 Both standalone and shared histories retain a contiguous newest prefix. Older
 records evicted by count/total payload limits are silent. If a single record is
 too large for a positive character budget and record count is also positive,
-the destination stack becomes empty and the history owner emits
-`:history-overflow` with a fresh plist:
+the history owner emits `:history-overflow` with a fresh plist. By default the
+destination stack becomes empty; with `history-retain-newest-p` T it retains
+that one oversized record. The event reports budget overflow in either case:
 
 ```lisp
 (:operation :edit :stack :undo :characters 13 :limit 8)

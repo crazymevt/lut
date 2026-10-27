@@ -3,10 +3,12 @@
  "Committed character-range replacement. Notifications carry the current revision and optional originating view."
  start old-end new-end revision origin)
 (defvar *record-buffer-history* t)
-(defun make-text-buffer (&key (text "") read-only-p (history-limit 100) (history-character-limit 262144))
- "Make a nonvisual shared text/history model. Views retain independent cursor/selection/scroll state."
+(defun make-text-buffer (&key (text "") read-only-p (history-limit 100) (history-character-limit 262144) history-retain-newest-p)
+ "Make a nonvisual shared text/history model. Views retain independent cursor/selection/scroll state.
+HISTORY-RETAIN-NEWEST-P keeps the newest record over a positive character budget; zero history limits still disable retention."
  (make-widget 'text-buffer :text text :read-only-p read-only-p
-              :history-limit history-limit :history-character-limit history-character-limit))
+              :history-limit history-limit :history-character-limit history-character-limit
+              :history-retain-newest-p history-retain-newest-p))
 (defmethod initialize-instance :after ((buffer text-buffer) &key)
  (let ((initial (slot-value buffer 'text)))
    (setf (slot-value buffer 'text-root) (index-string initial)

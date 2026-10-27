@@ -329,3 +329,59 @@ edge opens dropdowns with both 4 and 20 options without scrollbar capture. The
 option nor closes the popup. `make test-lut-demo` and `make smoke-lut-demo` also
 passed after the fix. This is a targeted eligibility change; catalog and popup
 selection-list subclasses keep their scrollbar support.
+
+## Configurable newest-record history and synchronous launch errors
+
+Recorded 2026-10-26 on macOS ARM64, SBCL 2.6.9 and CCL 1.13 ARM64 prerelease,
+on branch `feat/migration-foundations`. This work changes LUT; Argon's settings
+and production GUI were not changed.
+
+`history-retain-newest-p` defaults NIL on shared buffers and standalone entries/
+text views. With T and both limits positive, each destination history stack may
+retain its newest oversized record alone, including undo/redo inverses. Record
+count and character budgets remain configurable. Zero limits still disable
+retention, ordinary older records still evict, and overflow feedback keeps its
+existing payload and timing. Raising a range budget is not equivalent to
+preserving an application's snapshot-history policy.
+
+`start :wait t` now signals primary controller/render/cleanup errors on the
+caller after native teardown, even without a frame bound. The same condition
+object crosses the main-thread bridge. CCL explicitly carries the synchronous
+policy to its initial process. Asynchronous starts, direct interactive `run`,
+worker-handle routing and application ownership of widget trees are preserved.
+
+All noisy commands used the local quiet wrapper required by the session:
+
+- `sbcl --script tests/portable.lisp` and
+  `ccl --no-init --batch --load tests/portable.lisp`: passed core behavior,
+  history/selection/presentation, all 108 demo behaviors, the demo browser,
+  GC checks and regenerated/validated 427-entry API docset. New history checks
+  cover shared/standalone entry/text views, peer undo/redo selections, opt-in
+  oversized retention, unchanged overflow feedback, no-op edits, read-only and
+  validation failures, configurable larger budgets/counts, policy changes and
+  zero limits. GC additionally verifies 25 disposed views are collected while
+  their buffer keeps an oversized history record.
+- `sbcl --script tests/start-errors.lisp` and
+  `ccl --no-init --batch --load tests/start-errors.lisp`: passed native unbounded
+  tick errors, final-frame render errors, cleanup errors, cross-thread condition
+  identity, closed native contexts/controller state and successful relaunch.
+  Injected runner/worker contracts also verify return values, asynchronous error
+  recording and immediate secondary-window handles even with WAIT T.
+- `sbcl --script tests/windows.lisp` and
+  `ccl --no-init --batch --load tests/windows.lisp`: passed native worker IPC,
+  modal/modeless behavior, live objects, nested dialogs and teardown regressions.
+- In the unchanged Argon checkout, `make test-lut-probe`: passed all seven groups
+  and 72 assertions against LUT's unchanged default history policy.
+- `git diff --check`: passed. Generated docset index changes include renumbering
+  caused by the new exported accessor.
+
+The first new history test had an incorrect originating-view redo-caret
+expectation; it was corrected to the existing invoking-peer selection contract.
+The first CCL native error run failed because the policy binding did not cross
+its initial-process bridge. The implementation was fixed and both native and
+portable suites rerun successfully; neither failure is treated as passing evidence.
+
+Linux/Windows native execution, physical input, full 108-window native rendering
+and packaging were not run for these history/launcher changes. No cell-grid or
+terminal feature expansion is included, and Argon must opt into the new policy
+when its editor adapter is ready.

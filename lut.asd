@@ -23,6 +23,7 @@
              (uiop:symbol-call :lut-tests :text-buffer-tests)
              (uiop:symbol-call :lut-tests :text-index-tests)
              (uiop:symbol-call :lut-tests :standalone-history-tests)
+             (uiop:symbol-call :lut-tests :history-retention-tests)
              (uiop:symbol-call :lut-tests :text-selection-tests)
              (uiop:symbol-call :lut-tests :text-presentation-tests)
              (uiop:symbol-call :lut-tests :data-model-tests)

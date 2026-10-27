@@ -1,5 +1,20 @@
 # Develop from the main REPL
 
+## Synchronous launch errors
+
+`(lut:start root :wait t)` waits for a primary window's loop to finish. It signals
+controller, rendering or cleanup errors on the calling thread after native
+teardown, preserving the original condition object. It does not enter the live
+repair pause screen, even when `:frames` is NIL. Application-owned widget trees
+remain yours to dispose or reuse after the native context closes.
+
+Direct `lut:run` keeps interactive pause behavior unless a frame bound is given.
+Asynchronous `start` keeps that behavior too; errors escaping its loop use the
+binding runner's existing recording/printing. A synchronous start does not depend
+on the binding's last-error global, which may contain stale or cleared state.
+Secondary launches still return a worker handle immediately even with `:wait t`;
+their failures are observed through the worker/controller APIs.
+
 ## Keep the objects
 
 The builder returns an ordinary CLOS object tree. Store it before calling

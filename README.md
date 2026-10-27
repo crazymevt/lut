@@ -51,6 +51,13 @@ all examples and Code tabs. `LUT_DEMO_FRAMES=4 make lut-demo` bounds a normal ru
 (lut:start *app*)
 ```
 
+Use `(lut:start *app* :wait t)` for a synchronous primary launch. Controller and
+rendering errors are signaled on the caller after native cleanup, including for
+unbounded runs. Asynchronous starts keep interactive pause/runner error handling.
+Starting a secondary window returns its worker handle immediately even with
+`:wait t`; that flag does not wait for a worker's lifetime. See
+[the REPL workflow](docs/repl.md).
+
 The example builders `hello-world`, `todo`, `editor`, `drawing`, `clock`, and
 `adwaita` return trees. These are small adaptations of the six local GTK4
 examples, not full replicas. `gallery` demonstrates the basic controls.
@@ -168,6 +175,10 @@ Native checks are in `tests/smoke.lisp`, `tests/gtk-smoke.lisp`,
 Run them as load scripts from this checkout in SBCL or CCL. Use the project's
 required quiet command wrapper for shell invocations.
 
+`sbcl --script tests/start-errors.lisp` checks synchronous launch failures,
+native cleanup, caller-thread propagation, asynchronous handling and worker
+routing. For CCL use `ccl --no-init --batch --load tests/start-errors.lisp`.
+
 ## Verified platforms
 
 Core behavior and native windows run on macOS/ARM64 under SBCL and the upstream
@@ -197,6 +208,9 @@ remaining toolkit work and the boundary with application-specific behavior.
 [shared text buffers and indexed geometry](docs/text-buffers.md),
 `lut-examples:shared-text` and the 50,000-line `lut-examples:indexed-text`.
 `lut-examples:standalone-history` demonstrates range undo/redo and oversized-record feedback.
+History record count and character budget are configurable. Set
+`:history-retain-newest-p t` on the shared buffer or standalone view to preserve
+the newest oversized record; defaults and zero-limit disabling are unchanged.
 See [text selection and navigation](docs/text-selection.md) and `lut-examples:text-selection`
 for word/line selection, caret reveal and selection autoscroll.
 Phase 2 presentation APIs and the `lut-examples:document-presentation` showcase are

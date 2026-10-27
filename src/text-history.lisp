@@ -16,7 +16,10 @@
 (defun bounded-buffer-history (buffer entries)
  (loop for entry in entries for count from 1
        for characters = (buffer-history-characters entry) then (+ characters (buffer-history-characters entry))
-       while (and (<= count (history-limit buffer)) (<= characters (history-character-limit buffer)))
+       while (and (<= count (history-limit buffer))
+                  (plusp (history-character-limit buffer))
+                  (or (<= characters (history-character-limit buffer))
+                      (and (= count 1) (history-retain-newest-p buffer))))
        collect entry))
 (defvar *record-history* t)
 (defvar *standalone-selection-after* nil)

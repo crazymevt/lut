@@ -717,6 +717,8 @@ Return FUNCTION and, as a second value, a cancellable job handle."
  (render w)
  (dolist (d (reverse (slot-value w 'overlays))) (render d))
  (render-drag-feedback w)))))
+(defvar *signal-run-errors* nil
+ "Internal synchronous START policy; direct RUN and asynchronous START retain their pause behavior.")
 (defmethod run ((w window) &key frames)
  "Run on OS main thread. Loop exit closes secondary workers and releases library-owned references."
  (ensure-live w)
@@ -729,7 +731,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
      (rl:with-window ((round (* (nth-value 0 (normal-window-size w)) (ui-scale w))) (round (* (nth-value 1 (normal-window-size w)) (ui-scale w))) (text w)
                      :flags '(:window-resizable :vsync-hint) :exit-key :null)
        (unwind-protect
-         (rl:game-loop (dt :on-error (if frames :signal :pause))
+         (rl:game-loop (dt :on-error (if (or frames *signal-run-errors*) :signal :pause))
            (frame-step w dt)
            (when (and frames (>= (incf count) frames)) (rl:stop)))
          (unwind-protect (progn (cancel-drag w) (emit w :context-close))
@@ -741,11 +743,23 @@ Return FUNCTION and, as a second value, a cancellable job handle."
      (setf *controller-running-p* nil *primary-window* nil *window* nil rl:*last-error* nil)
      (cancel-all-ui-jobs)))))
 (defun start (window &key frames wait)
- "Launch on the OS main thread; subsequent starts create native workers inheriting the prior root's app styles."
+ "Launch on the OS main thread; subsequent starts create native workers inheriting the prior root's app styles.
+WAIT waits for a primary launch and re-signals its errors on the caller after native cleanup, instead of pausing the loop. Asynchronous launches keep the runner's error handling. Worker launches return a handle immediately, even with WAIT."
  (let ((source *window*))
    (setf *window* window)
    (if (or *active-window* (rl:running-p)) (spawn-window window :style-source source)
-       (rl:run (lambda () (run window :frames frames)) :wait wait))))
+       (if wait
+           (let ((failure nil))
+             (let ((result
+                     (rl:run (lambda ()
+                               (let ((*signal-run-errors* t))
+                                 ;; Capture inside the binding runner, which otherwise
+                                 ;; records and swallows errors. Cleanup finishes before
+                                 ;; this handler transfers the original condition.
+                                 (handler-case (run window :frames frames)
+                                   (error (condition) (setf failure condition))))) :wait t)))
+               (when failure (error failure)) result))
+           (rl:run (lambda () (run window :frames frames)) :wait nil)))))
 (defun stop () "Request stop after current frame." (rl:stop))
 (defmethod clipboard-text ((w entry)) (if (rl:is-window-ready) (rl:get-clipboard-text) (call-next-method)))
 (defmethod (setf clipboard-text) (string (w entry))
@@ -755,9 +769,13 @@ Return FUNCTION and, as a second value, a cancellable job handle."
  (declare (ignore frames))
  ;; CCL's listener is not Cocoa's OS main thread. The bindings only bridge SBCL.
  (if (eq ccl:*current-process* ccl::*initial-process*) (call-next-method)
-     (let (failure result)
+     (let ((signal-errors *signal-run-errors*) failure result)
        (ccl::call-in-initial-process
-         (lambda () (handler-case (setf result (call-next-method)) (error (e) (setf failure e)))))
+         (lambda ()
+           ;; Special bindings do not cross CCL process boundaries. Preserve the
+           ;; synchronous launcher policy when bridging onto Cocoa's thread.
+           (let ((*signal-run-errors* signal-errors))
+             (handler-case (setf result (call-next-method)) (error (e) (setf failure e))))))
        (when failure (error failure)) result)))
 
 (defun sweep-native-resources ()
