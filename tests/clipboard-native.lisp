@@ -1,0 +1,41 @@
+;;;; Native clipboard dispatch must work for every widget, including cell grids.
+(require :asdf)
+(asdf:load-asd (merge-pathnames "../lut.asd" *load-truename*))
+(ql:quickload "lut/raylib" :silent t)
+(let* ((ready nil) (native-text "old native text") (writes 0)
+       (ready-function (symbol-function 'rl:is-window-ready))
+       (read-function (symbol-function 'rl:get-clipboard-text))
+       (write-function (symbol-function 'rl:set-clipboard-text))
+       (grid (lut:make-widget 'lut:cell-grid))
+       (entry (lut:make-widget 'lut:entry))
+       (widget (lut:make-widget 'lut:widget)))
+  (unwind-protect
+       (progn
+         ;; Keep the user's actual pasteboard untouched while testing the backend boundary.
+         (setf (symbol-function 'rl:is-window-ready) (lambda () ready)
+               (symbol-function 'rl:get-clipboard-text) (lambda () native-text)
+               (symbol-function 'rl:set-clipboard-text)
+               (lambda (text) (incf writes) (setf native-text text)))
+         (setf (lut:clipboard-text widget) "memory fallback")
+         (assert (string= "memory fallback" (lut:clipboard-text grid)))
+         (setf ready t)
+         (lut:layout grid 0 0 80 40)
+         (loop for character across "Hiλ" for column from 0
+               do (lut:set-grid-cell grid column 0 character))
+         (lut:select-grid-cells grid 0 0 2 0)
+         (assert (string= "Hiλ" (lut:copy-grid-selection grid)))
+         (assert (string= "Hiλ" native-text))
+         (assert (= 1 writes))
+         (assert (string= "Hiλ" (lut:clipboard-text entry)))
+         (setf (lut:clipboard-text entry) (format nil "External~%text"))
+         (assert (string= (format nil "External~%text") (lut:clipboard-text grid)))
+         (setf (lut:clipboard-text widget) "generic widget")
+         (assert (string= "generic widget" (lut:clipboard-text entry)))
+         (setf ready nil)
+         (assert (string= "memory fallback" (lut:clipboard-text entry)))
+         (assert (string= "memory fallback" (lut:clipboard-text grid))))
+    (setf (symbol-function 'rl:is-window-ready) ready-function
+          (symbol-function 'rl:get-clipboard-text) read-function
+          (symbol-function 'rl:set-clipboard-text) write-function)
+    (lut:dispose grid) (lut:dispose entry) (lut:dispose widget)))
+(format t "Native grid/entry/widget clipboard dispatch and headless fallback passed.~%")
