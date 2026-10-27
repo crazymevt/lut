@@ -223,13 +223,40 @@ maximize/restore and saved normal size pass on macOS/SBCL and CCL at
 failures and a real argv helper, without opening external applications.
 Manual window-manager actions and Linux/Windows execution remain unverified.
 
-## Phase 10: Terminal integration boundary (G5)
+## Phase 10: Terminal-capable primitives (G5)
 
-- [ ] **Terminal extension or native host adapter.** Define how an application
-  embeds a terminal alongside LUT widgets, including focus, input, clipping,
-  resizing and disposal. Choose an explicit supported backend boundary rather
-  than treating a drawing area as a native-widget host. PTY/shell/process policy
-  stays outside toolkit core.
+- [ ] **Opt-in focused key capture.** Let a focused widget receive keys before
+  window `:key` handlers and command shortcuts, with an explicit release path
+  and a way to keep selected commands active during capture. Preserve normal
+  dispatch elsewhere and respect active overlays and modal input ownership.
+  A focused widget's `handle-event` already runs before default Tab traversal
+  and Escape dialog dismissal; the missing interception is before window
+  handlers and shortcuts.
+- [ ] **Fixed-cell text surface.** Draw a grid of characters with foreground and
+  background colours, bold and underline using LUT's font rendering. Expose
+  logical cell metrics, point-to-cell mapping and resize reporting in columns
+  and rows. Start with full redraws and integrate layout, clipping, UI scaling,
+  disposal and worker-window rendering.
+- [ ] **Cell selection and copying.** Provide cell-based selection, including
+  rectangular selection, and copying through the existing clipboard API.
+- [ ] **Rendering cost measurement.** Measure a full screen of cells at 100%
+  and 200% scale in primary and worker windows. Consider changed-cell rendering
+  only if measurements justify it: LUT redraws whole frames, so caching needs
+  a retained backing texture or equivalent, with resize, theme and scale
+  invalidation.
+
+These are reusable toolkit primitives for terminal extensions and other
+console-style widgets, not a terminal emulator in core. An application or
+separate extension supplies terminal state and escape-sequence parsing;
+PTYs, shells, processes and session policy stay outside toolkit core. Reuse
+existing focus, commands, clipboard, scrolling/follow-end and UI-thread
+facilities where appropriate; terminal scrollback semantics remain external.
+Demonstrate the contract with a simulated terminal grid without a PTY, alongside
+focused behavior and lifecycle tests and API documentation.
+
+Prefer LUT-rendered integration so the surface participates in LUT clipping,
+scaling and frame-based worker windows. Native view hosting is an unplanned,
+platform-specific escape hatch, not a capability of `drawing-area`.
 
 The G1–G7 references come from the Agent Duet UI review. Text shaping, bidi, IME
 composition and accessibility remain separate unsupported capabilities recorded
