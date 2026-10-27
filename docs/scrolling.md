@@ -9,6 +9,16 @@ horizontal scrolling. Unsupported views/axes and disposed views signal errors.
 Queries do not mutate offsets. Direct legacy offset setters can leave an offset
 out of range until layout/clamping; use `scroll-to` for immediate clamping.
 
+Plain `list-view` widgets (including the demo catalog) and `scroll-view`
+containers draw a vertical scrollbar when their content exceeds the viewport.
+Drag the thumb or click the track; the gesture captures until release, including
+outside the window, and does not select a list row. Plain list rows are clipped
+before the scrollbar strip. Layout clamps plain-list offsets after content or
+viewport changes, and the scrollbar hides when content fits. Specialized tree,
+table and virtual model views retain their existing rendering/input behavior.
+Closed dropdowns are excluded: their arrow opens a popup, whose selection list
+can independently show a scrollbar when its options overflow.
+
 `(scroll-to view offset :axis :vertical)` clamps to
 `0..max(0, extent-page)` and immediately updates child geometry where needed.
 Scroll containers retain their existing explicit child sizes. To grow a measured

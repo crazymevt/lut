@@ -42,6 +42,10 @@ From a REPL:
 (lut-demo:make-app)
 ```
 
+The left catalog has a vertical scrollbar whenever its rows exceed the viewport.
+Drag its thumb or click the track to browse without changing the selected demo.
+Wheel scrolling remains available; keyboard selection reveals the chosen row.
+
 Drag the pane divider to resize. Use Tab to move focus, Up/Down to select a
 feature, and Left/Right on the tab bar to switch tabs. Long demos and source
 scroll with the mouse wheel. Selecting another feature disposes its predecessor

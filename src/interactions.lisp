@@ -178,10 +178,13 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
              (list :drag root (- (event-x event) (x root)) (- (event-y event) (y root))))
        (return-from dispatch root)))
    (when (eq kind :down) (arm-pointer-drag window event target))
-   ;; Scrollbar capture belongs to the scroll view even while over its children.
+   ;; Scrollbar capture belongs to the scrolling view, before row selection.
    (when (and (eq kind :down) target)
-     (let ((view (ancestor-of-type target 'scroll-view)))
-       (when (and view (plusp (scroll-range view)))
+     (let ((view (loop for node = target then (parent node) while node
+                       when (and (scrollbar-view-p node) (plusp (scrollbar-range node))
+                                 (>= (event-x event) (nth-value 0 (scrollbar-bounds node))))
+                         return node)))
+       (when (and view (plusp (scrollbar-range view)))
          (multiple-value-bind (sx sy sw sh travel) (scrollbar-bounds view)
            (declare (ignore sw travel))
            (when (>= (event-x event) sx)

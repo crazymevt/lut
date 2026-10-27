@@ -293,3 +293,39 @@ reveal covers the longer catalog without forcing wheel scrolling back to the
 selected row at unchanged viewport sizes. Smoke selection does not launch URIs
 or open path pickers; headless behavior checks cancel the portable picker.
 Physical pointer/keyboard UX and Linux/Windows execution remain unverified.
+
+## Catalog and plain-list scrollbars
+
+Plain list views now share the vertical track/thumb handling used by scroll
+containers. The demo catalog exposes a scrollbar on overflow, reserves its
+strip from row painting, and preserves selection during dragging/track clicks.
+Layout clamps offsets when the viewport or item count changes. Specialized
+tree/table/model views retain their existing geometry and behavior.
+
+With `/Users/jessie/.local/bin/quiet-run.sh --` as the command prefix:
+
+- `make test-lut-demo` passed catalog dragging, track clicks, outside release,
+  selection/source preservation and wheel scrolling alongside all demo checks.
+- `ccl --no-init --batch --load tests/portable.lisp` and
+  `sbcl --script tests/portable.lisp` passed, including plain-list geometry,
+  shrinking content, nested parent scrollbar capture, core/demo/GC suites and
+  API generation.
+- `sbcl --script tests/list-scrollbar-native.lisp` and the corresponding
+  `ccl --no-init --batch --load tests/list-scrollbar-native.lisp` passed thumb/
+  track pixel checks, device-scaled dragging, selection preservation and hiding
+  after content fits, in both themes at 100/125/200% scale.
+- `make smoke-lut-demo` passed all 36 Demo/Code pairs over 216 native frames;
+  its foundation screenshot was inspected for the visible catalog thumb.
+- `sbcl --script tests/scrolling-native.lisp` passed existing container scrolling,
+  nested reveal and follow-end regressions at 100/125/200% in both themes.
+
+Physical pointer UX and Linux/Windows execution remain unverified.
+
+Dropdown regression follow-up: closed dropdowns are excluded from plain-list
+scrollbar eligibility. A new dispatch regression failed before the fix, then
+passed on SBCL and CCL as part of `tests/portable.lisp`: clicking the arrow/right
+edge opens dropdowns with both 4 and 20 options without scrollbar capture. The
+20-option popup remains scrollable, and thumb dragging neither selects an
+option nor closes the popup. `make test-lut-demo` and `make smoke-lut-demo` also
+passed after the fix. This is a targeted eligibility change; catalog and popup
+selection-list subclasses keep their scrollbar support.

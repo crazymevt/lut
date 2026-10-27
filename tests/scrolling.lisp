@@ -41,6 +41,8 @@
          (assert (zerop *reveal-horizontal-queries*)))
      (lut:dispose view))))
 (defun scrolling-tests ()
+ (dropdown-scrollbar-regression-tests)
+ (plain-list-scrollbar-tests)
  (bounded-horizontal-reveal-tests)
  (let* ((outer (lut:make-widget 'lut:scroll-view :style '(:padding 0) :spacing 0))
         (filler (lut:add-child outer (lut:make-widget 'lut:widget :height 60)))
@@ -154,3 +156,92 @@
    (assert (handler-case (progn (lut:set-follow-end widget t) nil) (error () t)))
    (lut:dispose widget))
  (format t "Public scroll geometry, clamping, nested child/text reveal, empty ranges, selection preservation, follow distance/pause/resize/shrink, model disposal and lifecycle passed.~%"))
+
+
+(defun plain-list-scrollbar-tests ()
+ (let* ((root (lut:make-widget 'lut:window :content-layout :fill))
+        (view (lut:add-child root (lut:make-widget 'lut:list-view :value 0
+                  :items (loop for i below 30 collect (format nil "Row ~d" i)))))
+        (changes 0))
+   (unwind-protect
+     (progn
+       (lut:on view :change (lambda (w v) (declare (ignore w v)) (incf changes)))
+       (lut:layout root 0 0 200 120)
+       (assert (= (* 30 (lut:row-height view)) (lut::scrollbar-extent view)))
+       (multiple-value-bind (sx sy sw sh travel) (lut::scrollbar-bounds view)
+         (assert (plusp travel)) (assert (< sh (lut:height view)))
+         ;; Track clicks and thumb drag preserve the row selection.
+         (lut:dispatch root (lut:make-event :kind :down :x (+ sx (/ sw 2)) :y (+ sy (/ sh 2))))
+         (lut:dispatch root (lut:make-event :kind :move :x (+ sx (/ sw 2)) :y 500))
+         (lut:dispatch root (lut:make-event :kind :up :x (+ sx (/ sw 2)) :y 500))
+         (assert (= (lut::scrollbar-range view) (lut:scroll-offset view)))
+         (assert (zerop changes)) (assert (zerop (lut:value view)))
+         (assert (null (lut::interaction-state root)))
+         (lut:dispatch root (lut:make-event :kind :down :x (+ sx (/ sw 2)) :y 1))
+         (lut:dispatch root (lut:make-event :kind :up :x (+ sx (/ sw 2)) :y 1))
+         (assert (zerop (lut:scroll-offset view))))
+       ;; The strip returns to ordinary list content when nothing overflows.
+       (lut:scroll-to view (lut::scrollbar-range view))
+       (setf (lut:items view) '("Only row"))
+       (lut:layout root 0 0 200 120)
+       (assert (zerop (lut:scroll-offset view)))
+       (assert (zerop (lut::scrollbar-range view)))
+       (lut:dispatch root (lut:make-event :kind :down :x 190 :y 10))
+       (lut:dispatch root (lut:make-event :kind :up :x 190 :y 10))
+       (assert (= 1 changes))
+       (lut:layout view 0 0 0 0)
+       (assert (every (lambda (v) (and (realp v) (not (minusp v)))) (multiple-value-list (lut::scrollbar-bounds view)))))
+     (lut:dispose root)))
+ ;; A fitting child list must not block its parent's scrollbar capture.
+ (let* ((root (lut:make-widget 'lut:window :content-layout :fill))
+        (outer (lut:add-child root (lut:make-widget 'lut:scroll-view :style '(:padding 0))))
+        (inner (lut:add-child outer (lut:make-widget 'lut:list-view :items '("One row") :height 40))))
+   (lut:add-child outer (lut:make-widget 'lut:label :height 200))
+   (unwind-protect
+     (progn
+       (lut:layout root 0 0 200 120)
+       (assert (zerop (lut::scrollbar-range inner)))
+       (lut:dispatch root (lut:make-event :kind :down :x 194 :y 20))
+       (assert (eq outer (second (lut::interaction-state root))))
+       (lut:dispatch root (lut:make-event :kind :move :x 194 :y 500))
+       (lut:dispatch root (lut:make-event :kind :up :x 194 :y 500))
+       (assert (= (lut::scrollbar-range outer) (lut:scroll-offset outer))))
+     (lut:dispose root)))
+ ;; Rendering and input must agree on the supported plain-list geometry.
+ (dolist (class '(lut:tree-view lut:table-view))
+   (let ((view (lut:make-widget class)))
+     (assert (not (lut::scrollbar-view-p view))) (lut:dispose view))))
+
+
+(defun dropdown-scrollbar-regression-tests ()
+ (dolist (count '(4 20))
+   (let* ((root (lut:make-widget 'lut:window))
+          (dropdown (lut:add-child root (lut:make-widget 'lut:dropdown :height 36 :value 0
+                      :items (loop for i below count collect (format nil "Choice ~d" i))))))
+     (unwind-protect
+       (progn
+         (lut:layout root 0 0 300 320)
+         (let ((x (- (+ (lut:x dropdown) (lut:width dropdown)) 4))
+               (y (+ (lut:y dropdown) 18)))
+           ;; The arrow strip belongs to the closed control, not a scrollbar.
+           (lut:dispatch root (lut:make-event :kind :down :x x :y y))
+           (assert (lut:expanded-p dropdown))
+           (assert (null (lut::interaction-state root)))
+           (lut:dispatch root (lut:make-event :kind :up :x x :y y)))
+         (assert (not (lut::scrollbar-view-p dropdown)))
+         (assert (zerop (lut:scroll-offset dropdown)))
+         (let* ((popup (first (lut::overlays root))) (list (first (lut:children popup))))
+           (assert (typep list 'lut::selection-list))
+           (assert (lut::scrollbar-view-p list))
+           ;; The open popup still has a real scrolling list when it overflows.
+           (when (> count 4)
+             (assert (plusp (lut::scrollbar-range list)))
+             (multiple-value-bind (sx sy sw sh) (lut::scrollbar-bounds list)
+               (let ((x (+ sx (/ sw 2))))
+                 (lut:dispatch root (lut:make-event :kind :down :x x :y (+ sy (/ sh 2))))
+                 (lut:dispatch root (lut:make-event :kind :move :x x :y 500))
+                 (lut:dispatch root (lut:make-event :kind :up :x x :y 500))))
+             (assert (= (lut::scrollbar-range list) (lut:scroll-offset list)))
+             (assert (zerop (lut:value dropdown)))
+             (assert (lut:expanded-p dropdown)))))
+       (lut:dispose root)))))

@@ -1,5 +1,11 @@
 (in-package #:lut)
 
+(defun scrollbar-view-p (view)
+ ;; Closed dropdowns are controls, not row viewports. Specialized tree/table/
+ ;; model views also have their own row/header geometry.
+ (or (typep view 'scroll-view)
+     (and (typep view 'list-view) (not (typep view '(or dropdown tree-view table-view model-list-view))))))
+
 (defgeneric scroll-axes (view))
 (defmethod scroll-axes ((view widget)) nil)
 (defmethod scroll-axes ((view scroll-view)) (when (eq (orientation view) :vertical) '(:vertical)))
@@ -184,4 +190,8 @@
 (defmethod layout :around ((view text-view) x y width height)
  (declare (ignore x y width height)) (prog1 (call-next-method) (apply-follow-end view)))
 (defmethod layout :around ((view list-view) x y width height)
- (declare (ignore x y width height)) (prog1 (call-next-method) (apply-follow-end view)))
+ (declare (ignore x y width height))
+ (prog1 (call-next-method)
+   (when (scrollbar-view-p view)
+     (setf (scroll-offset view) (min (scroll-offset view) (scrollbar-range view))))
+   (apply-follow-end view)))
