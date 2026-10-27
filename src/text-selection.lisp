@@ -136,18 +136,29 @@
          (setf (fifth state) (remap-text-position (fifth state) start old-end new-end)
                (sixth state) (remap-text-position (sixth state) start old-end new-end))))
      (when (eq view (first (slot-value root 'text-click-state))) (setf (slot-value root 'text-click-state) nil)))))
-(defun near-text-click-p (click x y)
+(defun near-pointer-click-p (click x y)
  (and click (<= (+ (expt (- x (third click)) 2) (expt (- y (fourth click)) 2)) 25)))
-(defun text-click-count (window view event)
- (let* ((previous (slot-value window 'text-click-state)) (time (event-timestamp event))
+(defun pointer-click-count (event previous &key target (cycle 3))
+ "Return COUNT and opaque next state for repeated pointer downs on TARGET.
+Pass the returned state as PREVIOUS on the next down; NIL resets it. Targets
+are compared with EQUAL. Timestamped clicks within 0.5 seconds and 5 logical
+pixels repeat, cycling at CYCLE (2 or 3). Explicit event counts take priority.
+Events without timestamps do not retain repetition state."
+ (unless (member cycle '(2 3)) (error "Click cycle must be 2 or 3."))
+ (let* ((time (event-timestamp event))
         (count (or (event-click-count event)
-                   (if (and (eq view (first previous)) (realp time) (realp (second previous))
+                   (if (and previous (equal target (first previous))
+                            (realp time) (realp (second previous))
                             (<= 0 (- time (second previous)) 0.5)
-                            (near-text-click-p previous (event-x event) (event-y event)))
-                       (1+ (mod (fifth previous) 3)) 1))))
+                            (near-pointer-click-p previous (event-x event) (event-y event)))
+                       (1+ (mod (fifth previous) cycle)) 1))))
    (unless (member count '(1 2 3)) (error "Click count must be 1, 2 or 3."))
-   (setf (slot-value window 'text-click-state)
-         (when (realp time) (list view time (event-x event) (event-y event) count))) count))
+   (values count (when (realp time) (list target time (event-x event) (event-y event) (min count cycle))))))
+(defun text-click-count (window view event)
+ (multiple-value-bind (count state)
+     (pointer-click-count event (slot-value window 'text-click-state) :target view)
+   (setf (slot-value window 'text-click-state) state)
+   count))
 (defun text-word-point-position (view px py)
  ;; Caret hit testing rounds to the nearest insertion point. Unit selection
  ;; instead uses the character under the pointer, including a word's last half

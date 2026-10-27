@@ -67,3 +67,23 @@ Run `(asdf:test-system "lut")` for the core interaction/cache contracts, and
 `sbcl --script tests/ui-extensions-native.lisp` for focus-preserving rendering and
 nested/error clipping. Argon's shell and native editor suites exercise the
 application adapters, Markdown eye, divider constraints and document selection.
+
+## Repeated pointer clicks
+
+`pointer-click-count` shares the text selection click rules with custom controls
+and lists. Pass a `:down` event and the previous opaque state; it returns the
+click count and the next state. Supply a stable `:target` such as a model row key
+(targets compare with `equal`). Clicks repeat within 0.5 seconds and a radius of
+5 logical pixels. Explicit `event-click-count` values take priority. Events
+without timestamps return no retained state.
+
+The default `:cycle 3` counts single/double/triple clicks; use `:cycle 2` for
+single/double activation. Keep the state per control and reset it to `nil` on
+scrolling, keyboard navigation, or an invalid target.
+
+```lisp
+(multiple-value-bind (count next-state)
+    (lut:pointer-click-count event click-state :target row-key :cycle 2)
+  (setf click-state next-state)
+  (when (= count 2) (open-row row-key)))
+```

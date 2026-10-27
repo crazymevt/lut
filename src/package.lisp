@@ -8,7 +8,7 @@
    #:with-drawing-clip #:current-drawing-clip #:intersect-rectangles
    #:text-caret-rectangle #:text-selection-active-p #:suppress-cursor-reveal #:handle-text-pointer-event
    #:row-at-position #:input-hit-test #:root-of #:anchor #:hovered-p #:scroll-viewport #:surface-closed
-   #:visible-line-fragment #:text-word-point-position
+   #:visible-line-fragment #:text-word-point-position #:pointer-click-count
    #:pointer-cursor #:window-pointer-cursor
    #:capture-keys #:release-keys #:keys-captured-p
    #:cell-grid #:grid-columns #:grid-rows #:grid-cell-metrics #:set-grid-cell-metrics
