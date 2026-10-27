@@ -129,3 +129,13 @@ Applications that cache derived text extents can use the public
 with the content identity/revision. The key includes effective font and
 measurement state; viewport dimensions are independent. Specializations must
 retain inherited key components and add their measurement-affecting state.
+
+## Wide model tables
+
+`model-table-view` accepts `:min-column-width` (default `0`, which keeps columns
+fitted to the viewport). Set it to a logical pixel width to let wide tables
+overflow horizontally. Wrap the table in `scroll-container` for both scrollbar
+axes. Headers and cells scroll together, row selection is retained, and only
+visible columns are painted. Shift+wheel scrolls horizontally; Left/Right reveals
+the active column. `scroll-geometry` and `scroll-to` accept `:horizontal` for these
+tables just as they do for text views.

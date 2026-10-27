@@ -29,18 +29,23 @@
        (if selected (model-row-color view key) (or (getf presentation :foreground) (model-row-color view key)))))))
 (defmethod render ((view model-table-view))
  (paint-list-surface view)
- (let* ((columns (table-columns view)) (cw (/ (width view) (length columns))) (rh (row-height view))
+ (let* ((columns (table-columns view)) (cw (model-table-column-width view)) (rh (row-height view))
+        (offset (table-horizontal-offset view))
+        (start (floor offset (max 1 cw)))
+        (end (min (length columns) (ceiling (+ offset (width view)) (max 1 cw))))
         (clip (intersect-rectangles *clip* (list (x view) (+ (y view) rh) (width view) (model-viewport-height view)))))
-   ;; Keep a partially scrolled row out of the fixed column header.
    (when (and (plusp (third clip)) (plusp (fourth clip)))
      (with-ui-scissor ((first clip) (second clip) (third clip) (fourth clip))
        (map-visible-model-rows view
          (lambda (index key item px py width height)
            (declare (ignore item width height))
            (paint-model-row view key index py)
-           (loop for c below (length columns) do
-             (paint-model-cell view index key c (+ px (* c cw)) py cw clip)
+           (loop for c from start below end do
+             (paint-model-cell view index key c (+ px (* c cw) (- offset)) py cw clip)
              (begin-ui-scissor (first clip) (second clip) (third clip) (fourth clip)))))))
-   (begin-ui-scissor (first *clip*) (second *clip*) (third *clip*) (fourth *clip*))
-   (loop for column in columns for c from 0 do
-     (draw-string view (data-column-title column) (+ (x view) (* c cw) (style-value view :padding)) (row-text-y view (y view))))))
+   (let ((header (intersect-rectangles *clip* (list (x view) (y view) (width view) rh))))
+     (loop for c from start below end for column = (nth c columns)
+           for left = (+ (x view) (* c cw) (- offset))
+           for cell = (intersect-rectangles header (list left (y view) cw rh)) do
+       (with-ui-scissor ((first cell) (second cell) (third cell) (fourth cell))
+         (draw-string view (data-column-title column) (+ left (style-value view :padding)) (row-text-y view (y view))))))))
