@@ -346,8 +346,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
              (draw-string w (index-substring root a b) draw-x py)
              (when (and editable (<= a (cursor w) b)
                         (typep (root-of w) 'window) (eq w (focused-widget (root-of w))))
-               (multiple-value-bind (cx) (text-position-rectangle w (cursor w))
-                 (rl:draw-rectangle cx py (style-value w :caret-width) lh (style-value w :foreground)))))))))))
+               (paint-text-caret w)))))))))
 (defun surface-color (w)
  (let ((state (widget-state w)))
    (loop for node = w then (parent node) while node do
@@ -376,6 +375,36 @@ Return FUNCTION and, as a second value, a cancellable job handle."
    (when (plusp border)
      (rl:draw-rectangle-rounded-lines-ex (rl:rect (x w) (y w) (width w) (height w))
        (resolved-roundness w) 12 border (style-value w :border-color)))))
+(defun current-drawing-clip ()
+  "Return a copy of the current logical drawing clip, or NIL outside rendering."
+  (copy-list *clip*))
+(defmacro with-drawing-clip ((x y width height) &body body)
+  "Intersect a logical clip with its parent; restore native clipping even on errors."
+  `(let* ((requested (list ,x ,y ,width ,height))
+          (previous *clip*) (*clip* (if previous (intersect-rectangles previous requested) requested)))
+     (unwind-protect
+          (when (and (plusp (third *clip*)) (plusp (fourth *clip*)))
+            (with-ui-scissor ((first *clip*) (second *clip*) (third *clip*) (fourth *clip*)) ,@body))
+       (when previous (apply #'begin-ui-scissor previous)))))
+(defun paint-text-caret (view)
+  (multiple-value-bind (x y width height) (text-caret-rectangle view)
+    (multiple-value-bind (vx vy vw vh) (scroll-viewport view)
+      (with-drawing-clip (vx vy vw vh)
+        (when (and (plusp width) (plusp height))
+          (rl:draw-rectangle x y width height (style-value view :foreground)))))))
+(defmethod render :around ((dialog dialog))
+  (when (and (visible-p dialog) (not (disposed-p dialog)) (not (native-p dialog)))
+    (let ((root (root-of dialog)) (backdrop (style-value dialog :backdrop-color))
+          (shadow (style-value dialog :shadow-color)) (spread (style-value dialog :shadow-spread)))
+      (when (and backdrop (typep root 'window))
+        (rl:draw-rectangle (x root) (y root) (width root) (height root) backdrop))
+      (when shadow
+        (loop for radius from spread downto 1 do
+          (let ((width (+ (width dialog) (* 2 radius))) (height (+ (height dialog) (* 2 radius))))
+            (rl:draw-rectangle-rounded
+              (rl:rect (- (x dialog) radius) (+ (- (y dialog) radius) (style-value dialog :shadow-offset)) width height)
+              (/ (* 2 (+ 8 radius)) (max 1 (min width height))) 16 shadow))))))
+  (call-next-method))
 (defmethod render :around ((w widget))
  (when (and (visible-p w) (not (disposed-p w)))
    (let* ((bounds (list (x w) (y w) (width w) (height w)))
@@ -384,7 +413,8 @@ Return FUNCTION and, as a second value, a cancellable job handle."
      (when (and (plusp (third clip)) (plusp (fourth clip)))
        (with-ui-scissor ((first clip) (second clip) (third clip) (fourth clip))
          (call-next-method)
-         (when (and (not (typep w '(or vertical-notebook selection-list context-menu-item)))
+         (when (and (style-value w :focus-outline-p)
+                    (not (typep w '(or vertical-notebook selection-list context-menu-item)))
                     (typep (root-of w) 'window) (eq w (focused-widget (root-of w)))
                     (focus-visible-p (root-of w)))
            ;; Elevated faces need an inner ring so focus cannot cover their
@@ -935,3 +965,20 @@ WAIT waits for a primary launch and re-signals its errors on the caller after na
                            (style-value bar :border-color))
         (rl:draw-rectangle (+ (x bar) start) (+ (y bar) 2) thumb (max 0 (- (height bar) 4))
                            (style-value bar :border-color)))))
+
+(defmethod render ((handle resize-handle))
+  (let ((color (style-value handle (if (member (widget-state handle) '(:hover :pressed)) :accent :border-color))))
+    (if (eq (resize-axis handle) :horizontal)
+        (rl:draw-rectangle (+ (x handle) (/ (width handle) 2)) (y handle) 1 (height handle) color)
+        (rl:draw-rectangle (x handle) (+ (y handle) (/ (height handle) 2)) (width handle) 1 color))))
+(defmethod render :after ((book notebook))
+  (destructuring-bind (left top width height) (tab-strip-rectangle book)
+    (with-drawing-clip (left top width height)
+      (loop for page in (children book) for index from 0
+            for action = (page-action book page) for box = (tab-action-rectangle book index)
+            when (and action box) do
+              (if (notebook-action-draw-function action)
+                  (funcall (notebook-action-draw-function action) book page action box)
+                  (draw-string book (fit-caption book (notebook-action-label action) (third box))
+                               (first box) (+ top (/ (- height (style-value book :font-size)) 2))
+                               (style-value book (if (notebook-action-enabled-p action) :foreground :disabled-color))))))))

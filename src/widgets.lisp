@@ -21,7 +21,10 @@
   (hovered-row nil (or null (integer 0 *)) "Internal hovered tab index; independent of selection.")
   (vertical-tab-press nil list "Internal pointer press index, Y, and movement flag.")))
 (defwidget notebook (stack) "Tabbed stack with optional page reordering and grouped tab transfer."
- ((hovered-row nil (or null (integer 0 *)) "Hovered tab index, separate from selected page.")
+ ((action-press nil list "Internal pressed page/action pair.")
+  (action-tooltip-active nil boolean "Internal action tooltip state.")
+  (action-tooltip-original nil (or null string) "Internal previous notebook tooltip.")
+  (hovered-row nil (or null (integer 0 *)) "Hovered tab index, separate from selected page.")
   (closable-p nil boolean "Show tab close affordances; requests may be vetoed.")
   (tab-offset 0 (real 0 *) "Horizontal tab-strip scroll offset in pixels; clamped during layout.")
   (tab-reveal-p t boolean "Internal request to reveal the selected tab.")

@@ -1,7 +1,15 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:pointer-cursor #:window-pointer-cursor
+  (:export #:capture-pointer #:release-pointer #:pointer-captured-p #:resize-handle #:resize-axis
+   #:make-notebook-action #:notebook-action #:notebook-action-label #:notebook-action-enabled-p
+   #:page-action #:tab-action-rectangle #:tab-rectangle #:tab-strip-rectangle
+   #:tab-strip-geometry #:tab-start #:tab-width-at
+   #:with-drawing-clip #:current-drawing-clip #:intersect-rectangles
+   #:text-caret-rectangle #:text-selection-active-p #:suppress-cursor-reveal #:handle-text-pointer-event
+   #:row-at-position #:input-hit-test #:root-of #:anchor #:hovered-p #:scroll-viewport #:surface-closed
+   #:visible-line-fragment #:text-word-point-position
+   #:pointer-cursor #:window-pointer-cursor
    #:capture-keys #:release-keys #:keys-captured-p
    #:cell-grid #:grid-columns #:grid-rows #:grid-cell-metrics #:set-grid-cell-metrics
    #:grid-cell #:set-grid-cell #:grid-point-cell #:select-grid-cells #:clear-grid-selection

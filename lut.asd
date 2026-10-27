@@ -1,7 +1,7 @@
 (asdf:defsystem "lut"
   :description "Lisp User Toolkit: portable retained-mode CLOS GUI"
-  :version "0.1.0" :license "MIT" :serial t
-  :components ((:file "src/package") (:file "src/core") (:file "src/widgets") (:file "src/styles") (:file "src/text-index") (:file "src/text-history") (:file "src/input") (:file "src/text-buffers") (:file "src/text-geometry") (:file "src/notebook") (:file "src/drag-and-drop") (:file "src/text-selection") (:file "src/interactions") (:file "src/text-presentation") (:file "src/anchored-surfaces") (:file "src/commands") (:file "src/data-models") (:file "src/data-views") (:file "src/application-adapters") (:file "src/platform") (:file "src/advanced-interaction") (:file "src/measurement") (:file "src/wrapped-text") (:file "src/scrolling") (:file "src/cell-grid"))
+  :version "0.2.0" :license "MIT" :serial t
+  :components ((:file "src/package") (:file "src/core") (:file "src/widgets") (:file "src/styles") (:file "src/text-index") (:file "src/text-history") (:file "src/input") (:file "src/text-buffers") (:file "src/text-geometry") (:file "src/notebook") (:file "src/drag-and-drop") (:file "src/text-selection") (:file "src/interactions") (:file "src/text-presentation") (:file "src/anchored-surfaces") (:file "src/commands") (:file "src/data-models") (:file "src/data-views") (:file "src/application-adapters") (:file "src/platform") (:file "src/advanced-interaction") (:file "src/measurement") (:file "src/wrapped-text") (:file "src/scrolling") (:file "src/ui-extensions") (:file "src/cell-grid"))
   :in-order-to ((asdf:test-op (asdf:test-op "lut/tests"))))
 (asdf:defsystem "lut/raylib" :depends-on ("lut" "raylib" "bordeaux-threads" "cl-base64")
   :serial t :components ((:file "src/raylib") (:file "src/presentation-raylib") (:file "src/data-raylib") (:file "src/platform-macos") (:file "src/windows") (:file "src/application-raylib") (:file "src/cell-grid-raylib")))
@@ -10,7 +10,7 @@
 (asdf:defsystem "lut/docs" :depends-on ("lut/raylib" "docset")
   :serial t :components ((:file "tools/contracts") (:file "tools/docset")))
 (asdf:defsystem "lut/tests" :depends-on ("lut")
-  :serial t :components ((:file "tests/core") (:file "tests/review") (:file "tests/lifecycle") (:file "tests/demo-findings") (:file "tests/drag-and-drop") (:file "tests/notebook-overflow") (:file "tests/commands") (:file "tests/text-buffers") (:file "tests/text-index") (:file "tests/text-history") (:file "tests/text-selection") (:file "tests/text-presentation") (:file "tests/data-models") (:file "tests/platform") (:file "tests/advanced-interaction") (:file "tests/measurement") (:file "tests/wrapped-text") (:file "tests/scrolling") (:file "tests/application-adapters") (:file "tests/cell-grid"))
+  :serial t :components ((:file "tests/core") (:file "tests/review") (:file "tests/lifecycle") (:file "tests/demo-findings") (:file "tests/drag-and-drop") (:file "tests/notebook-overflow") (:file "tests/commands") (:file "tests/text-buffers") (:file "tests/text-index") (:file "tests/text-history") (:file "tests/text-selection") (:file "tests/text-presentation") (:file "tests/data-models") (:file "tests/platform") (:file "tests/advanced-interaction") (:file "tests/measurement") (:file "tests/wrapped-text") (:file "tests/scrolling") (:file "tests/application-adapters") (:file "tests/cell-grid") (:file "tests/ui-extensions"))
   :perform (asdf:test-op (op c) (declare (ignore op c))
              (uiop:symbol-call :lut-tests :run-tests)
              (uiop:symbol-call :lut-tests :review-tests)
@@ -33,7 +33,8 @@
              (uiop:symbol-call :lut-tests :wrapped-text-tests)
              (uiop:symbol-call :lut-tests :scrolling-tests)
              (uiop:symbol-call :lut-tests :application-adapter-tests)
-             (uiop:symbol-call :lut-tests :cell-grid-tests)))
+             (uiop:symbol-call :lut-tests :cell-grid-tests)
+             (uiop:symbol-call :lut-tests :ui-extension-tests)))
 
 (asdf:defsystem "lut/gtk-demo" :depends-on ("lut" "classowary" "xmls" "cl-pdf-parser")
  :serial t :components ((:file "examples/gtk-demo") (:file "examples/gtk/common") (:file "examples/gtk/controls") (:file "examples/gtk/text-and-widgets") (:file "examples/gtk/data") (:file "examples/gtk/games") (:file "examples/gtk/graphics") (:file "examples/gtk/paths") (:file "examples/gtk/layouts") (:file "examples/gtk/input-and-transfer") (:file "examples/gtk/typography") (:file "examples/gtk/media") (:file "examples/gtk/appearance") (:file "examples/gtk/expanded-controls") (:file "examples/gtk/coverage")))

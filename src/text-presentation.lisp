@@ -6,6 +6,7 @@
   (decoration-max-ends #() vector "Internal decoration prefix interval index.")
   (presentation-links #() vector "Internal disjoint application link intervals.")
   (presentation-images #() vector "Internal inline-image character records.")
+  (presentation-metric-revision 0 (integer 0 *) "Internal geometry generation, independent of paint-only changes.")
   (presentation-revision 0 (integer 0 *) "Internal presentation cache generation.")
   (pressed-document-link nil t "Internal link pointer capture.")))
 (defwidget document-view (styled-text-view) "Read-only selectable document; applications supply text, links, images and formatting."
@@ -60,30 +61,43 @@
      (loop for (a b) on copies while b do
        (when (> (record-end a) (record-start b)) (error "Presentation intervals must be disjoint within each collection."))))
    (coerce copies 'vector)))
-(defun invalidate-presentation-cache (view &key (reveal-cursor-p t))
+(defun invalidate-presentation-cache (view &key (reveal-cursor-p t) (metrics-changed-p t))
  (let ((maximum 0))
    (setf (slot-value view 'decoration-max-ends)
      (map 'vector (lambda (record) (setf maximum (max maximum (record-end record) (1+ (record-start record)))))
           (presentation-decorations view))))
  (incf (slot-value view 'presentation-revision))
- (setf (slot-value view 'geometry-cache) nil (slot-value view 'navigation-x) nil)
+ (when metrics-changed-p
+   (incf (slot-value view 'presentation-metric-revision))
+   (setf (slot-value view 'geometry-cache) nil (slot-value view 'horizontal-extent-cache) nil
+         (slot-value view 'navigation-x) nil))
  (when reveal-cursor-p (setf (slot-value view 'last-cursor) -1)))
-(defun invalidate-text-presentation (view &key (reveal-cursor-p t))
+(defun invalidate-text-presentation (view &key (reveal-cursor-p t) (metrics-changed-p t))
  "Invalidate measurements after external presentation/font changes and emit :PRESENTATION-CHANGE. Return revision."
  (check-type view styled-text-view) (ensure-live view)
- (invalidate-presentation-cache view :reveal-cursor-p reveal-cursor-p)
+ (invalidate-presentation-cache view :reveal-cursor-p reveal-cursor-p :metrics-changed-p metrics-changed-p)
  (emit view :presentation-change (presentation-revision view)) (presentation-revision view))
+(defun presentation-metric-signature (view)
+  (list (loop for run across (presentation-runs view)
+              for style = (loop for key in '(:font :font-size :bold :italic)
+                                for tail = (nth-value 2 (get-properties (getf run :style) (list key)))
+                                when tail append (list key (second tail)))
+              when style collect (list (record-start run) (record-end run) style))
+        (loop for image across (presentation-images view)
+              collect (list (getf image :position) (getf image :width) (getf image :height)))))
 (defun set-text-presentation (view &key (runs nil runs-p) (decorations nil decorations-p) (links nil links-p) (images nil images-p) (reveal-cursor-p t))
  "Transactionally replace supplied presentation collections; omitted collections remain. Records are copied. Return VIEW."
  (check-type view styled-text-view) (ensure-live view)
- (let ((updates (loop for (slot records supplied kind) in
+ (let ((before (presentation-metric-signature view))
+       (updates (loop for (slot records supplied kind) in
                       (list (list 'presentation-runs runs runs-p :runs)
                             (list 'presentation-decorations decorations decorations-p :decorations)
                             (list 'presentation-links links links-p :links)
                             (list 'presentation-images images images-p :images))
                      when supplied collect (cons slot (normalized-presentation view records kind)))))
    (dolist (update updates) (setf (slot-value view (car update)) (cdr update)))
-   (invalidate-text-presentation view :reveal-cursor-p reveal-cursor-p)) view)
+   (invalidate-text-presentation view :reveal-cursor-p reveal-cursor-p
+                                :metrics-changed-p (not (equal before (presentation-metric-signature view))))) view)
 (defun interval-at (records position)
  (let ((lo 0) (hi (length records)))
    (loop while (< lo hi) for mid = (floor (+ lo hi) 2) do
@@ -119,7 +133,7 @@
                          (next-interval-boundary (presentation-images view) p end)))))
      (funcall function p next (text-style-at view p) image) (setf p next))))
 (defmethod text-left-padding ((view styled-text-view)) (+ (call-next-method) (gutter-width view)))
-(defmethod text-metric-key ((view styled-text-view)) (append (call-next-method) (list (presentation-revision view))))
+(defmethod text-metric-key ((view styled-text-view)) (append (call-next-method) (list (slot-value view 'presentation-metric-revision))))
 (defmethod map-text-range-advances ((view styled-text-view) string start function)
  (map-presentation-fragments view start (+ start (length string))
    (lambda (a b style image)

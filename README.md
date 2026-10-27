@@ -258,3 +258,7 @@ and `lut-examples:application-adapters`.
 Phase 10 provides focused key capture, a fixed-cell text surface and cell selection.
 See [cell grids and key capture](docs/cell-grid.md) and `lut-examples:cell-grid-demo`
 for console-style presentation without an emulator or PTY.
+
+Application authors can use the [public UI extension APIs](docs/ui-extensions.md)
+for pointer capture, resize handles, notebook actions, list activation, clipping,
+and text/caret styling.
