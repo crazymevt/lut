@@ -87,3 +87,13 @@ scrolling, keyboard navigation, or an invalid target.
   (setf click-state next-state)
   (when (= count 2) (open-row row-key)))
 ```
+
+## Custom root layout
+
+Box stacking is a primary layout method. To replace stacking in a custom
+window or box, specialize the primary method, set the widget's x, y, width
+and height (clamping sizes to zero), place its children at their final bounds,
+and return the widget. Do not call the next primary method when replacing
+stacking. Keep a custom window's content-layout at its default :box; :fill
+requests an additional fill pass. Existing :around methods still provide measurement/font contexts;
+:after methods can continue extending the normal stacking behavior.
