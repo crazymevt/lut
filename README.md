@@ -232,3 +232,7 @@ argv launcher with availability/error reporting. `window-state` and
 preserves normal logical dimensions separately from allocated geometry,
 including worker windows. See [application adapters](docs/application-adapters.md)
 and `lut-examples:application-adapters`.
+
+Phase 10 provides focused key capture, a fixed-cell text surface and cell selection.
+See [cell grids and key capture](docs/cell-grid.md) and `lut-examples:cell-grid-demo`
+for console-style presentation without an emulator or PTY.

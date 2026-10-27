@@ -225,25 +225,33 @@ Manual window-manager actions and Linux/Windows execution remain unverified.
 
 ## Phase 10: Terminal-capable primitives (G5)
 
-- [ ] **Opt-in focused key capture.** Let a focused widget receive keys before
+- [x] **Opt-in focused key capture.** Let a focused widget receive keys before
   window `:key` handlers and command shortcuts, with an explicit release path
   and a way to keep selected commands active during capture. Preserve normal
   dispatch elsewhere and respect active overlays and modal input ownership.
   A focused widget's `handle-event` already runs before default Tab traversal
   and Escape dialog dismissal; the missing interception is before window
   handlers and shortcuts.
-- [ ] **Fixed-cell text surface.** Draw a grid of characters with foreground and
+- [x] **Fixed-cell text surface.** Draw a grid of characters with foreground and
   background colours, bold and underline using LUT's font rendering. Expose
   logical cell metrics, point-to-cell mapping and resize reporting in columns
   and rows. Start with full redraws and integrate layout, clipping, UI scaling,
   disposal and worker-window rendering.
-- [ ] **Cell selection and copying.** Provide cell-based selection, including
+- [x] **Cell selection and copying.** Provide cell-based selection, including
   rectangular selection, and copying through the existing clipboard API.
-- [ ] **Rendering cost measurement.** Measure a full screen of cells at 100%
+- [x] **Rendering cost measurement.** Measure a full screen of cells at 100%
   and 200% scale in primary and worker windows. Consider changed-cell rendering
   only if measurements justify it: LUT redraws whole frames, so caching needs
   a retained backing texture or equivalent, with resize, theme and scale
   invalidation.
+- [ ] **CCL rendering performance follow-up.** Profile and improve the per-cell
+  draw path or add a cached backing texture. An 82-by-25 grid averages 12–14 ms
+  on CCL, consuming most of a 16.7 ms frame budget at 60 fps; peaks near 37 ms
+  exceed it before the rest of the UI and worker transport. Remeasure primary
+  and worker windows at 100/200% scale, including larger and multiple grids.
+  If caching is chosen, cover cell/selection changes, font/theme/scale and
+  resize invalidation, and disposal. Functional delivery does not establish
+  acceptable CCL performance for terminal-sized grids.
 
 These are reusable toolkit primitives for terminal extensions and other
 console-style widgets, not a terminal emulator in core. An application or
@@ -257,6 +265,18 @@ focused behavior and lifecycle tests and API documentation.
 Prefer LUT-rendered integration so the surface participates in LUT clipping,
 scaling and frame-based worker windows. Native view hosting is an unplanned,
 platform-specific escape hatch, not a capability of `drawing-area`.
+
+Delivered APIs, ownership and limits are documented in [cell grids and key
+capture](cell-grid.md); try `lut-examples:cell-grid-demo` (no PTY). Portable
+behavior, lifecycle and API generation pass on SBCL and CCL. Native primary and
+worker rendering/key IPC, plus pixel checks for cell/ancestor clipping, pass on
+macOS at 100/200% scale on both implementations. Full redraws of an 82-by-25 grid
+average about 1–2 ms on SBCL in the measured primary/worker draw path after font
+warmup; CCL averages about 12–14 ms in the same draw paths. Atlas quad cropping
+avoids per-cell scissor changes. No backing texture cache is implemented yet;
+CCL frame-budget headroom remains unresolved in the follow-up above. These
+timings exclude GPU completion and worker transport.
+Physical keyboard/pointer UX and Linux/Windows execution remain unverified.
 
 The G1–G7 references come from the Agent Duet UI review. Text shaping, bidi, IME
 composition and accessibility remain separate unsupported capabilities recorded

@@ -1,7 +1,11 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:measure #:measured-box #:flow-box #:row-spacing #:column-spacing
+  (:export #:capture-keys #:release-keys #:keys-captured-p
+   #:cell-grid #:grid-columns #:grid-rows #:grid-cell-metrics #:set-grid-cell-metrics
+   #:grid-cell #:set-grid-cell #:grid-point-cell #:select-grid-cells #:clear-grid-selection
+   #:grid-selected-text #:copy-grid-selection
+   #:measure #:measured-box #:flow-box #:row-spacing #:column-spacing
    #:width-request #:height-request #:min-width #:min-height #:max-width #:max-height #:hexpand #:vexpand
    #:closable-p #:tab-badge #:request-page-close #:page-close-request
    #:close-request-page #:close-request-reason #:close-request-veto-p

@@ -1,7 +1,7 @@
 (in-package #:lut-docs)
 (defun signatures ()
  (let ((result (make-hash-table)) (*package* (find-package :lut)) (*read-eval* nil))
-   (dolist (file '("src/core.lisp" "src/measurement.lisp" "src/widgets.lisp" "src/styles.lisp" "src/input.lisp"
+   (dolist (file '("src/core.lisp" "src/cell-grid.lisp" "src/measurement.lisp" "src/widgets.lisp" "src/styles.lisp" "src/input.lisp"
                   "src/text-buffers.lisp" "src/text-history.lisp" "src/text-index.lisp" "src/text-geometry.lisp" "src/text-selection.lisp" "src/text-presentation.lisp" "src/anchored-surfaces.lisp" "src/commands.lisp" "src/data-models.lisp" "src/data-views.lisp" "src/platform.lisp" "src/notebook.lisp" "src/drag-and-drop.lisp" "src/interactions.lisp" "src/raylib.lisp" "src/presentation-raylib.lisp" "src/data-raylib.lisp" "src/windows.lisp"))
      (with-open-file (in (asdf:system-relative-pathname "lut" file))
        (loop for form = (read in nil :eof) until (eq form :eof)
@@ -98,6 +98,9 @@
                     ("history-overflow" "Standalone entry or shared TEXT-BUFFER: plist :OPERATION (:EDIT/:UNDO/:REDO), :STACK (:UNDO/:REDO), :CHARACTERS and :LIMIT after a committed range record exceeds a positive character budget and positive record limit. The destination stack is empty. Zero limits and ordinary eviction of older records are silent. Shared buffers notify after :EDIT/:CHANGE under the same reentrancy guard; standalone entries notify before the operation's :CHANGE, when applicable. Errors propagate without rolling back committed content/history.")
                     ("model-change" "DATA-MODEL: new MODEL-REVISION after committed data/query/tree updates. Source changes refresh projections and reconcile key selections. Reentrant writes are rejected; observer errors propagate after commit and may prevent later notifications.")
                     ("model-disposing" "DATA-MODEL: NIL while beginning disposal. Views detach; source disposal disposes dependent projections/selections. All active disposal handlers are attempted before cleanup; the first observer error is then propagated. Recursive disposal is idempotent.")
+                    ("grid-resize" "CELL-GRID: (columns rows) after storage resize; overlap survives and selection clears. Callbacks may fill cells but should not recursively resize.")
+                    ("raw-key / raw-text" "Focused captured widget: normalized EVENT before window key handlers and commands; modal, popup and drag handling retain precedence. Release and passthrough events do not emit raw events.")
+                    ("text-input" "Uncaptured CELL-GRID: normalized text EVENT, containing committed EVENT-TEXT.")
                     ("selection-change" "SELECTION-MODEL and MODEL-LIST-VIEW/TREE/TABLE: copied list of stable selected keys, including hidden keys. Key/focus/anchor changes notify; missing keys are pruned on model changes.")
                     ("cell-edit-start" "MODEL-TABLE-VIEW: plist :KEY :COLUMN :OLD-VALUE after entry creation/focus. Application column factories and setters supply presentation/edit policy.")
                     ("cell-edit-commit" "MODEL-TABLE-VIEW: plist :KEY :COLUMN :OLD-VALUE :TEXT after setter success, editor disposal and underlying source notification. Setter errors leave editor open. Observer errors do not roll back data.")

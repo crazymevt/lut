@@ -221,3 +221,42 @@ followed by a different layout allocation. Native tests construct primary and
 worker windows at smaller sizes, update both dimensions with legacy setters
 before opening, and verify actual OS/IPC opening dimensions at 100/125/200%
 on SBCL and CCL, then retain maximize/restore isolation checks.
+
+
+## Phase 10 cell grids and key capture
+
+Run the following commands from the checkout, each prefixed with
+`/Users/jessie/.local/bin/quiet-run.sh --`:
+
+| Command | Result |
+| --- | --- |
+| `sbcl --script tests/portable.lisp` | Passed core suites including cell-grid/key-capture behavior, 108 demo checks, ordinary/demo GC and API doc generation. |
+| `ccl --no-init --batch --load tests/portable.lisp` | Same portable suites passed. |
+| `sbcl --script tests/cell-grid-native.lisp` | Passed primary/worker drawing and normalized key IPC, simulated example, glyph/ancestor clipping pixel checks at 100/200% scale. |
+| `ccl --no-init --batch --load tests/cell-grid-native.lisp` | Same native checks passed. |
+| `sbcl --script tests/windows.lisp` | Existing native window/dialog IPC, modal input and shutdown checks passed. |
+| `sbcl --script tests/commands-native.lisp` | Existing worker command availability, shortcut/context forwarding and teardown passed. |
+| `sbcl --script tests/backend.lisp` | Existing REPL queue, live class migration and rendering redefinition passed. |
+
+Full-redraw measurements after two warmup frames, using an 82-by-25 grid with
+mixed colours, synthetic bold/underline and Unicode glyphs:
+
+| Implementation | Scale | Primary mean | Worker mean |
+| --- | --- | --- | --- |
+| SBCL | 100% | 1.275 ms | 1.210 ms |
+| SBCL | 200% | 1.395 ms | 1.535 ms |
+| CCL | 100% | 12.528 ms | 11.799 ms |
+| CCL | 200% | 13.781 ms | 13.148 ms |
+
+The largest primary sample was 36.560 ms on CCL. These bounded macOS timings
+measure the grid render call, excluding GPU completion, worker encoding/readback
+and transport; they are not end-to-end throughput guarantees. Per-cell GPU
+scissor changes were replaced with atlas-quad cropping and separate background
+and glyph passes. No retained backing texture/damage cache was added. CCL's
+12–14 ms averages use most of a 16.7 ms frame budget at 60 fps, and its peaks
+exceed that budget before GPU completion, transport and other UI work. These
+results justify an open performance follow-up for a CCL draw-path improvement
+or a backing texture cache, with larger/multiple-grid measurements. They do not
+establish acceptable interactive CCL performance for terminal-sized grids.
+
+Physical keyboard/pointer UX and Linux/Windows execution remain unverified.

@@ -49,7 +49,7 @@
              (setf (text entry) (concatenate 'string (subseq (text entry) 0 a) string (subseq (text entry) b))))
            (emit entry :change (text entry)))))))
 (defun focusable-p (w)
- (or (typep w 'notebook) (typep w 'expander) (typep w 'button) (typep w 'entry) (typep w 'list-view)
+ (or (typep w 'cell-grid) (typep w 'notebook) (typep w 'expander) (typep w 'button) (typep w 'entry) (typep w 'list-view)
      (and (typep w 'slider) (not (typep w 'progress-bar)))))
 (defun focus (window widget)
  "Set keyboard focus to an enabled visible interactive descendant or NIL."

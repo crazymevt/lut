@@ -1,1 +1,1 @@
-(:format 1 :id "lut" :title "LUT — Lisp User Toolkit" :packages ("LUT") :entry-count 408 :toc nil)
+(:format 1 :id "lut" :title "LUT — Lisp User Toolkit" :packages ("LUT") :entry-count 426 :toc nil)
