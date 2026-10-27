@@ -8,7 +8,8 @@
                                 (if (eq key :key) (keywordp value) (typep value 'boolean))))))
    (error "A command shortcut must be NIL, a normalized key, or a :KEY/modifier plist.")) shortcut)
 (defwidget command (widget) "Nonvisual reusable action with a label, shortcut and context-sensitive availability."
- ((command-label "" string "Caption shared by bound buttons and menu buttons.")
+ ((command-submenu nil (or null function symbol) "Optional provider (command context) returning live submenu commands or separators.")
+  (command-label "" string "Caption shared by bound buttons and menu buttons.")
   (command-action nil (or null function symbol) "Function designator taking (command context).")
   (command-predicate nil (or null function symbol) "Optional pure function (command context); true enables execution.")
   (command-shortcut nil (or null symbol list) "Normalized key keyword, or exact (:KEY key :CONTROL bool :ALT bool :SUPER bool :SHIFT bool) spec.")))
@@ -22,10 +23,10 @@
   (connections :initform nil)
   (active-p :initform t :reader command-binding-active-p))
  (:documentation "Nonvisual binding handle. UNBIND-COMMAND or DISPOSE releases endpoint/context references."))
-(defun make-command (id label action &key (enabled-p t) enabled-when shortcut)
+(defun make-command (id label action &key (enabled-p t) enabled-when shortcut submenu)
  "Construct a nonvisual COMMAND. ACTION and optional ENABLED-WHEN take (command context)."
  (make-widget 'command :id id :command-label label :command-action action
-              :enabled-p enabled-p :command-predicate enabled-when :command-shortcut shortcut))
+              :enabled-p enabled-p :command-predicate enabled-when :command-shortcut shortcut :command-submenu submenu))
 (defun command-available-p (command &optional context)
  "Return whether COMMAND is live, enabled, has an action, and accepts CONTEXT."
  (and (not (disposed-p command)) (enabled-p command) (command-action command)

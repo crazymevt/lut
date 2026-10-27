@@ -41,6 +41,7 @@
          (assert (zerop *reveal-horizontal-queries*)))
      (lut:dispose view))))
 (defun scrolling-tests ()
+ (scroll-container-tests)
  (dropdown-scrollbar-regression-tests)
  (plain-list-scrollbar-tests)
  (bounded-horizontal-reveal-tests)
@@ -245,3 +246,29 @@
              (assert (zerop (lut:value dropdown)))
              (assert (lut:expanded-p dropdown)))))
        (lut:dispose root)))))
+
+
+(defun scroll-container-tests ()
+  (let* ((root (lut:make-widget 'lut:window :width 80 :height 60 :content-layout :fill))
+         (container (lut:add-child root (lut:make-widget 'lut:scroll-container)))
+         (view (lut:add-child container (lut:make-widget 'unit-scroll-text
+                  :text (format nil "~{~a~^~%~}" (make-list 100 :initial-element (make-string 100 :initial-element #\x)))
+                  :style '(:padding 0 :line-height 2 :font-size 1)))))
+    (unwind-protect
+         (progn
+           (lut:layout root 0 0 80 60)
+           (let ((vertical (second (lut:children container))) (horizontal (third (lut:children container))))
+             (assert (lut:visible-p vertical)) (assert (lut:visible-p horizontal))
+             (dolist (bar (list vertical horizontal))
+               (let ((x (+ (lut:x bar) 2)) (y (+ (lut:y bar) 2)))
+                 (lut:dispatch root (lut:make-event :kind :down :x x :y y))
+                 (lut:dispatch root (lut:make-event :kind :move :x 200 :y 200))
+                 (lut:dispatch root (lut:make-event :kind :up :x 200 :y 200))))
+             (assert (plusp (lut:vertical-offset view))) (assert (plusp (lut:text-offset view)))
+             (lut:layout root 0 0 300 400)
+             (assert (zerop (lut:vertical-offset view))) (assert (zerop (lut:text-offset view)))
+             (assert (not (lut:visible-p vertical))) (assert (not (lut:visible-p horizontal)))
+             (setf (lut:text view) "short")
+             (lut:layout root 0 0 80 60)
+             (assert (not (lut:visible-p vertical))) (assert (not (lut:visible-p horizontal)))))
+      (lut:dispose root))))

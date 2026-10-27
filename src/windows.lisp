@@ -260,7 +260,7 @@ Parent GUI frames service IPC. POSITION is an optional (screen-x screen-y) list.
                     :name "LUT worker snapshot reader")))
      (declare (ignore reader))
      (setf (native-operation-generation w) (or (sixth opening) 0))
-     (rl:with-window ((round (* (width w) (ui-scale w))) (round (* (height w) (ui-scale w))) (text w) :flags flags :exit-key :null)
+     (rl:with-window ((round (* (width w) (ui-scale w))) (round (* (height w) (ui-scale w))) (text w) :flags (adjoin :window-highdpi flags) :exit-key :null)
        (when position (rl:set-window-position (round (first position)) (round (second position))))
        (unwind-protect
          (loop

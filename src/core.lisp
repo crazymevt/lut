@@ -63,7 +63,8 @@
  ((orientation :vertical (member :vertical :horizontal) "Stack direction.")
   (spacing 8 (real 0 *) "Space between children.")))
 (defwidget window (box) "Root of a GUI tree. One native raylib window per process."
- ((native-operation-generation 0 (integer 0 *) "Internal IPC request/report generation.")
+ ((close-request-handler nil (or null function) "Optional (window) predicate for OS close requests. NIL return vetoes closing; guarded native launches require synchronous START or FRAMES.")
+  (native-operation-generation 0 (integer 0 *) "Internal IPC request/report generation.")
   (native-window-mode :unavailable (member :unavailable :normal :maximized) "Internal observed native mode.")
   (native-normal-width nil (or null (real (0) *)) "Internal saved normal logical width.")
   (native-normal-height nil (or null (real (0) *)) "Internal saved normal logical height.")
@@ -141,7 +142,9 @@
   (position-mode :center (member :center :absolute) "Centered until dragged, then absolute coordinates.")
   (draggable-p t boolean "Drag unoccupied dialog surface to move it.")
   (detach-on-drag-p t boolean "Detach as a native window when dragged beyond the root bounds.")))
-(defwidget context-menu (dialog) "Reusable modal menu of ordinary buttons." ())
+(defwidget context-menu (dialog) "Reusable modal menu of ordinary buttons."
+ ((popup-owner nil (or null widget) "Control or parent menu item owning this menu.")
+  (hover-pending nil list "Internal delayed submenu transition: item and start time.")))
 (defun make-widget (class &rest initargs) "Construct CLASS with CLOS initargs." (apply #'make-instance class initargs))
 (defmacro with-ui ((class &rest initargs) &body children)
  "Build a tree: (with-ui (box :spacing 4) (make-widget 'label :text \"Hi\"))."
@@ -386,7 +389,7 @@ Return CALLBACK and, as a second value, a CONNECTION handle for DISCONNECT."
      (dolist (child (copy-list (children w))) (destroy child))
      (when (typep w 'window)
        (dolist (overlay (copy-list (slot-value w 'overlays))) (destroy overlay))
-       (setf (slot-value w 'overlays) nil (slot-value w 'focused-widget) nil
+       (setf (slot-value w 'close-request-handler) nil (slot-value w 'overlays) nil (slot-value w 'focused-widget) nil
              (slot-value w 'pressed-widget) nil (slot-value w 'interaction-state) nil
              (slot-value w 'text-selection-state) nil (slot-value w 'text-click-state) nil
              (slot-value w 'style-source) nil (slot-value w 'style-rules) nil (slot-value w 'theme) nil)))
@@ -398,8 +401,9 @@ Return CALLBACK and, as a second value, a CONNECTION handle for DISCONNECT."
      (setf (slot-value w 'cursor) 0 (slot-value w 'anchor) 0
            (slot-value w 'text-offset) 0 (slot-value w 'vertical-offset) 0 (slot-value w 'navigation-x) nil
            (slot-value w 'undo-history) nil (slot-value w 'redo-history) nil))
-   (when (typep w 'popover) (setf (slot-value w 'popup-owner) nil))
-   (when (or (typep w 'combo-box) (typep w 'notebook) (typep w 'list-view)) (setf (slot-value w 'items) nil))
+   (when (typep w 'context-menu) (setf (slot-value w 'hover-pending) nil))
+   (when (typep w '(or popover context-menu)) (setf (slot-value w 'popup-owner) nil))
+   (when (or (typep w 'combo-box) (typep w 'notebook) (typep w 'vertical-notebook) (typep w 'list-view)) (setf (slot-value w 'items) nil))
    (when (typep w 'image) (setf (slot-value w 'source) nil))
    (when (typep w 'drawing-area) (setf (slot-value w 'draw-function) nil))
    (when (typep w 'table-view) (setf (slot-value w 'rows) nil (slot-value w 'columns) nil))

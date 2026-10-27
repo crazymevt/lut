@@ -13,6 +13,7 @@
 (defun selection-pointer (root kind x y &key timestamp click-count shift)
  (lut:dispatch root (lut:make-event :kind kind :x x :y y :timestamp timestamp :click-count click-count :shift-p shift)))
 (defun text-selection-tests ()
+ (single-line-centering-tests)
  (let ((buffer (lut:make-text-buffer :text "αβ_2  !!x")))
    (assert (equal '(0 4) (multiple-value-list (lut:text-word-range buffer 2))))
    (assert (equal '(4 6) (multiple-value-list (lut:text-word-range buffer 4))))
@@ -237,3 +238,32 @@
    (lut:focus root nil) (assert (null (slot-value root 'lut::text-selection-state)))
    (lut:dispose root))
  (format t "Word/line navigation, pixel goals, repeated-click unit selection, timed autoscroll and capture cleanup passed.~%"))
+
+(defun single-line-centering-tests ()
+ (dolist (class '(lut:entry lut:combo-box))
+   (dolist (height '(20 28 40 64))
+     (let ((view (lut:make-widget class :text "Hello" :y 10 :height height
+                                 :style '(:font-size 16 :line-height 26 :padding 8))))
+       (unwind-protect
+         (progn
+           (multiple-value-bind (x y width caret-height) (lut:text-position-rectangle view 2)
+             (declare (ignore width))
+             (assert (= 16 caret-height))
+             (assert (= (+ 10 (/ (- height 16) 2)) y))
+             (assert (= 2 (lut:text-point-position view x (+ y 8))))
+             (let ((seen 0))
+               (lut:map-visible-text-lines view
+                 (lambda (line start end px py) (declare (ignore px))
+                   (assert (zerop line)) (assert (zerop start)) (assert (= 5 end))
+                   (assert (= y py)) (incf seen)))
+               (assert (= 1 seen))))
+           (lut:reveal-text-cursor view)
+           (assert (zerop (lut:vertical-offset view))))
+         (lut:dispose view)))))
+ (let ((view (lut:make-widget 'lut:text-view :text "Hello" :y 10 :height 64
+                              :style '(:font-size 16 :line-height 26 :padding 8))))
+   (unwind-protect
+     (multiple-value-bind (x y width height) (lut:text-position-rectangle view 0)
+       (declare (ignore x width)) (assert (= 18 y)) (assert (= 26 height)))
+     (lut:dispose view)))
+ (format t "Single-line entry/combo centering and multiline top alignment passed.~%"))

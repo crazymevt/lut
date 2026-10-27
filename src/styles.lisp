@@ -1,6 +1,6 @@
 (in-package #:lut)
 (defparameter *style-defaults*
- '(:tab-min-width 96 :tab-max-width 220 :tab-scroll-step 96 :drag-threshold 6 :scrollbar-width 12 :wrap-text nil :font nil :font-size 18 :font-spacing 0 :line-height 26 :row-height 30
+ '(:tab-sizing :fill :bold nil :italic nil :tab-size 4 :tab-min-width 96 :tab-max-width 220 :tab-scroll-step 96 :drag-threshold 6 :scrollbar-width 12 :wrap-text nil :font nil :font-size 18 :font-spacing 0 :line-height 26 :row-height 30
    :button-depth 2 :button-shadow (0 0 0 35) :button-highlight (255 255 255 45)
    :surface (255 255 255 255) :on-accent (255 255 255 255)
    :padding 8 :caret-width 2 :border-width 1 :border-radius 0.3 :max-border-radius 8
@@ -55,12 +55,15 @@ STYLE-SOURCE propagates application styling across native windows. Later matchin
  (unless (evenp (length tokens)) (error "Styles must be property lists."))
  (loop for (key v) on tokens by #'cddr do
    (case key
+     (:tab-sizing (unless (member v '(:fill :content)) (error "TAB-SIZING must be :FILL or :CONTENT.")))
      ((:tab-min-width :tab-max-width :tab-scroll-step :font-size :line-height :row-height :title-height)
       (unless (typep v '(real (0) *)) (error "~a must be positive." key)))
      ((:drag-threshold :scrollbar-width :padding :font-spacing :border-width :caret-width :max-border-radius :button-depth)
       (unless (typep v '(real 0 *)) (error "~a must be non-negative." key)))
      (:border-radius (unless (typep v '(real 0 1)) (error "Border radius must be 0..1.")))
+     ((:bold :italic) (unless (typep v 'boolean) (error "Font emphasis must be boolean.")))
      (:wrap-text (unless (typep v 'boolean) (error "Wrap text must be boolean.")))
+     (:tab-size (unless (typep v '(integer 1 *)) (error "Tab size must be a positive integer.")))
      (:font (unless (typep v '(or null pathname string)) (error "Font must be a pathname, string or NIL."))))) tokens)
 (defmethod validate-slot :around ((w widget) slot value)
  (when (eq slot 'style-source)

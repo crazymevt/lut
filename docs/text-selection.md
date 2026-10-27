@@ -137,3 +137,8 @@ while keeping independent selection and viewport state. Tests cover portable
 behavior, proportional metrics, stationary-pointer edge cases and native
 worker click/timestamp/modifier transport on macOS. Linux/Windows interaction
 has not been verified.
+
+Single-line `entry` and `combo-box` controls vertically center their text by
+default, using the same font-height rectangle for caret and selection geometry.
+Horizontal padding is preserved. Multiline `text-view` controls retain their
+padded top alignment and line-height-based scrolling.

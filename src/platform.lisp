@@ -30,6 +30,22 @@
 (defmethod run-native-path-request ((request widget)) nil)
 (defun menu-separator-p (item) (or (null item) (eq item :separator)))
 
+(defclass command-menu-heading (button) ())
+(defmethod handle-event ((heading command-menu-heading) event)
+ (let* ((root (root-of heading)) (scope (input-root root)))
+   (when (and (eq (event-kind event) :move) (typep scope 'context-menu)
+              (in-input-scope-p heading scope) (enabled-p heading))
+     (unless (some (lambda (menu) (and (typep menu 'context-menu) (eq (popup-owner menu) heading)))
+                   (slot-value root 'overlays))
+       (loop while (typep (input-root root) 'context-menu) do (dismiss-dialog (input-root root)))
+       (emit heading :activate nil))
+     t)))
+(defmethod layout :before ((bar menu-bar) x y width height)
+ (declare (ignore x y width height))
+ (dolist (heading (children bar))
+   (when (typep heading 'command-menu-heading)
+     (setf (width heading) (+ (text-width heading (text heading)) 24)))))
+
 (defclass command-menu (widget)
  ((window :initarg :window :accessor menu-window)
   (groups :initarg :groups :accessor menu-groups)
@@ -41,16 +57,29 @@
   (shortcut-state :initform nil :accessor menu-shortcut-state)
   (native-state :initform nil :accessor menu-native-state))
  (:documentation "Owned per-window command menu handle. Groups contain :LABEL and :COMMANDS; :SEPARATOR/NIL entries separate actions. Dispose detaches native/drawn UI."))
+(defun menu-item-snapshot (menu command)
+ (if (menu-separator-p command) :separator
+   (list :command command :label (command-label command) :shortcut (copy-tree (command-shortcut command))
+     :commands (when (command-submenu command)
+                 (mapcar (lambda (child) (menu-item-snapshot menu child))
+                   (funcall (command-submenu command) command (menu-context menu))))
+     :enabled (let ((window (menu-window menu)))
+                (and (not (disposed-p window)) (enabled-p window) (visible-p window)
+                     (eq (input-root window) window) (null (modal-blocker window))
+                     (command-available-p command (menu-context menu)))))))
 (defun menu-command-snapshot (menu)
- (let ((window (menu-window menu)))
-   (loop for group in (menu-groups menu) collect
-     (list :label (getf group :label) :commands
-       (loop for command in (getf group :commands) collect
-         (if (menu-separator-p command) :separator
-           (list :command command :label (command-label command) :shortcut (copy-tree (command-shortcut command))
-             :enabled (and (not (disposed-p window)) (enabled-p window) (visible-p window)
-                           (eq (input-root window) window) (null (modal-blocker window))
-                           (command-available-p command (menu-context menu))))))))))
+ (loop for group in (menu-groups menu) collect
+   (list :label (getf group :label) :commands
+     (mapcar (lambda (command) (menu-item-snapshot menu command)) (getf group :commands)))))
+(defun menu-record-actions (menu records)
+ (loop for record in records collect
+   (if (eq record :separator) :separator
+     (let ((command (getf record :command)) (children (getf record :commands)))
+       (list (getf record :label)
+         (lambda () (invoke-menu-command menu command))
+         (getf record :enabled)
+         (when (command-submenu command)
+           (lambda () (menu-record-actions menu children))))))))
 (defun invoke-menu-command (menu command)
  (let ((window (menu-window menu)))
    (when (and window (not (disposed-p menu)) (not (disposed-p window))
@@ -70,10 +99,7 @@
  (let ((snapshot (nth (position group (menu-groups menu) :test #'eq) (menu-command-snapshot menu))))
    (open-context-menu (menu-window menu) button
      (make-event :kind :context :x (x button) :y (+ (y button) (height button)))
-     (loop for record in (getf snapshot :commands) collect
-       (if (eq record :separator) :separator
-           (let ((command (getf record :command)))
-             (list (getf record :label) (lambda () (invoke-menu-command menu command)) (getf record :enabled))))))))
+     (menu-record-actions menu (getf snapshot :commands)))))
 (defun refresh-command-menu (menu)
  "Refresh live labels, enabled states and shortcuts. Auto native installation waits until an eligible native context exists."
  (ensure-live menu)
@@ -83,6 +109,18 @@
      (setf (slot-value menu 'backend) :native (visible-p (command-menu-bar menu)) nil)))
  (sync-menu-shortcuts menu)
  (when (eq (command-menu-backend menu) :native) (update-native-command-menu menu (menu-command-snapshot menu))) menu)
+(defun set-command-menu-native (menu native)
+ "Switch MENU's backend preference at runtime. NIL forces drawn menus; :AUTO restores platform selection."
+ (ensure-live menu)
+ (unless (member native '(:auto t nil)) (error "NATIVE must be :AUTO, T or NIL."))
+ (when (and (eq native t) (not (native-platform-available-p (menu-window menu))))
+   (error 'unsupported-capability :capability :native-menu))
+ (setf (menu-preference menu) native)
+ (when (null native)
+   (release-native-command-menu menu)
+   (setf (slot-value menu 'backend) :drawn (visible-p (command-menu-bar menu)) t))
+ (refresh-command-menu menu))
+
 (defun install-command-menu (window groups &key (native :auto) (context window))
  "Install one menu per WINDOW. GROUPS are (:LABEL string :COMMANDS (command ... :SEPARATOR ...)) plists; NIL also separates. NATIVE :AUTO/T/NIL selects preference; workers retain drawn menus. Commands stay application-owned."
  (check-type window window) (ensure-live window)
@@ -97,12 +135,13 @@
  (let* ((menu (make-instance 'command-menu :window window :groups
                (mapcar (lambda (group) (list :label (copy-seq (getf group :label)) :commands (copy-list (getf group :commands)))) groups)
                :context context :native native))
-        (bar (make-widget 'menu-bar :height (row-height window))))
+        (bar (make-widget 'menu-bar :height (row-height window) :spacing 0 :style '(:padding 0))))
    (setf (slot-value menu 'bar) bar)
    (handler-case
      (progn
        (dolist (group (menu-groups menu))
-         (let ((button (add-child bar (make-widget 'button :text (getf group :label) :width 140 :height (row-height window)))))
+         (let ((button (add-child bar (make-widget 'command-menu-heading :text (getf group :label) :height (row-height window)
+                                    :style '(:button-depth 0 :border-width 0 :border-radius 0 :padding 12)))))
            (on button :activate (lambda (w p) (declare (ignore p)) (open-command-menu-group menu w group)) :owner menu)))
        (add-child window bar)
        (push menu (slot-value window 'platform-resources))

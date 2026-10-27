@@ -26,6 +26,14 @@ frame and before native menu tracking. `refresh-command-menu` permits explicit
 refresh after external state changes. Group definitions remain fixed for the
 handle's lifetime.
 
+For dynamic submenus, pass `:submenu` to `make-command` (or set
+`command-submenu`). The provider takes `(command context)` and returns a list
+of application-owned commands and optional separators. This supports recent-file
+and recent-folder lists in both AppKit and drawn menus. Native contents refresh
+with the menu snapshot; drawn contents are captured when the group opens.
+Keep returned commands alive until the menu is disposed. A drawn submenu opens
+beside its parent row, and choosing an action closes the menu chain.
+
 `:native :auto` (default) starts with the drawn bar and upgrades when a primary
 macOS GUI context becomes available. `:native nil` always draws. `:native t`
 requires an active eligible context and signals `unsupported-capability` if none
@@ -191,3 +199,18 @@ font atlas resolution, text hit testing and button input. Worker checks cover
 
 Linux/Windows native tests, shaping, bidi, preedit IME and assistive-technology
 integration have not been established by these checks.
+
+Use `(set-command-menu-native menu nil)` to switch an installed menu to its
+fully functional drawn backend at runtime. Pass `:auto` to restore platform
+selection (or `t` to require native availability). Switching releases the prior
+native handle and refreshes shortcuts without replacing application commands.
+
+Drawn command-menu headings are flat, content-sized controls owned by LUT.
+Submenu items open on hover as well as activation. Moving between parent items
+replaces the open submenu; hovering does not invoke commands. Submenus open to
+the left when there is insufficient room at the right edge.
+
+Open drawn menus switch headings on hover. Submenu closing/switching has a
+200 ms grace period so diagonal movement can reach the child; entering the child
+cancels that pending transition. Returning to an ancestor reuses its existing
+submenu and closes only deeper levels.

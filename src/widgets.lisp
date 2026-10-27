@@ -13,8 +13,16 @@
   (expanded-p nil boolean "Whether the option popup is open.")))
 (defwidget stack (widget) "Only child at selected page VALUE participates in layout and input."
  ((value 0 (integer 0 *) "Visible zero-based page index.")))
+(defwidget vertical-notebook (stack) "Left-hand vertical tab strip and one selected page. Tabs scroll vertically; optional local reordering is disabled by default."
+ ((items nil list "Tab labels corresponding to child pages.")
+  (tab-strip-width 144 (real 0 *) "Preferred width of the left tab strip in logical pixels.")
+  (tab-offset 0 (real 0 *) "Vertical strip scroll offset, clamped during layout.")
+  (reorderable-p nil boolean "Allow dragging tabs to reorder pages within this widget.")
+  (hovered-row nil (or null (integer 0 *)) "Internal hovered tab index; independent of selection.")
+  (vertical-tab-press nil list "Internal pointer press index, Y, and movement flag.")))
 (defwidget notebook (stack) "Tabbed stack with optional page reordering and grouped tab transfer."
- ((closable-p nil boolean "Show tab close affordances; requests may be vetoed.")
+ ((hovered-row nil (or null (integer 0 *)) "Hovered tab index, separate from selected page.")
+  (closable-p nil boolean "Show tab close affordances; requests may be vetoed.")
   (tab-offset 0 (real 0 *) "Horizontal tab-strip scroll offset in pixels; clamped during layout.")
   (tab-reveal-p t boolean "Internal request to reveal the selected tab.")
   (tab-layout-extent -1 real "Internal previous strip extent.")
@@ -48,7 +56,8 @@
   (rows nil list "Rows, each a list of printable cell values.")))
 (defwidget column-view (table-view) "Table with user-supplied column headings and rows." ())
 (defwidget image (widget) "Image loaded from a file, preserving aspect ratio."
- ((source nil (or null string pathname) "Image file pathname; NIL draws nothing.")))
+ ((max-image-scale nil (or null (real (0) *)) "Optional upper scale bound; 1 prevents enlarging small images.")
+  (source nil (or null string pathname) "Image file pathname; NIL draws nothing.")))
 (defwidget file-chooser (dialog) "Portable file chooser with directory navigation and explicit filename."
  ((directory (user-homedir-pathname) pathname "Current directory.")
   (value nil (or null pathname) "Chosen file pathname.")))

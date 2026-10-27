@@ -42,6 +42,8 @@
        (assert (equal out uri)) (values out err code)))))
      (assert (lut:launch-uri uri))))
  (let ((window (lut:make-widget 'lut:window :width 800 :height 600)))
+   (assert (null (lut:close-request-handler window)))
+   (setf (lut:close-request-handler window) (lambda (root) (assert (eq root window)) nil))
    (setf (lut:width window) 1000 (lut:height window) 700)
    (assert (equal '(1000 700) (multiple-value-list (lut:normal-window-size window))))
    ;; No normal size is saved yet: startup retains the legacy current-size rule.
@@ -55,6 +57,7 @@
    (assert (handler-case (progn (lut:set-normal-window-size window 0 20) nil) (error () t)))
    (assert (equal '(640 480) (multiple-value-list (lut:normal-window-size window))))
    (lut:dispose window)
+   (assert (null (lut:close-request-handler window)))
    (assert (handler-case (progn (lut:window-state window) nil) (error () t))))
  (let ((window (lut:make-widget 'recording-application-window)))
    (lut:set-normal-window-size window 500 400)

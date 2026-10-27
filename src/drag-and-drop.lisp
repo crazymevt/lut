@@ -150,9 +150,12 @@
       (< (event-y event) (+ (y book) (style-value book :title-height)))))
 (defun notebook-drop-index (book x)
  (multiple-value-bind (tab left) (tab-strip-geometry book)
-   (if (zerop (length (children book))) 0
-       (max 0 (min (length (children book))
-                   (floor (+ 0.5 (/ (+ (- x left) (tab-offset book)) tab))))))))
+   (declare (ignore tab))
+   (let ((position (+ (- x left) (tab-offset book))))
+     (or (loop with start = 0 for width in (tab-widths book) for i from 0
+               when (< position (+ start (/ width 2))) return i
+               do (incf start width))
+         (length (children book))))))
 (defmethod drag-data ((book notebook) event)
  (let ((index (tab-at-position book (event-x event) (event-y event))))
    (when (and (reorderable-p book) index)

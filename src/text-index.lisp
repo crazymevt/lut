@@ -79,7 +79,9 @@
        ((<= position (node-size (text-node-left node))) (index-position-line (text-node-left node) position))
        (t (+ (node-lines (text-node-left node))
              (index-position-line (text-node-right node) (- position (node-size (text-node-left node))))))))
-(defun target-text-index (target)
+(defgeneric target-text-index (target)
+ (:documentation "Return the immutable LUT index of a text source or view; external storage views may specialize."))
+(defmethod target-text-index ((target t))
  (etypecase target
    (text-buffer (slot-value target 'text-root))
    (string (index-string target))

@@ -70,3 +70,48 @@ call the backend's drawing API only in the latter. `drawing-area` offers a
 `:draw-function` callback for simpler custom drawing. `defwidget` records class
 metadata for documentation; slot specifications are `(name default type doc)`.
 The core and normalized event model can be loaded without native libraries.
+
+## Vertical tabs
+
+`vertical-notebook` owns a left-hand tab strip and lays out its selected child
+to the right. It uses the same `items`, `value`, `active-children`, `select-page`
+and `:change` conventions as stacks/notebooks:
+
+```lisp
+(let ((book (lut:make-widget 'lut:vertical-notebook
+              :items '("Appearance" "Editor") :tab-strip-width 144
+              :reorderable-p nil :style '(:row-height 36 :padding 16))))
+  (lut:add-child book (lut:make-widget 'lut:box))
+  (lut:add-child book (lut:make-widget 'lut:box))
+  (lut:add-child window book))
+```
+
+Click a tab, or focus the widget and use Up/Down/Home/End. Tab moves focus into
+the selected page; hidden pages do not participate in input. `tab-strip-width`
+is clamped to the allocated width, and styled padding separates strip and page.
+Hover highlights only the tab under the pointer; empty strip space stays unchanged.
+The selected row remains highlighted during keyboard navigation without an outer
+focus ring. Long captions are ellipsized. Overflowing strips scroll with the wheel;
+selection reveals its tab. `tab-offset` is a vertical logical-pixel offset.
+`tab-at-position` accepts vertical notebooks too.
+
+Reordering defaults to disabled. With `:reorderable-p t`, dragging a tab onto
+another tab changes the page/title order, preserves the selected page identity,
+and emits `:change` with the selected index, then `:reorder` with
+`(from-index to-index)`. Static tab groups such as settings should explicitly
+use `:reorderable-p nil`. This widget supports local reordering; horizontal
+notebook close buttons and cross-notebook tab transfers remain separate APIs.
+
+Closable notebook tabs draw a geometric X, independent of the caption font's
+glyph coverage. The mark occupies the existing close-button hit region.
+
+### Resize mouse cursors
+
+The native backend resolves `window-pointer-cursor` after pointer input each frame,
+using logical coordinates (including UI zoom). Built-in `paned` splitters show
+`:resize-ew` or `:resize-ns` over their drag region and throughout a captured drag.
+Hidden, disabled, disposed, and modal-blocked targets do not supply cursors.
+Custom resizable panels or handles can specialize
+`(pointer-cursor widget x y &key captured-p)` to return a raylib cursor keyword
+inside their resize region, or `nil` elsewhere. During capture, return the gesture's
+cursor even outside that region. Unhandled targets restore `:default` automatically.

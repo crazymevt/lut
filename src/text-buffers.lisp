@@ -25,15 +25,21 @@ HISTORY-RETAIN-NEWEST-P keeps the newest record over a positive character budget
  (etypecase target
    (text-buffer target)
    (entry (or (view-buffer target) target))))
-(defun editable-p (target)
+(defgeneric editable-p (target)
+ (:documentation "Whether an entry/view or buffer permits edits. Read-only views still allow navigation, selection and copy."))
+(defmethod editable-p ((target t))
  "Whether an entry/view or buffer permits edits. Read-only views still allow navigation, selection and copy."
  (and (not (disposed-p target)) (not (read-only-p target))
       (or (not (typep target 'entry)) (null (view-buffer target))
           (and (not (disposed-p (view-buffer target))) (not (read-only-p (view-buffer target))))) t))
-(defun can-undo-p (target)
+(defgeneric can-undo-p (target)
+ (:documentation "Whether TARGET can currently undo; shared views query shared history and their own read-only policy."))
+(defmethod can-undo-p ((target t))
  "Whether TARGET can currently undo; shared views query shared history and their own read-only policy."
  (and (editable-p target) (undo-history (editing-model target)) t))
-(defun can-redo-p (target)
+(defgeneric can-redo-p (target)
+ (:documentation "Whether TARGET can currently redo."))
+(defmethod can-redo-p ((target t))
  "Whether TARGET can currently redo."
  (and (editable-p target) (redo-history (editing-model target)) t))
 (defmethod text :around ((view entry))

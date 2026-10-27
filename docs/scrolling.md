@@ -89,3 +89,43 @@ cost recorded in [wrapped text](wrapped-text.md); batching remains useful.
 Run `lut-examples:scrolling` to append messages, pause, resume, and reveal an
 initial match inside nested scrolling viewports. Following starts when the
 application's Follow end button is pressed.
+
+## Embedded scrollbars
+
+Wrap a scrollable control in `scroll-container` to reserve bars on the axes that
+currently overflow. The first child is the control; the container owns its bars,
+including thumb dragging and track clicks. The control keeps its text and offsets.
+
+```lisp
+(let ((scroller (lut:make-widget 'lut:scroll-container)))
+  (lut:add-child scroller (lut:make-widget 'lut:text-view :text source))
+  (lut:add-child parent scroller))
+```
+
+The container queries `scroll-axes` and `scroll-geometry` after layout. When a bar
+changes an offset, it uses `scroll-to` and emits `:scroll` on the child with the
+axis as payload, so application adapters can synchronize their external model.
+Bars hide again when resizing or shorter content removes the overflow. Wrapped
+text uses only a vertical bar. Embedded legacy lists/scroll views suppress their
+own vertical bar to avoid duplicate controls.
+
+## Presentation and tab headers
+
+For paint-only updates, `set-text-presentation` and
+`invalidate-text-presentation` accept `:reveal-cursor-p nil`. This invalidates
+measurements without touching the completed/pending caret-reveal marker.
+Presentation callbacks may still finish a reveal; their updated marker is not
+restored from a saved snapshot. The default remains to request a cursor reveal.
+Changing gutter width likewise preserves the marker.
+
+Notebooks can use `:style '(:tab-sizing :content :tab-min-width 96)` for compact
+headers. Each tab keeps the minimum and grows to its full caption (including its
+badge and close affordance); overflowing headers keep their scroll/reveal/drag
+behavior. The default `:fill` sizing is unchanged. Labels and close glyphs are
+vertically centered in the header.
+
+Applications that cache derived text extents can use the public
+`text-metric-key` generic function. Compare its results with `equal`, together
+with the content identity/revision. The key includes effective font and
+measurement state; viewport dimensions are independent. Specializations must
+retain inherited key components and add their measurement-affecting state.

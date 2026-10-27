@@ -41,7 +41,7 @@
        (:runs
         (validate-style (getf record :style))
         (loop for key in (getf record :style) by #'cddr do
-          (unless (member key '(:font :font-size :foreground :background)) (error "Unsupported text run style ~a." key))))
+          (unless (member key '(:font :font-size :foreground :background :bold :italic)) (error "Unsupported text run style ~a." key))))
        (:decorations
         (unless (member (getf record :kind) '(:underline :background :gutter :annotation)) (error "Unknown decoration kind."))
         (when (getf record :text) (check-type (getf record :text) string)))
@@ -60,20 +60,20 @@
      (loop for (a b) on copies while b do
        (when (> (record-end a) (record-start b)) (error "Presentation intervals must be disjoint within each collection."))))
    (coerce copies 'vector)))
-(defun invalidate-presentation-cache (view)
+(defun invalidate-presentation-cache (view &key (reveal-cursor-p t))
  (let ((maximum 0))
    (setf (slot-value view 'decoration-max-ends)
      (map 'vector (lambda (record) (setf maximum (max maximum (record-end record) (1+ (record-start record)))))
           (presentation-decorations view))))
  (incf (slot-value view 'presentation-revision))
- (setf (slot-value view 'geometry-cache) nil (slot-value view 'last-cursor) -1
-       (slot-value view 'navigation-x) nil))
-(defun invalidate-text-presentation (view)
+ (setf (slot-value view 'geometry-cache) nil (slot-value view 'navigation-x) nil)
+ (when reveal-cursor-p (setf (slot-value view 'last-cursor) -1)))
+(defun invalidate-text-presentation (view &key (reveal-cursor-p t))
  "Invalidate measurements after external presentation/font changes and emit :PRESENTATION-CHANGE. Return revision."
  (check-type view styled-text-view) (ensure-live view)
- (invalidate-presentation-cache view)
+ (invalidate-presentation-cache view :reveal-cursor-p reveal-cursor-p)
  (emit view :presentation-change (presentation-revision view)) (presentation-revision view))
-(defun set-text-presentation (view &key (runs nil runs-p) (decorations nil decorations-p) (links nil links-p) (images nil images-p))
+(defun set-text-presentation (view &key (runs nil runs-p) (decorations nil decorations-p) (links nil links-p) (images nil images-p) (reveal-cursor-p t))
  "Transactionally replace supplied presentation collections; omitted collections remain. Records are copied. Return VIEW."
  (check-type view styled-text-view) (ensure-live view)
  (let ((updates (loop for (slot records supplied kind) in
@@ -83,7 +83,7 @@
                             (list 'presentation-images images images-p :images))
                      when supplied collect (cons slot (normalized-presentation view records kind)))))
    (dolist (update updates) (setf (slot-value view (car update)) (cdr update)))
-   (invalidate-text-presentation view)) view)
+   (invalidate-text-presentation view :reveal-cursor-p reveal-cursor-p)) view)
 (defun interval-at (records position)
  (let ((lo 0) (hi (length records)))
    (loop while (< lo hi) for mid = (floor (+ lo hi) 2) do
@@ -127,7 +127,7 @@
          (let ((*text-style-context* (cons view style)))
            (map-text-run-advances view (subseq string (- a start) (- b start)) function))))))
 (defmethod (setf gutter-width) :after (width (view styled-text-view))
- (declare (ignore width)) (invalidate-text-presentation view))
+ (declare (ignore width)) (invalidate-text-presentation view :reveal-cursor-p nil))
 (defmethod validate-slot :before ((view document-view) slot value)
  (declare (ignore view))
  (when (and (eq slot 'read-only-p) (not value)) (error "Document views are read-only.")))
