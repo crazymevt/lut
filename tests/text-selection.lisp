@@ -36,6 +36,14 @@
      (assert (null state)))))
 (defun text-selection-tests ()
  (pointer-click-count-tests)
+ (multiple-value-bind (root view) (selection-fixture "alpha beta")
+   (unwind-protect
+     (progn
+       (selection-pointer root :down 12 15 :timestamp 10.0)
+       (selection-pointer root :move 42 15 :timestamp 10.1)
+       (selection-pointer root :up 42 15 :timestamp 10.2)
+       (assert (plusp (length (lut:selected-text view)))))
+     (lut:dispose root)))
  (single-line-centering-tests)
  (let ((buffer (lut:make-text-buffer :text "αβ_2  !!x")))
    (assert (equal '(0 4) (multiple-value-list (lut:text-word-range buffer 2))))

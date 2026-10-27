@@ -205,7 +205,7 @@ Events without timestamps do not retain repetition state."
    (when event
      (setf (second state) (event-x event) (third state) (event-y event))
      (let ((click (slot-value window 'text-click-state)))
-       (when (and click (not (near-text-click-p click (second state) (third state))))
+       (when (and click (not (near-pointer-click-p click (second state) (third state))))
          (setf (slot-value window 'text-click-state) nil))))
    (multiple-value-bind (left top right bottom) (selection-content-bounds view)
      (let* ((mode (fourth state)) (px (max left (min right (second state)))) (py (max top (min bottom (third state))))
