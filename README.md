@@ -37,6 +37,14 @@ Run the searchable demo launcher from this checkout with `make demo` (SBCL and
 Quicklisp must be installed). Override `SBCL` to select its executable. For an
 automatically closing smoke run, use `LUT_DEMO_FRAMES=4 make demo`.
 
+For the interactive controls and foundation browser with matching **Demo** and
+**Code** tabs, run `make lut-demo`. Its source lives under
+[`examples/lut-demo`](examples/lut-demo/README.md) as the `lut/demo` ASDF system.
+It includes shared text/history, presentation, data models, platform integration,
+composition, responsive layouts, wrapping, scrolling, adapters and cell grids.
+Use `make test-lut-demo` for headless checks or `make smoke-lut-demo` to render
+all examples and Code tabs. `LUT_DEMO_FRAMES=4 make lut-demo` bounds a normal run.
+
 ```lisp
 (ql:quickload "lut/examples")
 (defparameter *app* (lut-examples:gallery))

@@ -52,3 +52,18 @@
  :components ((:file "tests/demo-gc"))
  :perform (asdf:test-op (op c) (declare (ignore op c))
             (uiop:symbol-call :lut-demo-gc-tests :run-tests)))
+
+(asdf:defsystem "lut/demo" :description "Interactive LUT examples with executable source"
+ :depends-on ("lut") :serial t
+ :components ((:file "examples/lut-demo/src/package")
+              (:file "examples/lut-demo/src/catalog")
+              (:file "examples/lut-demo/src/foundations")
+              (:file "examples/lut-demo/src/app"))
+ :in-order-to ((asdf:test-op (asdf:test-op "lut/demo-tests"))))
+
+(asdf:defsystem "lut/demo-tests" :depends-on ("lut/demo") :serial t
+ :components ((:file "examples/lut-demo/tests/main")
+              (:file "examples/lut-demo/tests/foundations"))
+ :perform (asdf:test-op (op c) (declare (ignore op c))
+            (uiop:symbol-call :lut-demo-tests :run-tests)
+            (uiop:symbol-call :lut-demo-tests :foundation-tests)))

@@ -1,5 +1,14 @@
 SBCL ?= sbcl
 
-.PHONY: demo
+.PHONY: demo lut-demo test-lut-demo smoke-lut-demo
 demo:
 	$(SBCL) --script tools/demo.lisp
+
+lut-demo:
+	$(SBCL) --script examples/lut-demo/scripts/run.lisp
+
+test-lut-demo:
+	$(SBCL) --script examples/lut-demo/scripts/test.lisp
+
+smoke-lut-demo:
+	$(SBCL) --script examples/lut-demo/scripts/smoke.lisp

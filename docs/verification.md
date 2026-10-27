@@ -260,3 +260,36 @@ or a backing texture cache, with larger/multiple-grid measurements. They do not
 establish acceptable interactive CCL performance for terminal-sized grids.
 
 Physical keyboard/pointer UX and Linux/Windows execution remain unverified.
+
+## In-repository interactive feature browser
+
+`lut/demo` now lives in `examples/lut-demo`, with no dependency on the former
+sibling checkout. The migration includes that checkout's local catalog and test
+edits. After rechecking the complete legacy file inventory, source/test changes
+and passing headless/native demo checks, the original checkout was deleted at
+the user's request.
+The catalog has 36 entries: 22 original examples and 14 foundation examples,
+with executable matching source in every Code tab.
+
+Commands below run from the LUT root with
+`/Users/jessie/.local/bin/quiet-run.sh --` as the prefix:
+
+| Command | Result |
+| --- | --- |
+| `make test-lut-demo` | Passed catalog/source evaluation, keyboard selection, resize/reveal, disposal and focused foundation behavior checks. |
+| `make -C examples/lut-demo test` | Same headless checks passed from the nested directory. |
+| `ccl --no-init --batch --load examples/lut-demo/scripts/test.lisp` | Same headless checks passed on CCL. |
+| `make smoke-lut-demo` | Passed native Demo/Code rendering of all 36 entries over 216 frames on SBCL. |
+| `ccl --no-init --batch --load examples/lut-demo/scripts/smoke.lisp` | Same 216-frame native smoke passed on CCL. |
+| `LUT_DEMO_FRAMES=4 make lut-demo` | Normal Make launch opened and closed successfully. |
+| `LUT_DEMO_FRAMES=4 make demo` | Existing GTK launcher still opened and closed successfully. |
+| `sbcl --script tests/portable.lisp` | Passed core, GTK, the newly integrated lut/demo suite, GC checks and API generation. |
+
+An absolute invocation of `examples/lut-demo/scripts/test.lisp` from `/tmp`
+also passed, checking bootstrap independence from the working directory.
+Native smoke saves original and foundation Demo/Code screenshots under `/tmp`;
+the foundation grid and source screenshots were visually inspected. Selection
+reveal covers the longer catalog without forcing wheel scrolling back to the
+selected row at unchanged viewport sizes. Smoke selection does not launch URIs
+or open path pickers; headless behavior checks cancel the portable picker.
+Physical pointer/keyboard UX and Linux/Windows execution remain unverified.

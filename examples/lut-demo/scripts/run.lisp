@@ -1,0 +1,8 @@
+(load (merge-pathnames "bootstrap.lisp" *load-truename*))
+(unless (find-package :ql)
+  (load (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname))))
+(uiop:symbol-call :ql :quickload '("lut/demo" "lut/raylib") :silent t)
+(let* ((limit (uiop:getenv "LUT_DEMO_FRAMES"))
+       (frames (and limit (parse-integer limit))))
+  (when (and frames (not (plusp frames))) (error "LUT_DEMO_FRAMES must be positive."))
+  (uiop:symbol-call :lut-demo :main :frames frames))
