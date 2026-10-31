@@ -152,3 +152,19 @@ Native light/dark tests cover rendering and input; GC tests retain disposed mode
 and view objects while checking payload release. These checks run on macOS;
 Linux/Windows remain unverified. Keyboard accessibility and platform APIs remain
 the later roadmap phase.
+
+## Font-backed row icons
+
+List/tree views accept `:row-icon-function`, mapping an item to NIL or an
+immutable `make-glyph-icon` descriptor. Supply `:text` (one explicit codepoint),
+`:font` (an existing packaged font), optional `:color`, `:size` (default 18), and
+`:glyphs` (the font repertoire shared by the application's icons). A complete
+repertoire reuses one atlas per font/size/context rather than one per symbol.
+The icon is painted and tinted separately from the normal row label. Existing
+rows without icons keep their geometry. Icons use visible-row rendering, DPI
+scaling, clipping, disabled colors and the normal font-cache lifecycle.
+
+Keep descriptors stable and treat all returned fields as immutable. Changing
+external icon data requires the source model's normal `notify-model-change`;
+changing `row-icon-function` is included in retained render keys. Font files are
+immutable assets; no operating-system font fallback or installation is needed.

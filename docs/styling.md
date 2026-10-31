@@ -26,6 +26,7 @@ normal. A root class selector matches subclasses as well.
 | `:background`, `:foreground`, `:surface`, `:accent`, `:on-accent` | Raylib palette keyword, RGBA integer, or RGB/RGBA byte list |
 | `:wrap-text` | Boolean; opt-in word wrapping for labels, within padded width; long individual words remain clipped |
 | `:font` | Existing TrueType/OpenType pathname/string, or NIL for bundled Noto Sans |
+| `:font-glyphs` | Optional nonempty explicit glyph repertoire for symbol-only controls; NIL uses normal text discovery |
 | `:font-size` | Positive real pixel size; atlas generation rounds to integer |
 | `:font-spacing` | Non-negative real additional glyph spacing |
 | `:line-height` | Positive real; multiline row/selection/caret extent |

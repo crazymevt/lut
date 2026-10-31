@@ -231,7 +231,10 @@ Return FUNCTION and, as a second value, a cancellable job handle."
        set)))
 (defun widget-glyph-set (w string)
  (let* ((root (root-of w))
-        (codes (or (cdr (assoc root *font-codepoints-cache*)) (font-codepoints w)))
+        (repertoire (style-value w :font-glyphs nil))
+        (codes (if repertoire
+                   (sort (remove-duplicates (map 'list #'char-code repertoire)) #'<)
+                   (or (cdr (assoc root *font-codepoints-cache*)) (font-codepoints w))))
         (base (intern-font-glyph-set codes))
         (missing (make-hash-table :test #'eql)))
    ;; Already-covered text examines only STRING, not the window-wide code list.
@@ -251,9 +254,9 @@ Return FUNCTION and, as a second value, a cancellable job handle."
              (let ((set (intern-font-glyph-set
                           (merge 'list (copy-list (font-glyph-set-codes base)) (copy-list extra) #'<))))
                (when extensions (setf (gethash key extensions) set)) set))))))
-(defun lookup-widget-font (w set)
- (let* ((path (or (style-value w :font) (asdf:system-relative-pathname "lut" "assets/NotoSans-Regular.ttf")))
-        (size (max 1 (round (* (style-value w :font-size) (widget-raster-scale w)))))
+(defun lookup-widget-font (w set &key (path (or (style-value w :font) (asdf:system-relative-pathname "lut" "assets/NotoSans-Regular.ttf")))
+                                     (font-size (style-value w :font-size)))
+ (let* ((size (max 1 (round (* font-size (widget-raster-scale w)))))
         ;; Settings select a new path/size key; avoid filesystem checks on hot lookups.
         ;; EQUAL compares the set structure by identity, not its large code list.
         (key (list (namestring (pathname path)) size set))

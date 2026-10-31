@@ -1,6 +1,7 @@
 (in-package #:lut-tests)
 
 (defun data-model-tests ()
+ (row-icon-tests)
  (virtual-model-tests)
  (model-hover-tests)
  (model-selection-tests)
@@ -218,3 +219,25 @@
    (lut:replace-model-items source (list b))
    (assert (null (lut:cell-editor view))) (assert (eq :model-change (getf cancelled :reason)))
    (lut:dispose root) (lut:dispose model) (lut:dispose source)))
+
+(defun row-icon-tests ()
+ (let* ((font (asdf:system-relative-pathname "lut" "assets/NotoSans-Regular.ttf"))
+        (text (copy-seq "A")) (color (list 12 34 56 255))
+        (icon (lut:make-glyph-icon :text text :font font :color color :glyphs "AB"))
+        (model (lut:make-vector-model '(one)))
+        (view (lut:make-widget 'lut:model-list-view :model model)))
+   (unwind-protect
+     (progn
+       (setf (char text 0) #\B (first color) 99)
+       (assert (string= "A" (lut:glyph-icon-text icon)))
+       (assert (equal '(12 34 56 255) (lut:glyph-icon-color icon)))
+       (assert (equal '(65 66) (lut::glyph-icon-codes icon)))
+       (let ((before (lut:widget-render-key view)))
+         (setf (lut:row-icon-function view) (constantly icon))
+         (assert (not (equal before (lut:widget-render-key view))))
+         (assert (eq icon (funcall (lut:row-icon-function view) 'one))))
+       (dolist (args (list (list :text "AB" :font font)
+                           (list :text "A" :font font :size 0)
+                           (list :text "A" :font "missing-symbol-font.ttf")))
+         (assert (handler-case (progn (apply #'lut:make-glyph-icon args) nil) (error () t)))))
+     (lut:dispose view) (lut:dispose model))))

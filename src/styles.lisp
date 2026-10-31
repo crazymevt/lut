@@ -69,6 +69,7 @@ STYLE-SOURCE propagates application styling across native windows. Later matchin
      ((:bold :italic) (unless (typep v 'boolean) (error "Font emphasis must be boolean.")))
      (:wrap-text (unless (typep v 'boolean) (error "Wrap text must be boolean.")))
      (:tab-size (unless (typep v '(integer 1 *)) (error "Tab size must be a positive integer.")))
+     (:font-glyphs (unless (or (null v) (and (stringp v) (plusp (length v)))) (error "Font glyph repertoire must be a nonempty string or NIL.")))
      (:font (unless (typep v '(or null pathname string)) (error "Font must be a pathname, string or NIL."))))) tokens)
 (defmethod validate-slot :around ((w widget) slot value)
  (when (eq slot 'style-source)

@@ -1,9 +1,24 @@
 (in-package #:lut)
 
+(defstruct (glyph-icon (:constructor %make-glyph-icon))
+ "Immutable font-backed row icon. Use MAKE-GLYPH-ICON; do not mutate returned data."
+ (text "" :read-only t) (font nil :read-only t) (color nil :read-only t)
+ (size 18 :read-only t) (codes nil :read-only t))
+(defun make-glyph-icon (&key text font color (size 18) glyphs)
+ "Describe a symbol from an explicit bundled FONT. GLYPHS predeclares a shared atlas repertoire."
+ (unless (and (stringp text) (= 1 (length text))) (error "An icon requires one explicit glyph."))
+ (unless (and (typep font '(or string pathname)) (probe-file font)) (error "Icon font must exist."))
+ (unless (and (realp size) (plusp size)) (error "Icon size must be positive."))
+ (when glyphs (check-type glyphs string))
+ (%make-glyph-icon :text (copy-seq text) :font (namestring (truename font))
+   :color (copy-tree color) :size size
+   :codes (sort (remove-duplicates (map 'list #'char-code (concatenate 'string text (or glyphs "")))) #'<)))
+
 (defclass model-list-view (list-view)
  ((model :initarg :model :reader view-model)
   (selection :initarg :selection :initform nil :reader view-selection)
   (own-selection-p :initform nil :accessor own-selection-p)
+  (icon-function :initarg :row-icon-function :initform nil :accessor row-icon-function)
   (label-function :initarg :row-label-function :initform #'princ-to-string :accessor row-label-function))
  (:documentation "Virtual, fixed-height data rows; MODEL and optional SELECTION are application-owned. No row widgets or ITEMS strings."))
 (defclass model-tree-view (model-list-view) () (:documentation "Keyed tree rows with indentation and expansion; requires a tree model."))
@@ -106,7 +121,7 @@
          (t (call-next-method)))))
 (defmethod dispose :after ((view model-list-view))
  (when (and (own-selection-p view) (view-selection view)) (dispose (view-selection view)))
- (setf (slot-value view 'model) nil (slot-value view 'selection) nil (row-label-function view) nil))
+ (setf (slot-value view 'model) nil (slot-value view 'selection) nil (row-label-function view) nil (row-icon-function view) nil))
 
 (defstruct (data-column (:constructor %make-data-column))
  "Shared immutable column/cell factory definition created by MAKE-DATA-COLUMN."

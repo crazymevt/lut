@@ -54,7 +54,7 @@
  (let ((model (view-model w)) (selection (view-selection w)))
    (list (call-next-method) (and model (not (disposed-p model)) (model-revision model))
          (and selection (copy-list (selection-keys selection)))
-         (and selection (selection-focus selection)) (row-label-function w))))
+         (and selection (selection-focus selection)) (row-label-function w) (row-icon-function w))))
 (defmethod widget-render-key ((w model-table-view))
  (list (call-next-method) (table-horizontal-offset w) (active-column w)
        (copy-list (table-columns w)) (table-edit-state w)))

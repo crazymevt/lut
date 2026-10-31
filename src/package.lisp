@@ -37,7 +37,8 @@
    #:selection-model #:make-selection-model #:selected-keys #:selection-focus #:selection-anchor
    #:select-model-index #:clear-model-selection #:selection-contains-p #:handle-selection-event
    #:model-list-view #:model-tree-view #:model-table-view #:view-model #:view-selection
-   #:row-label-function #:visible-model-range #:map-visible-model-rows #:reveal-model-index
+   #:glyph-icon #:make-glyph-icon #:glyph-icon-text #:glyph-icon-font #:glyph-icon-color #:glyph-icon-size
+   #:row-icon-function #:row-label-function #:visible-model-range #:map-visible-model-rows #:reveal-model-index
    #:data-column #:make-data-column #:data-column-title #:data-column-id #:table-columns
    #:cell-presentation #:active-column #:begin-cell-edit #:commit-cell-edit #:cancel-cell-edit #:cell-editor
    #:styled-text-view #:document-view #:gutter-width #:set-text-presentation
