@@ -12,3 +12,7 @@ test-lut-demo:
 
 smoke-lut-demo:
 	$(SBCL) --script examples/lut-demo/scripts/smoke.lisp
+
+.PHONY: test-render-cache-ui
+test-render-cache-ui:
+	$(SBCL) --non-interactive --load tests/render-cache-native.lisp

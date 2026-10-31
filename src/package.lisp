@@ -1,7 +1,9 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:capture-pointer #:release-pointer #:pointer-captured-p #:resize-handle #:resize-axis
+  (:export #:render-cache #:make-render-cache #:update-cached-region #:draw-cached-region
+   #:invalidate-render-cache #:render-cache-paint-count #:render-scissor-box #:call-with-render-transform
+   #:capture-pointer #:release-pointer #:pointer-captured-p #:resize-handle #:resize-axis
    #:make-notebook-action #:notebook-action #:notebook-action-label #:notebook-action-enabled-p
    #:page-action #:tab-action-rectangle #:tab-rectangle #:tab-strip-rectangle
    #:tab-strip-geometry #:tab-start #:tab-width-at

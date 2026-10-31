@@ -1,13 +1,4 @@
 (in-package #:lut)
-(defvar *render-ui-scale* 1)
-(defun begin-ui-scissor (x y width height)
- "Begin backend clipping for a logical UI rectangle under the active root render scale."
- (let ((left (floor (* x *render-ui-scale*))) (top (floor (* y *render-ui-scale*))))
-   (rl:begin-scissor-mode left top (max 0 (- (ceiling (* (+ x width) *render-ui-scale*)) left))
-                                  (max 0 (- (ceiling (* (+ y height) *render-ui-scale*)) top)))))
-(defmacro with-ui-scissor ((x y width height) &body body)
- "Render BODY under a logical-coordinate scissor; callers restore an outer clip when nesting."
- `(progn (begin-ui-scissor ,x ,y ,width ,height) (unwind-protect (progn ,@body) (rl:end-scissor-mode))))
 (defun widget-ui-scale (widget)
  (let ((root (root-of widget))) (if (typep root 'window) (ui-scale root) 1)))
 (defun backing-pixel-scale ()

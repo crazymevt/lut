@@ -262,3 +262,11 @@ for console-style presentation without an emulator or PTY.
 Application authors can use the [public UI extension APIs](docs/ui-extensions.md)
 for pointer capture, resize handles, notebook actions, list activation, clipping,
 and text/caret styling.
+
+## Render-texture regions
+
+`lut/render-cache` provides reusable native region caching without requiring a
+LUT widget tree. It is also loaded by `lut/raylib`. See
+[the cache API and lifecycle example](docs/render-cache.md).
+Run `make test-render-cache-ui` for native reuse, clipping, HiDPI, fractional zoom,
+transparency, explicit invalidation and error-retry checks.
