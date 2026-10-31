@@ -154,3 +154,13 @@
       (sleep 0.01)))
   (unless (= 1 (%shutdown)) (error "CEF refused shutdown with live browser references."))
   (setf *initialized* nil))
+
+(defun call-with-native-run (function)
+  "Run synchronously on the native thread and re-signal failures after cleanup.
+Do not rely on raylib:*last-error*, which native teardown can clear."
+  (let ((failure nil) (result nil))
+    (rl:run (lambda ()
+      (handler-case (setf result (funcall function))
+        (error (condition) (setf failure condition)))) :wait t)
+    (when failure (error failure))
+    result))

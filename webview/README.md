@@ -107,7 +107,8 @@ macOS x64, Linux ARM64, multi-monitor behavior and native Wayland remain unverif
   occur only on the initializing UI thread. Browser creation/close are async.
 - The webview explicitly opts into retained caching; its paint revision is
   the cache key. Custom-renderer defaults must not make it dynamic.
-- CEF callbacks copy BGRA dirty rectangles into a bounded RGBA surface. Lisp
+- CEF callbacks compare/copy BGRA dirty rectangles into a bounded RGBA surface.
+  Identical pixel callbacks do not advance the paint revision or trigger uploads. Lisp
   uploads the current surface once per changed revision. Clean frames retain
   their texture and do not invalidate LUT's layout or paint caches.
 - Each changed browser frame currently uploads the **whole** texture. Dirty

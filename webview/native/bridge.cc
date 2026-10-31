@@ -59,11 +59,15 @@ class View final : public CefClient, public CefRenderHandler,
     if (w <= 0 || h <= 0 || w > 8192 || h > 8192) return;
     bool resized = pixel_width != w || pixel_height != h;
     if (resized) { pixels.resize(size_t(w)*h*4); pixel_width=w; pixel_height=h; }
+    bool changed = resized;
     auto copy = [&](int x, int y, int rw, int rh) {
       auto src = static_cast<const unsigned char*>(data);
       for (int row=y; row<y+rh; ++row) for (int col=x; col<x+rw; ++col) {
         size_t i=(size_t(row)*w+col)*4;
-        pixels[i]=src[i+2]; pixels[i+1]=src[i+1]; pixels[i+2]=src[i]; pixels[i+3]=src[i+3];
+        if(pixels[i]!=src[i+2] || pixels[i+1]!=src[i+1] || pixels[i+2]!=src[i] || pixels[i+3]!=src[i+3]) {
+          pixels[i]=src[i+2]; pixels[i+1]=src[i+1]; pixels[i+2]=src[i]; pixels[i+3]=src[i+3];
+          changed=true;
+        }
       }
     };
     if (resized) copy(0,0,w,h);
@@ -71,7 +75,7 @@ class View final : public CefClient, public CefRenderHandler,
       int x=std::clamp(r.x,0,w), y=std::clamp(r.y,0,h);
       copy(x,y,std::max(0,std::min(w,r.x+r.width)-x),std::max(0,std::min(h,r.y+r.height)-y));
     }
-    ++revision;
+    if(changed) ++revision;
   }
   void OnAfterCreated(CefRefPtr<CefBrowser> b) override {
     browser=b; browser->GetHost()->SetFocus(focus); browser->GetHost()->WasHidden(hidden); if (closing) browser->GetHost()->CloseBrowser(true);

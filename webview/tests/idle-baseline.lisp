@@ -2,7 +2,7 @@
 (asdf:load-system "lut/cef")
 ;; Same LUT window/chrome and an empty webview surface, with no CEF initialized.
 ;; This separates the toolkit's idle process cost from the CEF-enabled sample.
-(rl:run (lambda ()
+(lut-webview::call-with-native-run (lambda ()
   (let* ((root (lut:make-widget 'lut-webview::demo-window :width 1100 :height 760
                    :theme lut:*dark-theme* :style '(:padding 0)))
          (toolbar (lut:add-child root (lut:make-widget 'lut:box :orientation :horizontal :height 36)))
@@ -22,5 +22,5 @@
           (* 100.0 (/ (- (get-internal-run-time) cpu) (- (get-internal-real-time) wall)))
           (- (getf (lut:window-cache-statistics w) :presents) presents))
         (lut:stop))))
-    (unwind-protect (lut:run root :frames 300) (lut:dispose root)))) :wait t)
+    (unwind-protect (lut:run root :frames 300) (lut:dispose root)))))
 (when rl:*last-error* (uiop:quit 1))

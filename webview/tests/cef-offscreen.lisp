@@ -2,7 +2,7 @@
 (asdf:load-system "lut/cef")
 ;; Hosted macOS VMs lack the OpenGL pixel format raylib needs. Exercise the real
 ;; CEF bridge and CFFI on the OS main thread without creating a GL window.
-(rl:run (lambda ()
+(lut-webview::call-with-native-run (lambda ()
   (lut-webview::initialize-cef)
   (let ((view nil))
     (labels ((await-cef (predicate)
@@ -51,5 +51,5 @@
           (await-cef (lambda () (= 1 (lut-webview::%closed view))))
           (lut-webview::%release view))
         (assert (= 1 (lut-webview::%shutdown)))
-        (setf lut-webview::*initialized* nil))))) :wait t)
+        (setf lut-webview::*initialized* nil))))))
 (when rl:*last-error* (uiop:quit 1))

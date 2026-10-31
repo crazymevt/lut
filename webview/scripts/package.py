@@ -14,7 +14,7 @@ def main():
     if bundle.exists(): shutil.rmtree(bundle)
     bundle.mkdir()
     app=bundle/'app'; app.mkdir()
-    for name_in in ('lut.asd','LICENSE','src','assets'):
+    for name_in in ('lut.asd','LICENSE','src','assets','docs'):
         source=repo/name_in
         if source.is_dir(): shutil.copytree(source,app/name_in)
         else: shutil.copy2(source,app/name_in)

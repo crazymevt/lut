@@ -6,7 +6,9 @@ and manual dispatch. Its push filter includes branches explicitly, so pushing a
 tag does not trigger it. Concurrent superseded runs on the same ref are cancelled.
 
 Every platform builds the CEF bridge and the raylib CFFI shim from pinned inputs
-and runs LUT's headless regression suite. Windows and Linux run the complete LUT
+and runs LUT's headless regression suite. An intentional native-runner failure
+must produce a nonzero process exit, preventing interactive error handling from
+masking failed smoke tests. Windows and Linux run the complete LUT
 webview window test with software graphics on hosted runners. GitHub's macOS
 ARM64 VM cannot provide raylib's OpenGL pixel format, so macOS instead runs the
 real CEF offscreen bridge test (load, pointer, Unicode, keys, DPI pixels,

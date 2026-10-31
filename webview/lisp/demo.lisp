@@ -28,7 +28,7 @@
                           (namestring (asdf:system-relative-pathname "lut/webview" "webview/tests/smoke.html")))
                           (demo-page-url))) screenshot)
   "Run once in a fresh process. F12 returns browser keyboard focus to LUT."
-  (rl:run
+  (call-with-native-run
    (lambda ()
     (initialize-cef)
     (let* ((*views* nil) (*closing* nil)
@@ -64,7 +64,7 @@
         (when (and screenshot (not smoke) loaded seen-paint)
           (if (eql stable-revision (revision view)) (incf stable-count)
               (setf stable-revision (revision view) stable-count 0))
-          (when (> stable-count 30) (capture-demo w screenshot) (setf screenshot nil)))
+          (when (> stable-count 90) (capture-demo w screenshot) (setf screenshot nil)))
         (when (and smoke loaded seen-paint)
           (flet ((send (kind &rest args)
                    (lut:dispatch w (apply #'lut:make-event :kind kind args)))
@@ -75,7 +75,7 @@
               (:idle
                 (if (eql stable-revision (revision view)) (incf stable-count)
                     (setf stable-revision (revision view) stable-count 0))
-                (when (> stable-count 30)
+                (when (> stable-count 90)
                   (setf reuse t idle-cpu (get-internal-run-time)
                         idle-wall (get-internal-real-time)
                         idle-presents (getf (lut:window-cache-statistics w) :presents) stage :measure)))
@@ -117,4 +117,4 @@
             (assert loaded) (assert seen-paint) (assert reuse) (assert (eq stage :done) () "Smoke stopped at ~s (title ~s)." stage (page-title view))
             (format t "PASS CEF load, pointer, Unicode text, key, scroll, resize/DPI, navigation/back, texture reuse and shutdown.~%Host idle CPU: ~,2f%; ~s~%" idle-percent smoke-result)))
         (when *initialized* (close-session))
-        (lut:dispose window)))) :wait t))
+        (lut:dispose window))))))
