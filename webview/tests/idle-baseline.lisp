@@ -1,0 +1,28 @@
+(require :asdf)
+(load (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname)))
+(asdf:load-asd (merge-pathnames "../../lut.asd" *load-truename*))
+(ql:quickload "lut/cef" :silent t)
+;; Same LUT window/chrome and an empty webview surface, with no CEF initialized.
+;; This separates the toolkit's idle process cost from the CEF-enabled sample.
+(rl:run (lambda ()
+  (let* ((root (lut:make-widget 'lut-webview::demo-window :width 1100 :height 760
+                   :theme lut:*dark-theme* :style '(:padding 0)))
+         (toolbar (lut:add-child root (lut:make-widget 'lut:box :orientation :horizontal :height 36)))
+         (view (lut:add-child root (lut:make-widget 'lut-webview:webview)))
+         (status (lut:add-child root (lut:make-widget 'lut:label :text "Idle baseline — CEF not initialized")))
+         (frame 0) (cpu nil) (wall nil) (presents nil))
+    (declare (ignore view status))
+    (dolist (label '("Back" "Forward" "Reload" "about:blank"))
+      (lut:add-child toolbar (lut:make-widget 'lut:button :text label :width 80 :height 34)))
+    (lut:on root :tick (lambda (w dt) (declare (ignore dt))
+      (incf frame)
+      (when (= frame 90)
+        (setf cpu (get-internal-run-time) wall (get-internal-real-time)
+              presents (getf (lut:window-cache-statistics w) :presents)))
+      (when (and wall (> (- (get-internal-real-time) wall) (* 3 internal-time-units-per-second)))
+        (format t "Toolkit-only idle CPU: ~,2f%; additional presents: ~d~%"
+          (* 100.0 (/ (- (get-internal-run-time) cpu) (- (get-internal-real-time) wall)))
+          (- (getf (lut:window-cache-statistics w) :presents) presents))
+        (lut:stop))))
+    (unwind-protect (lut:run root :frames 300) (lut:dispose root)))) :wait t)
+(when rl:*last-error* (uiop:quit 1))

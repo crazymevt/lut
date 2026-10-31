@@ -28,3 +28,10 @@ test-widget-cache-ui:
 
 benchmark-widget-cache:
 	$(SBCL) --script tests/widget-cache-performance.lisp
+
+.PHONY: webview test-webview
+webview:
+	$(SBCL) --script webview/scripts/run.lisp
+
+test-webview:
+	$(SBCL) --script webview/tests/headless.lisp

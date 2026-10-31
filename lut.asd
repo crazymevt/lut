@@ -77,3 +77,12 @@
  :perform (asdf:test-op (op c) (declare (ignore op c))
             (uiop:symbol-call :lut-demo-tests :run-tests)
             (uiop:symbol-call :lut-demo-tests :foundation-tests)))
+
+(asdf:defsystem "lut/webview"
+ :description "Optional backend-independent webview widget contract"
+ :depends-on ("lut") :serial t
+ :components ((:file "webview/lisp/widget")))
+(asdf:defsystem "lut/cef"
+ :description "Experimental CEF off-screen webview for LUT/raylib"
+ :depends-on ("lut/webview" "lut/raylib" "cffi") :serial t
+ :components ((:file "webview/lisp/cef") (:file "webview/lisp/demo")))

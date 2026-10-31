@@ -2,3 +2,9 @@
 *.lx64fsl
 *.dx64fsl
 .DS_Store
+
+/webview/.cache/
+/webview/build/
+/webview/runtime/
+cef_debug.log
+debug.log

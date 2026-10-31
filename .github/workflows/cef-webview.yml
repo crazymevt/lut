@@ -1,0 +1,25 @@
+name: CEF webview native build
+on:
+  workflow_dispatch:
+  push:
+    paths: ['webview/**', '.github/workflows/cef-webview.yml']
+  pull_request:
+    paths: ['webview/**', '.github/workflows/cef-webview.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, ubuntu-22.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - name: Build pinned CEF bridge and stage runtime
+        run: python webview/scripts/build.py --download

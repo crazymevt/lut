@@ -283,3 +283,10 @@ transparency, explicit invalidation and error-retry checks.
 `lut/raylib`, with a borrowed host font and no window-controller dependency.
 See [the host embedding API](docs/table-embedding.md). Run
 `make test-data-renderer-ui` for standalone native checks.
+
+## Experimental CEF webview
+
+The optional standalone Chromium widget lives under [`webview/`](webview/README.md).
+It has its own pinned SDK build, CFFI bridge, native helpers and smoke tests;
+normal LUT systems do not load or distribute CEF. See its README for platform
+validation status and development-only limitations.

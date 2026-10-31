@@ -1,0 +1,41 @@
+{
+  "version": "156.0.15+gcf671c0+chromium-156.0.8078.80",
+  "source": "https://cef-builds.spotifycdn.com/index.json",
+  "platforms": {
+    "macosarm64": {
+      "last_modified": "2026-10-31T05:44:11.781000Z",
+      "name": "cef_binary_156.0.15+gcf671c0+chromium-156.0.8078.80_macosarm64_minimal.tar.bz2",
+      "sha1": "bcdd1877edb300b0fb91d8f71c0b14aae256cd0f",
+      "size": 135024501,
+      "type": "minimal"
+    },
+    "macosx64": {
+      "last_modified": "2026-10-31T08:01:55.629000Z",
+      "name": "cef_binary_156.0.15+gcf671c0+chromium-156.0.8078.80_macosx64_minimal.tar.bz2",
+      "sha1": "13756e3029307720fe00898d54aef8a64c9b4043",
+      "size": 141647289,
+      "type": "minimal"
+    },
+    "windows64": {
+      "last_modified": "2026-10-31T06:20:13.288000Z",
+      "name": "cef_binary_156.0.15+gcf671c0+chromium-156.0.8078.80_windows64_minimal.tar.bz2",
+      "sha1": "b690e035689ee20ba9d2500ac8953815bc7ed46a",
+      "size": 174836914,
+      "type": "minimal"
+    },
+    "linux64": {
+      "last_modified": "2026-10-31T04:22:57.018000Z",
+      "name": "cef_binary_156.0.15+gcf671c0+chromium-156.0.8078.80_linux64_minimal.tar.bz2",
+      "sha1": "09235427222e026a4f34399742df27c5d98a4f8a",
+      "size": 333318600,
+      "type": "minimal"
+    },
+    "linuxarm64": {
+      "last_modified": "2026-10-31T06:36:54.893000Z",
+      "name": "cef_binary_156.0.15+gcf671c0+chromium-156.0.8078.80_linuxarm64_minimal.tar.bz2",
+      "sha1": "85602db8e813ad824b45ae54218476aa3d91d561",
+      "size": 431229830,
+      "type": "minimal"
+    }
+  }
+}

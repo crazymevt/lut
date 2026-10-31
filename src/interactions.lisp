@@ -227,6 +227,7 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
  (when (member (event-kind event) '(:down :key :text :context))
    (cancel-text-selection window)
    (when (member (event-kind event) '(:key :text :context)) (setf (slot-value window 'text-click-state) nil)))
+ (when (dispatch-embedded-input window event) (return-from dispatch nil))
  (refresh-commands window)
  (when (dispatch-key-capture window event) (return-from dispatch nil))
  (when (eq (event-kind event) :key)

@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>LUT Webview Prototype</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f5fa;color:#202939;font:16px system-ui,sans-serif}
+main{max-width:850px;margin:64px auto;padding:0 28px}.eyebrow{color:#5068b2;font-weight:650;letter-spacing:.12em;font-size:12px}
+h1{font-size:44px;letter-spacing:-.04em;margin:14px 0}p{line-height:1.65;color:#586276}
+section{background:white;border:1px solid #dde2ec;border-radius:16px;padding:28px;margin-top:28px}
+input,textarea,button{font:inherit;border:1px solid #ccd4e3;border-radius:8px;padding:12px}input,textarea{width:100%;margin:8px 0 18px}
+button{background:#3856aa;color:white;cursor:pointer}label{font-size:14px;font-weight:600}.spacer{height:500px}
+</style><main><div class="eyebrow">LUT / CHROMIUM EMBEDDED FRAMEWORK</div>
+<h1>A browser, inside LUT.</h1><p>This local page runs in Chromium and is composited into a retained LUT widget. Resize the window, edit the fields, and scroll to test the boundary.</p>
+<section><label for="name">Keyboard and clipboard</label><input id="name" placeholder="Type something here…">
+<label for="notes">Multiline editing</label><textarea id="notes" rows="3" placeholder="Try selection, copy, paste and Unicode."></textarea>
+<button id="button" onclick="this.textContent='Clicked successfully';document.title='Interaction verified'">Test pointer input</button></section>
+<div class="spacer"></div><section><h2>Scroll reached the bottom</h2><p>Browser content scrolls independently of the surrounding LUT window.</p><a href="about:blank">Navigate to a blank page</a></section></main></html>
