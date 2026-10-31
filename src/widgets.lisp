@@ -3,7 +3,9 @@
 (defwidget switch (toggle-button) "Boolean switch with the same keyboard semantics as a toggle." ())
 (defwidget radio-button (check-button) "Exclusive selection in GROUP. Activation deselects peers."
  ((group nil list "Other radio-button instances in this exclusive group.")))
-(defwidget spin-button (slider) "Numeric field incremented by arrows, wheel or its +/- actions." ())
+(defwidget spin-button (slider) "Numeric field incremented by arrows, wheel or its +/- actions. Pointer actions commit on release within the same icon."
+ ((spin-hover nil (member nil :minus :plus) "Internal hovered icon.")
+  (spin-press nil (member nil :minus :plus) "Internal pressed icon.")))
 (defwidget dropdown (list-view) "Closed selection opens a reusable popup list."
  ((expanded-p nil boolean "Whether the option popup is open.")))
 (defclass selection-list (list-view) ()
@@ -150,3 +152,38 @@
                   (loop for node = owner then (parent node) while node
                         thereis (eq node (input-root root))))
          (focus root owner))))))
+
+(defclass search-submit-button (button) ())
+(defclass search-clear-button (button) ())
+(defclass calendar-day-button (toggle-button) ())
+(defclass calendar-nav-button (button) ())
+
+(defwidget date-picker (button)
+ "Gregorian date picker with segmented editing and a popup calendar. User changes emit :CHANGE with a copied (year month day) list; programmatic assignment is silent."
+ ((width 300 (real 0 *) "Preferred width of the segmented picker.")
+  (calendar-date (multiple-value-bind (second minute hour day month year) (get-decoded-time)
+                   (declare (ignore second minute hour)) (list year month day))
+                 list "Gregorian (year month day), year 1..9999; defaults to the current local date. Copied on read/write.")
+  (picker-field 0 (integer 0 3) "Selected field: year/month/day or hour/minute/second; field 3 is AM/PM in 12-hour time.")
+  (picker-popup nil (or null popover) "Internal owned calendar popup.")
+  (picker-press nil (or null keyword integer) "Internal pressed picker region.")
+  (picker-hover nil (or null keyword integer) "Internal hovered picker region.")
+  (picker-digits "" string "Internal pending digit sequence.")))
+(defwidget time-picker (date-picker)
+ "Local wall-clock picker with 12/24-hour display options; no timezone conversion. User changes emit :CHANGE with copied (hour minute second)."
+ ((clock-time '(0 0 0) list "24-hour (hour minute second); copied on read/write.")
+  (time-format :24-hour (member :12-hour :24-hour) "Display/edit in 12-hour AM/PM or 24-hour format; stored CLOCK-TIME is always 24-hour.")))
+
+(defwidget search-control (entry)
+ "Single-line search entry. Editing emits :CHANGE; Enter/search emits :SEARCH with TEXT; Escape/clear emits :CANCEL after clearing editable text. SETF TEXT is silent."
+ ((search-hint "Search" string "Hint shown while empty; never part of TEXT.")
+  (search-submit nil (or null button) "Internal owned submit button.")
+  (search-clear nil (or null button) "Internal owned clear button.")))
+(defwidget activity-indicator (widget)
+ "Noninteractive indeterminate spinner. Running indicators animate during normal rendering; stopped indicators draw nothing."
+ ((activity-running-p t boolean "Whether the spinner is visible and animating.")
+  (width 24 (real 0 *) "Preferred spinner width; artwork stays compact under stretching.")
+  (height 24 (real 0 *) "Preferred spinner height.")))
+(defwidget icon-toggle-button (toggle-button)
+ "Boolean image button with standard toggle input and :CHANGE/:ACTIVATE events. TEXT is a centered fallback when no image is supplied; TOOLTIP-TEXT can describe the action."
+ ((icon-source nil (or null string pathname) "Image pathname, rendered aspect-preserving within the button padding; NIL uses TEXT.")))

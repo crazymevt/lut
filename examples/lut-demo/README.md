@@ -2,8 +2,8 @@
 
 The interactive feature browser lives in this repository as the `lut/demo` ASDF
 system. It has a resizable feature list on the left and **Demo** / **Code** tabs
-on the right. Choose from 36 examples: the original 22 controls, views, layouts
-and features, plus 14 examples of the reusable foundations.
+on the right. Browse controls, views, layouts and reusable foundations, including search,
+compact activity feedback, image toggles, and date/time pickers in 12/24-hour modes.
 
 The Demo tab is interactive. The Code tab displays the exact builder form used
 for that example, wrapped as a function accepting its containing window. Code is
@@ -108,3 +108,14 @@ path-picker actions. Behavioral tests cover commands and teardown, shared undo,
 indexed selection, suggestion cleanup, lazy rows, edited/sorted cells, tree
 expansion, context menus, path-picker cancellation, zoom, close veto/transfer,
 measurement, wrapping, follow-end and grid capture/copying.
+
+## Styled text
+
+Open **Views / Styled text** for an editable Lisp snippet with live demo syntax
+colors, bold keywords, italic comments, mixed sizes and an underlined TODO marker.
+Test selection, copying, undo/redo and scrolling. Toggle Colors, Line numbers,
+Bold, Italic or Mixed sizes independently, or Reset the sample. Comments use
+14 pixels, keywords 18, strings 20 and numbers 24; unstyled text uses 16.
+The 34-pixel line spacing leaves room for the larger glyphs.
+The Code tab contains the complete builder and small lexer. The application
+supplies style runs/decorations; LUT supplies the text widget and rendering.

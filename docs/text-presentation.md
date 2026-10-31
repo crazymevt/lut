@@ -27,9 +27,15 @@ per-view, so peers can use different formatting on the same buffer.
 
 Ranges are half-open Common Lisp character offsets, not bytes, glyphs or syntax
 tokens. Each collection is sorted on commit. Runs are disjoint and accept
-`:font`, `:font-size`, `:foreground` and `:background`; other style keys are
-rejected. Use a font file for bold/italic variants. Font spacing belongs to the
-view and stays uniform. Existing theme color representations apply.
+`:font`, `:font-size`, `:foreground`, `:background`, `:bold` and `:italic`;
+other style keys are rejected. The raylib backend synthesizes bold/italic
+emphasis; an explicit `:font` file can supply a designed face. Font spacing
+belongs to the view and stays uniform. Existing theme color representations apply.
+
+The interactive `lut/demo` browser's **Views / Styled text** example supplies
+live editable runs with independently switchable colors, bold, italic and
+14/18/20/24-pixel sizes. Line spacing is set to 34 pixels to accommodate the
+largest glyphs; run font sizes do not change the view's fixed line height.
 
 Decorations may overlap. Their `:kind` is `:underline`, `:background`, `:gutter`
 or `:annotation`, with optional `:color` and `:text`. Empty ranges are permitted

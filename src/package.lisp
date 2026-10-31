@@ -57,6 +57,9 @@
    #:drag-session #:current-drag #:drag-source #:drag-payload #:drag-target
    #:drag-state #:drag-x #:drag-y #:drag-data #:accepts-drop-p #:perform-drop
    #:begin-drag #:cancel-drag #:render-drag-feedback #:reorderable-p #:tab-group #:move-page #:tab-offset #:scroll-tabs #:reveal-page #:tab-at-position
+   #:date-picker #:calendar-date #:time-picker #:clock-time #:time-format #:picker-field
+   #:search-control #:search-hint #:activity-indicator #:activity-running-p
+   #:icon-toggle-button #:icon-source
    #:toggle-button #:switch #:radio-button #:spin-button #:dropdown #:combo-box
    #:vertical-notebook #:tab-strip-width #:stack #:notebook #:grid #:paned #:header-bar #:menu-bar #:popover #:tooltip
    #:expander #:tree-view #:table-view #:column-view #:image #:file-chooser

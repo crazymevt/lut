@@ -4,7 +4,7 @@
 (ql:quickload "lut/raylib" :silent t)
 (loop for theme in (list lut:*light-theme* lut:*dark-theme*)
       for name in '("light" "dark") do
-  (let* ((w (lut:make-widget 'lut:window :width 440 :height 440 :theme theme))
+  (let* ((w (lut:make-widget 'lut:window :width 440 :height 440 :theme theme :style '(:button-depth 2)))
          (normal (lut:make-widget 'lut:button :text "Raised" :height 52))
          (hover (lut:make-widget 'lut:button :text "Hover" :height 52))
          (pressed (lut:make-widget 'lut:button :text "Depressed" :height 52))
@@ -46,9 +46,16 @@
           (list (list (round (+ (lut:x normal) (/ (lut:width normal) 2))) (+ (round (lut:y normal)) 1))
                 (list (round (+ (lut:x normal) (/ (lut:width normal) 2))) (- (round (+ (lut:y normal) (lut:height normal))) 1))
                 (list (round (+ (lut:x pressed) (/ (lut:width pressed) 2))) (round (lut:y pressed)))))
-        (rl:with-drawing ((lut:style-value w :background))
-          (lut::render-window w)
-          (rl:take-screenshot path)))))
+        (let ((target (rl:load-render-texture (round (lut:width w)) (round (lut:height w)))))
+          (unwind-protect
+            (progn
+              (rl:with-texture-mode (target)
+                (rl:clear-background (lut:style-value w :background)) (lut::render-window w))
+              (let ((image (rl:load-image-from-texture (rl:render-texture-texture target))))
+                (unwind-protect
+                  (progn (rl:image-flip-vertical image) (assert (rl:export-image image path)))
+                  (rl:unload-image image))))
+            (rl:unload-render-texture target))))))
     (lut:run w :frames 4)
     (let ((image (rl:load-image path)))
       (unwind-protect

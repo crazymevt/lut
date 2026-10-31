@@ -37,7 +37,7 @@ normal. A root class selector matches subclasses as well.
 | `:max-border-radius` | Non-negative real pixel corner-radius cap; default 8 |
 | `:border-color`, `:focus-color` | Border and focus decoration colors |
 | `:hover-color`, `:pressed-color`, `:disabled-color` | Default interactive surface colors; a state-specific `:surface` overrides them |
-| `:button-depth` | Non-negative pixel elevation for buttons and toggles, default 2; 0 gives flat surfaces |
+| `:button-depth` | Non-negative pixel elevation for buttons and toggles, default 0 for flat surfaces; positive values opt into elevation |
 | `:button-shadow`, `:button-highlight` | Button depth-edge and raised top-highlight colors |
 | `:caret-width` | Non-negative real pixel width |
 
@@ -94,11 +94,16 @@ Labels can opt into `:style '(:wrap-text t)`. Allocate enough height for the
 expected lines: wrapping does not automatically resize a widget. Editable text
 and button captions retain their existing explicit-newline behavior.
 
-Buttons show a lower shadow edge at rest and an upper inset edge when pressed;
-the caption moves with the face. Selected toggle buttons stay depressed.
-Disabled buttons are flat. Elevation stays inside the widget bounds and does
-not change layout or hit testing. Override `:button-depth` locally or in a
-button class rule to adjust it; use zero to restore flat styling.
+The default palette uses neutral surfaces, subtle borders, 16-pixel text,
+rounded corners and flat buttons with hover/pressed feedback. Checkboxes,
+radios and switches draw their indicators without framing the entire row.
+Progress bars use a slim rounded track. Text and picker focus remains clearly
+visible without covering values or action icons.
+
+Set `:button-depth` to a positive value to opt into raised buttons: these show
+a lower shadow edge at rest and an upper inset edge when pressed, with the
+caption following the face. Elevation stays inside widget bounds and does not
+change layout or hit testing. Disabled buttons remain flat.
 
 In the GTK demo launcher, open `combobox` for the dropdown option selector
 (the first control), or `application_demo` for application action menus.

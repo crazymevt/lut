@@ -2,9 +2,9 @@
 (defparameter *style-defaults*
  '(:focus-outline-p t :caret-height :line :backdrop-color nil :shadow-color nil :shadow-spread 18 :shadow-offset 6
    :tab-sizing :fill :bold nil :italic nil :tab-size 4 :tab-min-width 96 :tab-max-width 220 :tab-scroll-step 96 :drag-threshold 6 :scrollbar-width 12 :wrap-text nil :font nil :font-size 18 :font-spacing 0 :line-height 26 :row-height 30
-   :button-depth 2 :button-shadow (0 0 0 35) :button-highlight (255 255 255 45)
-   :surface (255 255 255 255) :on-accent (255 255 255 255)
-   :padding 8 :caret-width 2 :border-width 1 :border-radius 0.3 :max-border-radius 8
+   :button-depth 0 :button-shadow (0 0 0 20) :button-highlight (255 255 255 24)
+   :surface (255 255 255 255) :on-accent (255 255 255 255) :muted-color (100 116 139 255)
+   :padding 8 :caret-width 2 :border-width 1 :border-radius 0.5 :max-border-radius 8
    :border-color (130 140 160 255) :focus-color (40 120 240 255)
    :hover-color (200 210 225 255) :pressed-color (165 185 220 255)
    :disabled-color (120 125 135 255) :title-height 28)

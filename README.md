@@ -127,6 +127,9 @@ parent is paused, displaying their latest frame. Stopping the primary loop close
 references. Workers launch the local Lisp executable through
 `*worker-command*`; override it for deployed applications or other runtimes.
 
+Search fields, busy spinners and image toggle buttons are documented in
+[extra controls](docs/extra-controls.md) and demonstrated in the interactive browser.
+
 ## Widgets and styles
 
 The library includes labels, buttons, toggles, switches, radio groups, entries,

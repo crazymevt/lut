@@ -103,3 +103,103 @@
         (lut:add-child dialog close)
         (lut:show-dialog root dialog))))
     button))
+
+(define-example "Controls / Search" "Type to edit; Enter or the search button submits; Escape or the clear icon clears."
+ (let ((box (lut:make-widget 'lut:box :height 96))
+       (search (lut:make-widget 'lut:search-control :search-hint "Search records"))
+       (status (lut:make-widget 'lut:label :text "Waiting for a search")))
+   (lut:on search :search (lambda (w query) (declare (ignore w))
+                           (setf (lut:text status) (format nil "Search: ~a" query))) :owner status)
+   (lut:add-child box search) (lut:add-child box status) box))
+(define-example "Controls / Activity indicator" "A compact animated ring. Toggle Working to start or stop."
+ (let ((box (lut:make-widget 'lut:box :height 100))
+       (spinner (lut:make-widget 'lut:activity-indicator))
+       (toggle (lut:make-widget 'lut:toggle-button :text "Working" :value t)))
+   (lut:on toggle :change (lambda (w value) (declare (ignore w))
+                           (setf (lut:activity-running-p spinner) value)) :owner spinner)
+   (lut:add-child box toggle) (lut:add-child box spinner) box))
+(define-example "Controls / Icon toggle" "Toggle with a click, Space or Enter. Supply :icon-source for an image."
+ (lut:make-widget 'lut:icon-toggle-button :icon-source (asdf:system-relative-pathname "lut" "examples/assets/demo.png") :text "*" :width 48 :height 48 :tooltip-text "Favorite"))
+
+(define-example "Controls / Date picker" "Click the date to open its calendar. +/- steps the selected field; Left/Right selects fields for keyboard editing."
+ (lut:make-widget 'lut:date-picker :width 340))
+(define-example "Controls / Time picker" "24-hour time: select a field; arrows, wheel or +/- adjust; type digits."
+ (lut:make-widget 'lut:time-picker :clock-time '(14 30 0) :width 280))
+
+(define-example "Controls / Time picker (12 hour)" "Select a field or AM/PM; use arrows, +/- or type A/P to change period."
+ (lut:make-widget 'lut:time-picker :clock-time '(14 30 0) :time-format :12-hour :width 320))
+
+(define-example "Views / Styled text" "Edit the snippet to test colors, bold keywords, italic comments and mixed font sizes. Toggle each style, select text, and try undo/redo."
+ (let* ((sample (format nil "; Edit this example: colors update as you type.~%(defun greet (name)~%  ;; TODO: add your own greeting~%  (let ((count 42))~%    (format nil \"Hello, ~a! Count: ~d\" name count)))~%~%(greet \"Lut\")~%" "~a" "~d"))
+        (box (lut:make-widget 'lut:box :height 450 :style '(:padding 0)))
+        (toolbar (lut:make-widget 'lut:box :orientation :horizontal :height 40 :style '(:padding 0)))
+        (typography (lut:make-widget 'lut:box :orientation :horizontal :height 40 :style '(:padding 0)))
+        (highlight (lut:make-widget 'lut:toggle-button :id :styled-highlight :text "Colors" :value t :width 100))
+        (bold (lut:make-widget 'lut:toggle-button :id :styled-bold :text "Bold" :value t :width 100 :style '(:bold t)))
+        (italic (lut:make-widget 'lut:toggle-button :id :styled-italic :text "Italic" :value t :width 100 :style '(:italic t)))
+        (sizes (lut:make-widget 'lut:toggle-button :id :styled-sizes :text "Mixed sizes" :value t :width 140))
+        (lines (lut:make-widget 'lut:toggle-button :id :styled-lines :text "Line numbers" :value t :width 140))
+        (reset (lut:make-widget 'lut:button :id :styled-reset :text "Reset" :width 80))
+        (view (lut:make-widget 'lut:styled-text-view :id :styled-editor :text sample :height 300
+                              :style '(:font-size 16 :line-height 34 :padding 12)))
+        (status (lut:make-widget 'lut:label :id :styled-status :height 32 :style '(:font-size 14))))
+   ;; This small demo lexer supplies presentation data; LUT handles editing,
+   ;; selection, geometry and painting. It is not a complete Lisp reader.
+   (labels ((refresh (widget payload)
+              (declare (ignore widget payload))
+              (let* ((text (lut:text view)) (length (length text)) (i 0) (runs nil) (decorations nil) (line-count 0))
+                (loop while (< i length) do
+                    (let ((start i) (char (char text i)) (color nil) (role nil))
+                      (cond
+                        ((char= char #\;) (setf i (or (position #\Newline text :start i) length)
+                                                color (lut:style-value view :muted-color) role :comment))
+                        ((char= char #\")
+                         (incf i)
+                         (loop while (< i length) do
+                           (let ((next (char text i)))
+                             (incf i)
+                             (cond ((char= next #\\) (when (< i length) (incf i)))
+                                   ((char= next #\") (return)))))
+                         (setf color '(22 163 74 255) role :string))
+                        ((digit-char-p char)
+                         (loop while (and (< i length) (digit-char-p (char text i))) do (incf i))
+                         (setf color '(217 119 6 255) role :number))
+                        ((or (alpha-char-p char) (find char ":-+*/<>=!?"))
+                         (loop while (and (< i length) (or (alphanumericp (char text i)) (find (char text i) ":-+*/<>=!?"))) do (incf i))
+                         (when (or (char= char #\:) (member (subseq text start i) '("defun" "let" "if" "lambda" "format" "nil" "t") :test #'string-equal))
+                           (setf color (lut:style-value view :accent) role :keyword)))
+                        (t (incf i)))
+                      (let ((style (append
+                                      (when (and color (lut:value highlight)) (list :foreground color))
+                                      (when (and (eq role :keyword) (lut:value bold)) (list :bold t))
+                                      (when (and (eq role :comment) (lut:value italic)) (list :italic t))
+                                      (when (and role (lut:value sizes))
+                                        (list :font-size (ecase role (:comment 14) (:keyword 18) (:string 20) (:number 24)))))))
+                        (when style (push (list :start start :end i :style style) runs)))))
+                (when (lut:value highlight)
+                  (loop for start = (search "TODO" text) then (search "TODO" text :start2 (+ start 4))
+                        while start do (push (list :start start :end (+ start 4) :kind :underline :color '(217 119 6 255)) decorations)))
+                (loop for start = 0 then (1+ end) for end = (position #\Newline text :start start) do
+                  (incf line-count)
+                  (when (lut:value lines)
+                    (push (list :start start :end (or end length) :kind :gutter :text (princ-to-string line-count)
+                                :color (lut:style-value view :muted-color)) decorations))
+                  while end)
+                (let ((gutter (if (lut:value lines) 44 0)))
+                  (unless (= gutter (lut:gutter-width view)) (setf (lut:gutter-width view) gutter)))
+                (lut:set-text-presentation view :runs (nreverse runs) :decorations (nreverse decorations) :reveal-cursor-p nil)
+                (setf (lut:text status) (format nil "~d lines | ~d styled ranges | TODO underline" line-count (length (lut:text-runs view)))))))
+     (lut:on view :change #'refresh :owner box)
+     (lut:on highlight :change #'refresh :owner box)
+     (lut:on lines :change #'refresh :owner box)
+     (dolist (toggle (list bold italic sizes)) (lut:on toggle :change #'refresh :owner box))
+     (lut:on reset :activate
+       (lambda (widget payload)
+         (declare (ignore widget payload))
+         (setf (lut:text view) sample (lut:cursor view) 0 (lut:anchor view) 0
+               (lut:text-offset view) 0 (lut:vertical-offset view) 0)
+         (refresh nil nil)) :owner box)
+     (refresh nil nil))
+   (dolist (button (list highlight lines reset)) (lut:add-child toolbar button))
+   (dolist (button (list bold italic sizes)) (lut:add-child typography button))
+   (dolist (child (list toolbar typography view status)) (lut:add-child box child)) box))

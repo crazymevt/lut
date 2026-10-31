@@ -184,7 +184,7 @@
  (edit root :source "(:font-size -2)") (press root :apply)
  (assert (= 24 (lut:style-value (control root :sample) :font-size)))
  (assert (eq :maroon (lut:style-value (control root :local) :foreground)))
- (press root :reset) (assert (= 18 (lut:style-value (control root :sample) :font-size))))
+ (press root :reset) (assert (= (getf lut:*light-theme* :font-size) (lut:style-value (control root :sample) :font-size))))
 (defun entry-dialog (root)
  (let ((d (node 'lut:dialog :dialog :text "Edit personal details" :width 430 :height 280)))
   (lut:add-child d (labeled nil "Drag the title; drag outside to detach"))

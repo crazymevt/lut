@@ -20,6 +20,17 @@
             (rl:take-screenshot "/tmp/lut-demo-demo.png"))
           (when (and (zerop index) (= phase 5))
             (rl:take-screenshot "/tmp/lut-demo-code.png"))
+          (when (and (= phase 2) (string= (nth index (lut-demo:demo-names)) "Views / Styled text"))
+            (let ((target (rl:load-render-texture (round (lut:width window)) (round (lut:height window)))))
+              (unwind-protect
+                (progn
+                  (rl:with-texture-mode (target)
+                    (rl:clear-background (lut:style-value window :background)) (lut::render-window window))
+                  (let ((image (rl:load-image-from-texture (rl:render-texture-texture target))))
+                    (unwind-protect
+                      (progn (rl:image-flip-vertical image) (assert (rl:export-image image "/tmp/lut-demo-styled-text.png")))
+                      (rl:unload-image image))))
+                (rl:unload-render-texture target))))
           (when (and (= phase 2) (string= (nth index (lut-demo:demo-names)) "Foundations / Cell grid and key capture"))
             (rl:take-screenshot "/tmp/lut-demo-foundations.png"))
           (when (and (= phase 5) (string= (nth index (lut-demo:demo-names)) "Foundations / Cell grid and key capture"))

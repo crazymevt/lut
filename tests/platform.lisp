@@ -18,7 +18,7 @@
        (let ((event (lut:make-event :kind kind :x (* scale 30) :y (* scale 40))))
          (lut:dispatch-device-event root event) (assert (= (* scale 30) (lut:event-x event)))))
      (assert (= 1 activated))
-     (assert (= 18 (lut:style-value entry :font-size)))
+     (assert (= (getf lut:*light-theme* :font-size) (lut:style-value entry :font-size)))
      (lut:text-position-rectangle entry 2) (assert (slot-value entry 'lut::geometry-cache))
      (setf (lut:ui-scale root) 3/2) (assert (null (slot-value entry 'lut::geometry-cache)))
      (assert (handler-case (progn (setf (lut:ui-scale root) 0) nil) (error () t)))

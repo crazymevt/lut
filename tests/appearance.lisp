@@ -36,7 +36,16 @@
                   (cy (+ (lut:y control) (/ (lut:height control) 2))))
              (list (list (round (+ tx (/ h 2))) (round cy))
                    (list (round (+ tx (* 1.5 h))) (round cy))))))
-       (rl:take-screenshot path))))
+       (let ((target (rl:load-render-texture (round (lut:width w)) (round (lut:height w)))))
+          (unwind-protect
+            (progn
+              (rl:with-texture-mode (target)
+                (rl:clear-background (lut:style-value w :background)) (lut::render-window w))
+              (let ((image (rl:load-image-from-texture (rl:render-texture-texture target))))
+                (unwind-protect
+                  (progn (rl:image-flip-vertical image) (assert (rl:export-image image path)))
+                  (rl:unload-image image))))
+            (rl:unload-render-texture target))))))
    (lut:run w :frames 4)
    (let ((image (rl:load-image path)))
      (unwind-protect
