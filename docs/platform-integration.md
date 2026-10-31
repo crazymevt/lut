@@ -214,3 +214,19 @@ Open drawn menus switch headings on hover. Submenu closing/switching has a
 200 ms grace period so diagonal movement can reach the child; entering the child
 cancels that pending transition. Returning to an ancestor reuses its existing
 submenu and closes only deeper levels.
+
+Command menu popups show right-aligned shortcut hints and restore the previous
+control's focus and selection when dismissed. `open-context-menu` action records
+accept an optional fifth string (the hint) after the submenu provider; existing
+records remain valid. Native Cocoa menus compare effective snapshots before
+issuing setters, avoiding repeated FFI calls and string allocation at idle.
+Native path-request modal state participates in that comparison.
+
+Submenu providers are resolved again when the child popup opens, so background
+model updates are visible even if the parent menu was already open. Availability
+is evaluated in that menu's own input scope; unrelated modal dialogs still block
+commands. This does not add polling or rebuild closed menus at idle.
+
+`refresh-command-menu` also refreshes an already-visible drawn menu when its
+snapshot changes, preserving the open submenu path. Unchanged snapshots retain
+the same popup widgets, and a modal dialog above the menu blocks that refresh.

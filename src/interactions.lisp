@@ -8,7 +8,8 @@
  (:documentation "Widget-specific event extension. Return true to consume EVENT before default dispatch."))
 (defmethod handle-event ((w widget) event) (declare (ignore event)) nil)
 (defclass context-menu-item (button)
- ((submenu-p :initarg :submenu-p :initform nil :reader context-item-submenu-p)
+ ((shortcut-label :initarg :shortcut-label :initform "" :reader context-item-shortcut-label)
+  (submenu-p :initarg :submenu-p :initform nil :reader context-item-submenu-p)
   (submenu-opener :initform nil :accessor context-item-submenu-opener)))
 (defmethod dispose :after ((item context-menu-item))
  (setf (context-item-submenu-opener item) nil))
@@ -54,8 +55,11 @@
      (if (context-item-submenu-p item) (show-context-item-submenu item)
          (close-context-menu-descendants menu)))
    t))
+(defgeneric focus-context-action (target window))
+(defmethod focus-context-action ((target widget) (window window))
+ (when (focusable-p target) (focus window target)))
 (defun open-context-menu (window target event &optional actions)
- "Open a pointer-positioned menu. ACTIONS are (caption callback enabled-p submenu-provider) lists or :SEPARATOR (NIL also separates).
+ "Open a pointer-positioned menu. ACTIONS are (caption callback enabled-p submenu-provider shortcut-label) lists or :SEPARATOR (NIL also separates).
 A submenu provider takes no arguments and returns actions; its button opens beside the parent menu.
 Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no arguments."
  (let* ((actions (or actions (when (typep target 'entry)
@@ -77,9 +81,9 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
    (dolist (item actions)
     (if (or (null item) (eq item :separator))
       (add-child menu (make-widget 'menu-separator :height 8 :style '(:padding 8)))
-     (destructuring-bind (caption callback &optional (enabled t) submenu) item
+     (destructuring-bind (caption callback &optional (enabled t) submenu (shortcut-label "")) item
        (let ((button (make-widget 'context-menu-item :text caption :height row :enabled-p enabled
-                                  :submenu-p (not (null submenu))
+                                  :submenu-p (not (null submenu)) :shortcut-label shortcut-label
                                   :style '(:padding 12 :button-depth 0 :border-width 0 :max-border-radius 4))))
          (when submenu
            (setf (context-item-submenu-opener button)
@@ -100,7 +104,7 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
                  ;; Close the menu chain before invoking an application command.
                  (loop while (typep (input-root window) 'context-menu)
                        do (dismiss-dialog (input-root window)))
-                 (when (focusable-p target) (focus window target))
+                 (focus-context-action target window)
                  (when (enabled-p button) (funcall callback))))))
          (add-child menu button)))))
    (show-dialog window menu)
@@ -112,6 +116,8 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
                           (loop for child in (children menu)
                                 when (typep child 'context-menu-item)
                                 maximize (+ (text-width child (text child))
+                                            (if (plusp (length (context-item-shortcut-label child)))
+                                                (+ 24 (text-width child (context-item-shortcut-label child))) 0)
                                             (* 2 (style-value child :padding)) 16)
                                   into widest finally (return (or widest 0))))))
          (x menu) (max 0 (min (event-x event) (- (width window) (width menu)))))

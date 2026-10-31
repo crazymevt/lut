@@ -63,7 +63,7 @@
              (setf key (intern name :keyword)))))
      (let ((string (cond ((null key) "")
                         ((= (length (symbol-name key)) 1) (string-downcase (symbol-name key)))
-                        (t (case key (:enter (string #\Return)) (:tab (string #\Tab)) (:space " ") (:escape (string (code-char 27)))
+                        (t (case key (:comma ",") (:enter (string #\Return)) (:tab (string #\Tab)) (:space " ") (:escape (string (code-char 27)))
                              (:left (string (code-char #xf702))) (:right (string (code-char #xf703)))
                              (:up (string (code-char #xf700))) (:down (string (code-char #xf701)))
                              (otherwise ""))))))
@@ -124,8 +124,14 @@
                (cocoa-fill-submenu menu child (getf record :commands))
                (cocoa-send child "release" :void))))))))
  (defmethod update-native-command-menu ((menu command-menu) snapshot)
-   (let ((state (menu-native-state menu)))
+   (let* ((state (menu-native-state menu))
+          (key (list snapshot (not (null *native-path-request*)))))
+     ;; Cocoa setters allocate strings and cross FFI. Unchanged command state
+     ;; needs no native work, including menu delegate refreshes.
+     (when (and state (equal key (getf state :snapshot)))
+       (return-from update-native-command-menu menu))
      (when state
+       (setf (getf state :snapshot) key)
        (dolist (group snapshot)
          (dolist (record (getf group :commands))
            (when (and record (not (eq record :separator)))

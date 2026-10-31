@@ -57,6 +57,9 @@
 (defun focusable-p (w)
  (or (typep w 'cell-grid) (typep w 'vertical-notebook) (typep w 'notebook) (typep w 'expander) (typep w 'button) (typep w 'entry) (typep w 'list-view)
      (and (typep w 'slider) (not (typep w 'progress-bar)))))
+(defgeneric prepare-focus (widget window))
+(defmethod prepare-focus ((widget widget) (window window))
+ (declare (ignore widget window)) nil)
 (defun focus (window widget)
  "Set keyboard focus to an enabled visible interactive descendant or NIL."
  (when widget
@@ -64,6 +67,7 @@
                 (in-input-scope-p widget (input-root window))
                 (loop for p = widget then (parent p) while p always (and (visible-p p) (enabled-p p))))
      (error "Invalid focus target.")))
+ (when widget (prepare-focus widget window))
  (when (and (slot-value window 'text-selection-state)
             (not (eq widget (first (slot-value window 'text-selection-state)))))
    (cancel-text-selection window :forget-clicks t))
