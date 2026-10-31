@@ -16,7 +16,7 @@ def copy_runtime_dependencies(web):
                 shutil.copytree(item,target/item.name,ignore=shutil.ignore_patterns('*.fasl','__pycache__'))
             elif item.is_file() and item.suffix not in ('.fasl','.inputs'):
                 shutil.copy2(item,target/item.name)
-    for name_in in ('PROVENANCE.json','BINDING_PATCH.txt'):
+    for name_in in ('PROVENANCE.json','BINDING_PATCH.txt','PATCHES.txt'):
         shutil.copy2(ROOT/'deps'/name_in,deps/name_in)
     (deps/'RUNTIME_SUBSET.txt').write_text('Runtime source subset; upstream docs/examples/tests omitted. Dependency directories shortened; original archives and checksums are recorded in PROVENANCE.json.\n')
 

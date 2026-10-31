@@ -6,7 +6,9 @@ and manual dispatch. Its push filter includes branches explicitly, so pushing a
 tag does not trigger it. Concurrent superseded runs on the same ref are cancelled.
 
 Every platform builds the CEF bridge and the raylib CFFI shim from pinned inputs
-and runs LUT's headless regression suite. An intentional native-runner failure
+and runs LUT's headless regression suite. A separate cold-cache compile rejects
+undefined-variable/function warnings and tests the pinned Babel encoder error
+path; the narrow dependency patch is recorded in the bundled PATCHES.txt. An intentional native-runner failure
 must produce a nonzero process exit, preventing interactive error handling from
 masking failed smoke tests. Windows and Linux run the complete LUT
 webview window test with software graphics on hosted runners. GitHub's macOS
@@ -49,6 +51,17 @@ Upstream documentation themes/examples are omitted from the runtime archive,
 dependency directory names are shortened, and packaging rejects paths longer
 than 140 characters. Compiled Lisp files use a flat per-build cache to avoid
 recreating long source paths under Windows user profiles.
+
+For Fedora Wayland at 125% desktop scaling, launch with:
+
+```sh
+LUT_UI_SCALE=1.25 ./start.sh
+```
+
+This scales LUT controls, browser content, window geometry and pointer coordinates
+using LUT's existing UI scale. The prototype currently starts at 1x; automatic
+Wayland desktop scale detection and live monitor changes remain unsupported.
+The override accepts decimal factors from 0.5 through 4 on all platforms.
 
 Keep the extracted directory intact. F12 releases browser focus, and Tab returns
 to LUT controls. The included `BUILD.json` records the exact source commit.

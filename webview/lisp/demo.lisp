@@ -23,7 +23,21 @@
           (unwind-protect (progn (rl:image-flip-vertical image) (rl:export-image image path))
             (rl:unload-image image))))
       (rl:unload-render-texture target))))
-(defun run-demo (&key frames smoke
+(defun launch-ui-scale (&optional (value (uiop:getenv "LUT_UI_SCALE")))
+  "Read a decimal UI scale without invoking the Lisp reader."
+  (if (or (null value) (zerop (length value))) 1
+      (let* ((dot (position #\. value))
+             (digits (remove #\. value)))
+        (unless (and (plusp (length digits))
+                     (every (lambda (c) (digit-char-p c 10)) digits)
+                     (or (null dot) (= 1 (count #\. value))))
+          (error "LUT_UI_SCALE must be a decimal number between 0.5 and 4."))
+        (let ((scale (/ (parse-integer digits)
+                        (if dot (expt 10 (- (length value) dot 1)) 1))))
+          (unless (<= 1/2 scale 4)
+            (error "LUT_UI_SCALE must be between 0.5 and 4."))
+          scale))))
+(defun run-demo (&key frames smoke (ui-scale (if smoke 1 (launch-ui-scale)))
                         (url (if smoke (concatenate 'string "file://" #+win32 "/"
                           (namestring (asdf:system-relative-pathname "lut/webview" "webview/tests/smoke.html")))
                           (demo-page-url))) screenshot)
@@ -32,7 +46,7 @@
    (lambda ()
     (initialize-cef)
     (let* ((*views* nil) (*closing* nil)
-           (window (lut:make-widget 'demo-window :text "LUT · CEF Webview" :theme lut:*dark-theme* :width 1100 :height 760
+           (window (lut:make-widget 'demo-window :text "LUT · CEF Webview" :theme lut:*dark-theme* :ui-scale ui-scale :width 1100 :height 760
                      :style '(:background (24 27 34 255) :padding 0)))
            (toolbar (lut:add-child window (lut:make-widget 'lut:box :orientation :horizontal
                          :height 36 :spacing 8 :style '(:padding 0))))

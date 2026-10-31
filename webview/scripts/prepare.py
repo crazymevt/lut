@@ -39,6 +39,23 @@ def main():
     DEPS.mkdir(exist_ok=True)
     for item in LOCK['lisp']:
         if not (DEPS/item['directory']).exists(): extract(fetch(item),DEPS)
+    # The pinned Babel KSC encoder invokes a nonexistent HANDLE-ERROR and
+    # declares NIL as a code-point before reaching its error branch. Preserve
+    # normal mapping and use Babel's existing encoding-error contract.
+    babel=next(item for item in LOCK['lisp'] if item['name']=='babel')
+    source_file=DEPS/babel['directory']/'src/enc-ksc-5601.lisp'
+    source=source_file.read_text()
+    old="""           for ksc-5601 of-type code-point = (utf8-to-ksc-5601 code)
+           unless ksc-5601
+             do (handle-error)"""
+    new="""           for ksc-5601 of-type code-point =
+             (or (utf8-to-ksc-5601 code)
+                 (encoding-error code :ksc_5601 src i))"""
+    if old in source:
+        source_file.write_text(source.replace(old,new,1))
+    elif new not in source:
+        raise RuntimeError('Pinned Babel encoder no longer matches the documented patch')
+    (DEPS/'PATCHES.txt').write_text('Babel: KSC_5601 encoder uses encoding-error for unrepresentable characters before applying the code-point type restriction. Original source/license retained; archive digest is in PROVENANCE.json. Raylib patches are recorded in BINDING_PATCH.txt.\n')
     binding = DEPS/'raylib'
     if not binding.exists():
         unpack = CACHE/'binding'

@@ -1,4 +1,7 @@
 (in-package #:lut)
+;; Declare dynamically bound renderer state before compiling its consumers.
+(defvar *clip* nil)
+(defvar *active-window* nil)
 (defvar *window-tile-caches* nil)
 (defvar *composite-window-cache* nil)
 (defvar *tile-dynamic-surfaces* nil)
@@ -120,8 +123,6 @@ Return FUNCTION and, as a second value, a cancellable job handle."
 (defvar *used-textures* nil)
 (defvar *retired-targets* nil)
 (defvar *controller-running-p* nil)
-(defvar *clip* nil)
-(defvar *active-window* nil)
 (defvar *native-title* nil)
 (defvar *native-cursor* nil)
 (defun update-native-cursor (cursor)

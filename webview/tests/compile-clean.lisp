@@ -1,0 +1,18 @@
+(load (merge-pathnames "../scripts/bootstrap.lisp" *load-truename*))
+(asdf:load-system "lut/cef")
+(assert (equalp #(33 33) (babel:string-to-octets (string (code-char #x3000)) :encoding :ksc_5601)))
+(assert (handler-case
+          (progn (babel:string-to-octets (string (code-char #x1f600)) :encoding :ksc_5601) nil)
+          (babel:character-encoding-error (condition)
+            (= #x1f600 (babel:character-encoding-error-code condition)))))
+(let ((babel-encodings:*suppress-character-coding-errors* t))
+  (let ((bytes (babel:string-to-octets (string (code-char #x1f600)) :encoding :ksc_5601)))
+    (assert (= 2 (length bytes)))
+    (assert (string= (string (code-char #xfffd)) (babel:octets-to-string bytes :encoding :ksc_5601)))))
+(format t "PASS: clean compilation and KSC encoding/error handling.~%")
+
+(assert (= 5/4 (lut-webview::launch-ui-scale "1.25")))
+(assert (= 1 (lut-webview::launch-ui-scale "")))
+(dolist (bad '("0" "5" "1.2.3" "#.(error)" "NaN"))
+  (assert (handler-case (progn (lut-webview::launch-ui-scale bad) nil) (error () t))))
+(format t "PASS: launch UI scale accepts 125% and rejects invalid values.~%")
