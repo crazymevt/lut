@@ -244,18 +244,24 @@ Without ACTIONS, ENTRY gets Cut/Copy/Paste/Select all. Callbacks take no argumen
      (setf (slot-value window 'overlays)
        (remove-if (lambda (d) (typep d 'tooltip)) (slot-value window 'overlays)))
      (when (and target (tooltip-text target))
-       (let* ((pad (style-value target :padding))
-              (label (make-widget 'label :text (tooltip-text target)))
-              (tw (min (width window) (+ (* 4 pad) (text-width target (tooltip-text target)))))
-              (th (+ (* 2 pad) (line-height target)))
-              (tip (make-widget 'tooltip :width tw :height th
-                     :x (max 0 (min (+ 12 (event-x event)) (- (width window) tw)))
-                     :y (max 0 (min (+ 16 (event-y event)) (- (height window) th))))))
-         (setf (height label) (line-height target))
-         (add-child tip label)
+       (let* ((tip (make-widget 'tooltip :style '(:padding 0)))
+              (label (make-widget 'label :text (tooltip-text target) :style '(:padding 0))))
+         ;; Tooltips inherit the window's text styles, not an icon button's font.
+         ;; Establish that ancestry before measuring the actual painted label.
          (setf (parent tip) window)
-         ;; Pointer input runs after layout; place the new label before rendering.
-         (layout tip (x tip) (y tip) tw th)
+         (add-child tip label)
+         (let* ((horizontal (style-value tip :tooltip-padding-x 8))
+                (vertical (style-value tip :tooltip-padding-y 5))
+                (content-height (+ (style-value label :font-size)
+                                   (* (1- (length (text-lines (text label)))) (line-height label))))
+                (tw (min (width window) (+ (* 2 horizontal) (text-width label (text label)))))
+                (th (+ (* 2 vertical) content-height)))
+           (setf (height label) content-height
+                 (width tip) tw (height tip) th
+                 (x tip) (max 0 (min (+ 12 (event-x event)) (- (width window) tw)))
+                 (y tip) (max 0 (min (+ 16 (event-y event)) (- (height window) th))))
+           ;; Pointer input runs after layout; place the label on its first frame.
+           (layout tip (x tip) (y tip) tw th))
          (push tip (slot-value window 'overlays)))))
    (when (eq kind :down)
      (when pressed (setf (pressed-p pressed) nil))

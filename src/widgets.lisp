@@ -187,3 +187,12 @@
 (defwidget icon-toggle-button (toggle-button)
  "Boolean image button with standard toggle input and :CHANGE/:ACTIVATE events. TEXT is a centered fallback when no image is supplied; TOOLTIP-TEXT can describe the action."
  ((icon-source nil (or null string pathname) "Image pathname, rendered aspect-preserving within the button padding; NIL uses TEXT.")))
+
+(defmethod layout :after ((tip tooltip) x y width height)
+ ;; Tooltip content has one inset. Generic box/label padding would double it
+ ;; and the inherited line-height would leave single-line text top-heavy.
+ (let ((horizontal (style-value tip :tooltip-padding-x 8))
+       (vertical (style-value tip :tooltip-padding-y 5)))
+   (dolist (child (children tip))
+     (layout child (+ x horizontal) (+ y vertical)
+             (max 0 (- width (* 2 horizontal))) (max 0 (- height (* 2 vertical)))))))

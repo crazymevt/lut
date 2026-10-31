@@ -1,5 +1,6 @@
 (in-package #:lut-tests)
 (defun demo-findings-tests ()
+ (symbol-tooltip-tests)
  ;; Text inputs keep visible focus after pointer activation, including combo-box
  ;; whose event handler can consume input before dispatch-base runs.
  (dolist (class '(lut:entry lut:text-view lut:combo-box))
@@ -63,3 +64,23 @@
      (assert (<= (+ (lut:x tip) (lut:width tip)) (lut:width root)))
      (assert (eq button (lut:hit-test root 470 20)))))
  (format t "Demo findings: spin steps, pointer/keyboard focus, scrollbar capture, wheel/clamping and first-frame tooltip layout passed.~%"))
+
+(defclass tooltip-metric-button (lut:button) ())
+(defmethod lut:text-width ((button tooltip-metric-button) text)
+ (declare (ignore button text)) 0)
+(defun symbol-tooltip-tests ()
+ (let* ((root (lut:make-widget 'lut:window :width 500 :height 250))
+        (button (lut:add-child root (lut:make-widget 'tooltip-metric-button
+                   :text "X" :style '(:font-size 24 :padding 4)
+                   :tooltip-text "Toggle explorer"))))
+   (lut:layout root 0 0 500 250)
+   (lut:dispatch root (lut:make-event :kind :move :x (+ (lut:x button) 10) :y (+ (lut:y button) 10)))
+   (let* ((tip (first (lut::overlays root))) (label (first (lut:children tip))))
+     (assert (typep tip 'lut:tooltip))
+     (assert (>= (- (lut:width label) (* 2 (lut:style-value label :padding)))
+                 (lut:text-width label (lut:text label))))
+     (assert (= (lut:height tip) (+ (lut:style-value label :font-size) 10)))
+     (assert (= (- (lut:y label) (lut:y tip))
+                (- (+ (lut:y tip) (lut:height tip)) (+ (lut:y label) (lut:height label)))))
+     (assert (= (lut:width tip) (+ 16 (lut:text-width label (lut:text label))))))
+   (lut:dispose root)))
