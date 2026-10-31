@@ -151,3 +151,12 @@ input. A separate macOS OS-window resize attempt intermittently reported double
 the requested size (680 after requesting 340); that check did not pass reliably.
 Physical/native window resizing remains unverified, as does Linux/Windows native
 behavior. Explicit allocation tests do not establish OS window-size semantics.
+
+`panel` uses measured-box layout and paints its inherited `:surface`, border and corner
+styles before its children. It is retained by default and has no custom drawing
+callback. Use it for visually separate settings panes or grouped forms.
+
+Dialogs/popovers accept `:content-layout :fill` for a measured content tree.
+Popovers can set `:dismiss-on-outside-p nil` to retain modal scope on outside
+clicks. A dialog backdrop invalidates the whole owner once when opened/closed,
+then reuses retained pixels while idle.

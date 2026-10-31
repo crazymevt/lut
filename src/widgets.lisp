@@ -47,7 +47,8 @@
 (defwidget menu-separator (widget) "Noninteractive separator between menu actions; :SEPARATOR entries create these in drawn menus."
  ((height 8 (real 0 *) "Logical height reserved for the separator rule.")))
 (defwidget popover (dialog) "Pointer-positioned popup dismissed by an outside click."
- ((popup-owner nil (or null widget) "Control owning this popup, when applicable.")
+ ((dismiss-on-outside-p t boolean "Allow outside-click dismissal; NIL keeps modal surfaces open.")
+  (popup-owner nil (or null widget) "Control owning this popup, when applicable.")
   (position-mode :absolute (member :center :absolute) "Popup position is in root pixels.")
   (draggable-p nil boolean "Popups do not drag by default.")))
 (defwidget tooltip (popover) "Noninteractive tooltip surface." ())
@@ -129,10 +130,15 @@
  (declare (ignore x y width height))
  (dolist (c (active-children w)) (layout c (x c) (+ (y c) (line-height w)) (width c) (height c))))
 (defmethod layout :after ((w dialog) x y width height)
- (declare (ignore x y width height))
- (unless (or (native-p w) (typep w 'popover) (typep w 'context-menu))
-   (dolist (c (active-children w))
-     (layout c (x c) (+ (y c) (style-value w :title-height)) (width c) (height c)))))
+ (let ((title (if (or (native-p w) (typep w 'popover) (typep w 'context-menu)) 0 (style-value w :title-height))))
+   (if (eq (content-layout w) :fill)
+       (let ((pad (style-value w :padding)))
+         (dolist (child (active-children w))
+           (layout child (+ x pad) (+ y title pad) (max 0 (- width (* 2 pad)))
+                         (max 0 (- height title (* 2 pad))))))
+       (unless (zerop title)
+         (dolist (child (active-children w))
+           (layout child (x child) (+ (y child) title) (width child) (height child)))))))
 
 (defun sort-table (table column &key descending)
  "Stable-sort TABLE rows by the printed cell in zero-based COLUMN; emit :CHANGE with current selection."

@@ -1,7 +1,7 @@
 (in-package #:lut)
 
 (defparameter *window-cache-tile-size* 256)
-(defstruct window-tile-state (cache (make-render-cache)) ids (last-repaints 0) (repaints 0) (dynamic-paints 0) (frame 0) layout-key (layout-passes 0) present-key (last-present-time 0) (presents 0) ready-p)
+(defstruct window-tile-state defaults-key (cache (make-render-cache)) ids (last-repaints 0) (repaints 0) (dynamic-paints 0) (frame 0) layout-key (layout-passes 0) present-key (last-present-time 0) (presents 0) ready-p)
 
 (defun release-window-cache (root)
  (when *window-tile-caches*
@@ -58,7 +58,7 @@
            (window-tile-state-last-present-time state) (rl:get-time))
      (incf (window-tile-state-presents state)))))
 
-(defun widget-dynamic-p (widget)
+(defun widget-dynamic-p (widget &optional methods)
  (case (cache-mode widget)
    (:dynamic t) (:retained nil)
    (otherwise
@@ -74,11 +74,16 @@
                                   (not (eq (symbol-package (class-name specializer)) (find-package :lut)))))
                            #+sbcl (sb-mop:method-specializers method)
                            #+ccl (ccl:method-specializers method)))
-                   (compute-applicable-methods #'render (list widget))))
+                   (or methods (compute-applicable-methods #'render (list widget)))))
         (and (typep widget 'notebook)
              (some (lambda (page) (let ((action (page-action widget page)))
                                     (and action (notebook-action-draw-function action)))) (children widget)))))))
 (defun widget-paint-bounds (w)
+ ;; A modal backdrop affects the complete owner, not just the dialog rectangle.
+ (when (and (typep w 'dialog) (style-value w :backdrop-color))
+   (let ((root (root-of w)))
+     (when (typep root 'window)
+       (return-from widget-paint-bounds (list (x root) (y root) (width root) (height root))))))
  (let* ((spread (if (and (typep w 'dialog) (style-value w :shadow-color))
                     (+ (style-value w :shadow-spread) (abs (style-value w :shadow-offset))) 0))
         (margin (max 4 spread)))
@@ -87,22 +92,30 @@
  (and (eq (cache-mode w) :auto)
       (member (class-name (class-of w)) '(widget box window grid measured-box flow-box stack paned))))
 (defun window-paint-records (root frame)
- (let (records dynamic)
-   (labels ((visit (w parent-clip)
+ (let ((records nil) (dynamic nil) (font-stamps (make-hash-table :test #'equal)))
+   (labels ((font-stamp (path)
+              (when path
+                (multiple-value-bind (value present) (gethash path font-stamps)
+                  (if present value
+                      (setf (gethash path font-stamps) (font-file-stamp path))))))
+            (visit (w parent-clip)
               (when (and (visible-p w) (not (disposed-p w)))
-                (let* ((bounds (list (x w) (y w) (width w) (height w)))
+                (let* ((inert-p (cache-inert-container-p w))
+                       (methods (unless inert-p (compute-applicable-methods #'render (list w))))
+                       (dynamic-p (widget-dynamic-p w methods))
+                       (bounds (list (x w) (y w) (width w) (height w)))
                        (clip (intersect-rectangles bounds parent-clip))
                        (paint (intersect-rectangles (widget-paint-bounds w) parent-clip)))
-                  (when (and (plusp (third paint)) (plusp (fourth paint)) (not (cache-inert-container-p w)))
+                  (when (and (plusp (third paint)) (plusp (fourth paint)) (not inert-p))
                     (let ((font (style-value w :font)) (focused (focused-widget root)))
                       (push (list paint
                               (list (render-identity w) (render-revision w) bounds clip
                                     (widget-state w) (eq focused w) (and (eq focused w) (focus-visible-p root))
                                     (and (typep w 'search-control) (member focused (children w)) (focus-visible-p root) t)
-                                    (compute-applicable-methods #'render (list w))
-                                    (and font (ignore-errors (file-write-date font)))
-                                    (widget-render-key w) (and (widget-dynamic-p w) frame))) records)))
-                  (if (widget-dynamic-p w)
+                                    methods
+                                    (font-stamp font)
+                                    (widget-render-key w) (and dynamic-p frame))) records)))
+                  (if dynamic-p
                       (when (and (plusp (third paint)) (plusp (fourth paint))) (push (list w paint) dynamic))
                       (when (and (plusp (third clip)) (plusp (fourth clip)))
                         (dolist (child (active-children w)) (visit child clip))))))))
@@ -140,7 +153,10 @@
         (surfaces (make-hash-table)) (dynamic-ids nil) (ids nil) (dirty-ids nil)
         (cache (window-tile-state-cache state))
         (context (list (mapcar #'render-revision (style-roots root))
-                       (copy-tree *style-defaults*) (symbol-function 'draw-string) (symbol-function 'paint-surface)
+                       (let ((previous (window-tile-state-defaults-key state)))
+                         (if (equal previous *style-defaults*) previous
+                             (setf (window-tile-state-defaults-key state) (copy-tree *style-defaults*))))
+                       (symbol-function 'draw-string) (symbol-function 'paint-surface)
                        (and (slot-value root 'drag-context) frame)))
         (*cache-output-pixel-scale* pixel-scale)
         (*font-discovery-pass* (make-hash-table :test #'eq)))

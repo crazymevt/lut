@@ -107,6 +107,8 @@
 (defwidget measured-box (widget) "Opt-in linear layout using minimum/natural measurement and expansion constraints. Legacy BOX behavior stays explicit-size."
  ((orientation :vertical (member :horizontal :vertical) "Main allocation axis.")
   (spacing 8 (real 0 *) "Gap between visible children.")))
+(defwidget panel (measured-box) "Measured container with a retained background and border."
+ ())
 (defwidget flow-box (widget) "Opt-in horizontal measured controls wrapping into rows; measures height for available width."
  ((column-spacing 8 (real 0 *) "Horizontal gap within each row.")
   (row-spacing 8 (real 0 *) "Vertical gap between rows.")))

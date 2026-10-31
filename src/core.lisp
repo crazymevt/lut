@@ -150,7 +150,8 @@
 (defwidget drawing-area (widget) "Custom drawing callback receives widget during rendering."
  ((draw-function nil (or null function) "Backend-specific drawing callback.")))
 (defwidget dialog (box) "Dialog surface; the raylib backend opens it in a native worker window."
- ((modal-p t boolean "Block input to the owner while this native dialog is open.")
+ ((content-layout :box (member :box :fill) "Optional fill layout for a single dialog content tree.")
+  (modal-p t boolean "Block input to the owner while this native dialog is open.")
   (native-p nil boolean "Backend-managed native dialog presentation.")
   (text "Dialog" string "Dialog title.")
   (position-mode :center (member :center :absolute) "Centered until dragged, then absolute coordinates.")

@@ -11,7 +11,7 @@ raylib exposes no portable damage/expose event.
 
 This is invalidation-driven layout/painting with a lightweight native input
 pump, not an indefinitely blocking OS event loop. Idle iterations yield with
-`sleep` and pump input about every 16 ms so queued REPL work, timers, worker
+`sleep` and pump input about every 33 ms while idle so queued REPL work, timers, worker
 messages and animations remain responsive. Native blocking event-waiting is not
 enabled: the current raylib binding has no connected cross-thread wake API for
 those sources. Animating/dynamic content presents at the normal cadence.
@@ -135,3 +135,10 @@ regions (omitted argument). `render-cache-paint-count` reports successful paints
 for an ID or the cache total. `dispose` is idempotent; updates/draws after
 disposal signal an error. A cache belongs to one graphics context and must not
 be reused across windows or across context teardown/recreation.
+
+Retained windows share font-file timestamp checks per frame and reuse unchanged
+default-style snapshots. Bounded warm caches retain up to 32 cold font atlases
+and 128 cold image textures across idle frames; currently used resources survive
+the trim. Direct-render windows retain the existing per-frame disposal policy.
+Atlas keys include file timestamps, so replacing a font still refreshes it.
+Idle-only polling defaults to 30 Hz; active/dynamic painting uses normal cadence.

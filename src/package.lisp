@@ -18,7 +18,7 @@
    #:cell-grid #:grid-columns #:grid-rows #:grid-cell-metrics #:set-grid-cell-metrics
    #:grid-cell #:set-grid-cell #:grid-point-cell #:select-grid-cells #:clear-grid-selection
    #:grid-selected-text #:copy-grid-selection
-   #:measure #:measured-box #:flow-box #:row-spacing #:column-spacing
+   #:measure #:panel #:measured-box #:flow-box #:row-spacing #:column-spacing
    #:width-request #:height-request #:min-width #:min-height #:max-width #:max-height #:hexpand #:vexpand
    #:closable-p #:tab-badge #:request-page-close #:page-close-request
    #:close-request-page #:close-request-reason #:close-request-veto-p
@@ -66,7 +66,7 @@
    #:vertical-notebook #:tab-strip-width #:stack #:notebook #:grid #:paned #:header-bar #:menu-bar #:popover #:tooltip
    #:expander #:tree-view #:table-view #:column-view #:image #:file-chooser
    #:max-image-scale #:color-chooser #:font-chooser #:group #:columns #:rows #:nodes #:source
-   #:directory #:font-size #:expanded-p #:position-mode #:draggable-p #:detach-on-drag-p
+   #:directory #:font-size #:expanded-p #:dismiss-on-outside-p #:position-mode #:draggable-p #:detach-on-drag-p
    #:state-style #:style-rules #:style-source #:widget-state #:row-height #:line-height #:vertical-offset #:text-offset
    #:active-children #:tree-rows #:refresh-items #:select-page #:group-radios
    #:content-layout #:tooltip-text #:sort-table #:id #:find-widget #:dispose #:disposed-p #:off #:disconnect #:connection #:widget #:box #:window #:label #:button #:check-button #:entry

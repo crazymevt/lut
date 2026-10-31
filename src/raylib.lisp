@@ -4,6 +4,16 @@
 (defvar *tile-dynamic-surfaces* nil)
 (defvar *last-polled-pointer* nil)
 (defvar *last-controller-time* nil)
+(defvar *font-file-stamps* nil)
+(defun font-file-stamp (path)
+ (if *font-file-stamps*
+     (multiple-value-bind (value present) (gethash path *font-file-stamps*)
+       (if present value (setf (gethash path *font-file-stamps*) (ignore-errors (file-write-date path)))))
+     (ignore-errors (file-write-date path))))
+(defparameter *idle-poll-interval* (/ 1.0 30)
+ "Idle input/queued-work latency is bounded to about 33 ms. Active/dynamic rendering keeps its normal cadence.")
+(defparameter *retained-font-cache-limit* 32)
+(defparameter *retained-texture-cache-limit* 128)
 (defvar *controller-frame-dt* 0)
 (defun render-widget-node (widget)
  (let ((surface (and *tile-dynamic-surfaces* (gethash (render-identity widget) *tile-dynamic-surfaces*))))
@@ -259,7 +269,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
  (let* ((size (max 1 (round (* font-size (widget-raster-scale w)))))
         ;; Settings select a new path/size key; avoid filesystem checks on hot lookups.
         ;; EQUAL compares the set structure by identity, not its large code list.
-        (key (list (namestring (pathname path)) size set))
+        (key (list (namestring (pathname path)) size set (font-file-stamp path)))
         (hit (assoc key *font-cache* :test #'equal))
         (font (or (cdr hit)
                   (let ((font (load-covered-font path size (font-glyph-set-codes set))))
@@ -413,6 +423,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
                  (resolved-roundness w fw fh) 12 2 (style-value w :focus-color))))))
        (dolist (child (active-children w)) (render-widget-node child))))))
 (defmethod render ((w widget)) nil)
+(defmethod render ((w panel)) (paint-surface w (style-value w :surface)))
 (defmethod render ((w menu-separator))
  (let ((pad (style-value w :padding)))
    (rl:draw-line (+ (x w) pad) (+ (y w) (/ (height w) 2))
@@ -795,7 +806,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
              when (and char (not control)) do (send :text :text (string char)))))))
 (defun frame-step (w dt)
  "One frame, called by name so redefinition takes effect immediately."
- (let ((frame-start (rl:get-time)))
+ (let ((frame-start (rl:get-time)) (*font-file-stamps* (make-hash-table :test #'equal)))
  (when *last-controller-time* (setf dt (max 0 (- frame-start *last-controller-time*))))
  (setf *last-controller-time* frame-start *controller-frame-dt* dt)
  (setf *used-fonts* nil *used-textures* nil)
@@ -824,7 +835,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
      (progn
        ;; Service queued UI work/timers at the normal cadence, but do not redraw
        ;; or swap unchanged buffers. Sleep yields the CPU rather than busy-waiting.
-       (sleep (max 0 (- (/ 1.0 60) (- (rl:get-time) frame-start))))
+       (sleep (max 0 (- *idle-poll-interval* (- (rl:get-time) frame-start))))
        (rl:poll-input-events)))
  (sweep-native-resources)))
 (defun render-window (w)
@@ -918,15 +929,25 @@ WAIT waits for a primary launch and re-signals its errors on the caller after na
              (handler-case (setf result (call-next-method)) (error (e) (setf failure e))))))
        (when failure (error failure)) result)))
 
+(defun trim-retained-resources (cache used limit release)
+ ;; Keep warm atlases across cached frames; only evict cold entries over a bound.
+ (if (<= (length cache) limit) cache
+     (let ((count 0))
+       (delete-if (lambda (entry)
+                    (if (or (< count limit) (member (cdr entry) used :test #'eq))
+                        (progn (incf count) nil)
+                        (progn (funcall release (cdr entry)) t))) cache))))
 (defun sweep-native-resources ()
- "Release stale atlas/texture versions only after the frame's GPU drawing has flushed."
+ "Release stale resources after GPU drawing flushes. Retained windows keep bounded warm caches."
  (flush-retired-targets)
- (setf *font-cache*
-   (delete-if (lambda (entry) (unless (member (cdr entry) *used-fonts* :test #'eq)
-                               (rl:unload-font (cdr entry)) t)) *font-cache*))
- (setf *texture-cache*
-   (delete-if (lambda (entry) (unless (member (cdr entry) *used-textures* :test #'eq)
-                               (rl:unload-texture (cdr entry)) t)) *texture-cache*)))
+ (if (and *active-window* (cache-enabled-p *active-window*))
+     (setf *font-cache* (trim-retained-resources *font-cache* *used-fonts* *retained-font-cache-limit* #'rl:unload-font)
+           *texture-cache* (trim-retained-resources *texture-cache* *used-textures* *retained-texture-cache-limit* #'rl:unload-texture))
+     (progn
+       (setf *font-cache* (delete-if (lambda (entry) (unless (member (cdr entry) *used-fonts* :test #'eq)
+                                                     (rl:unload-font (cdr entry)) t)) *font-cache*))
+       (setf *texture-cache* (delete-if (lambda (entry) (unless (member (cdr entry) *used-textures* :test #'eq)
+                                                        (rl:unload-texture (cdr entry)) t)) *texture-cache*)))))
 
 (defun retire-render-target (target)
  (when target (pushnew target *retired-targets* :test #'eq)))
