@@ -8,3 +8,10 @@
 /webview/runtime/
 cef_debug.log
 debug.log
+
+/webview/deps/
+/webview/build-raylib/
+/webview/.sbcl/
+/webview/.sbcl-info.json
+/dist/
+__pycache__/

@@ -1,0 +1,89 @@
+{
+  "lisp": [
+    {
+      "name": "alexandria",
+      "url": "https://beta.quicklisp.org/archive/alexandria/2024-10-12/alexandria-20241012-git.tgz",
+      "directory": "alexandria-20241012-git",
+      "sha256": "dcdfc5bac229a952358dfe661f0860e8a02480e406d0d95dee4300cdc3d45b31"
+    },
+    {
+      "name": "babel",
+      "url": "https://beta.quicklisp.org/archive/babel/2026-01-01/babel-20260101-git.tgz",
+      "directory": "babel-20260101-git",
+      "sha256": "e30d399fdcdf6f540ba28185fb6d9e3ebb4219c1df314d861ef3ed26be38d08d"
+    },
+    {
+      "name": "bordeaux-threads",
+      "url": "https://beta.quicklisp.org/archive/bordeaux-threads/2024-10-12/bordeaux-threads-v0.9.4.tgz",
+      "directory": "bordeaux-threads-v0.9.4",
+      "sha256": "7646fe243a5f12274e7d3296b03b178c12c21d03f8eab4805147d6f1ecac3024"
+    },
+    {
+      "name": "cffi",
+      "url": "https://beta.quicklisp.org/archive/cffi/2026-01-01/cffi-20260101-git.tgz",
+      "directory": "cffi-20260101-git",
+      "sha256": "c4935fbb8ed96a062e9f2315f6566b53d3ec90a1d00c001cac908d242a8d84e6"
+    },
+    {
+      "name": "cl-base64",
+      "url": "https://beta.quicklisp.org/archive/cl-base64/2020-10-16/cl-base64-20201016-git.tgz",
+      "directory": "cl-base64-20201016-git",
+      "sha256": "3ff50faf5ddccd409f8954eb70c2d4e76329cc916f070de95f79c7ecf6d3a2f1"
+    },
+    {
+      "name": "global-vars",
+      "url": "https://beta.quicklisp.org/archive/global-vars/2014-11-06/global-vars-20141106-git.tgz",
+      "directory": "global-vars-20141106-git",
+      "sha256": "f294843bb31144034e1370df1634dd74f24e617e3abb9c00c17927eda2ae4f2e"
+    },
+    {
+      "name": "trivial-features",
+      "url": "https://beta.quicklisp.org/archive/trivial-features/2025-06-22/trivial-features-20250622-git.tgz",
+      "directory": "trivial-features-20250622-git",
+      "sha256": "d8c9686e0425ea6f2cc8e18139a80bb082c44a23ac68fd455e5c74848b42257a"
+    },
+    {
+      "name": "trivial-garbage",
+      "url": "https://beta.quicklisp.org/archive/trivial-garbage/2023-10-21/trivial-garbage-20231021-git.tgz",
+      "directory": "trivial-garbage-20231021-git",
+      "sha256": "b29529bc3615ef373bcd8705b991709939dbcdf1071da494b1bf8e33c46d006a"
+    }
+  ],
+  "binding": {
+    "url": "https://codeload.github.com/crazymevt/raylib/tar.gz/5067ccbeae78d46684f54b2fc52a7a85b68ca846",
+    "sha256": "c35b98840f5183615c547df1d4e04f8e7d9e435b88279650d7e11fc333ef4c3e",
+    "commit": "5067ccbeae78d46684f54b2fc52a7a85b68ca846"
+  },
+  "sbcl": {
+    "version": "2.6.10",
+    "linux": {
+      "url": "https://prdownloads.sourceforge.net/sbcl/sbcl-2.6.10-x86-64-linux-binary.tar.bz2",
+      "sha256": "96e26b0be3aa6ca2a3f03dfd5fc117647fffb96790a9c235e8dcf27df2eba726"
+    },
+    "windows": {
+      "name": "sbcl-2.6.10-windows.msi",
+      "url": "https://prdownloads.sourceforge.net/sbcl/sbcl-2.6.10-x86-64-windows-binary.msi",
+      "sha256": "4b13b36f4169873b9f5605e977d51f346a12422eff73e5bfdf38aca6a1c4b5f3"
+    }
+  },
+  "raylib": {
+    "Darwin": {
+      "name": "raylib-6.2_macos.tar.gz",
+      "url": "https://github.com/raysan5/raylib/releases/download/6.2/raylib-6.2_macos.tar.gz",
+      "sha256": "100437734a44d56ed9d2a1c4b249dbfc6d6cc3477a45e306f9f56fe5f1e2b4ef",
+      "directory": "raylib-6.2_macos"
+    },
+    "Linux": {
+      "name": "raylib-6.2_linux_amd64.tar.gz",
+      "url": "https://github.com/raysan5/raylib/releases/download/6.2/raylib-6.2_linux_amd64.tar.gz",
+      "sha256": "586bbc32f3596d439382b1c5dbc6c1c573eb7e1d00fe92be7d4deb116883720d",
+      "directory": "raylib-6.2_linux_amd64"
+    },
+    "Windows": {
+      "name": "raylib-6.2_win64_msvc16.zip",
+      "url": "https://github.com/raysan5/raylib/releases/download/6.2/raylib-6.2_win64_msvc16.zip",
+      "sha256": "8467b5dd6db4d7ab942f3148a3d30d93be6ed9b2fab88069d177e59604268ebd",
+      "directory": "raylib-6.2_win64_msvc16"
+    }
+  }
+}

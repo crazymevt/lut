@@ -1,7 +1,5 @@
-(require :asdf)
-(load (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname)))
-(asdf:load-asd (merge-pathnames "../../lut.asd" *load-truename*))
-(ql:quickload "lut/cef" :silent t)
+(load (merge-pathnames "../scripts/bootstrap.lisp" *load-truename*))
+(asdf:load-system "lut/cef")
 ;; Same LUT window/chrome and an empty webview surface, with no CEF initialized.
 ;; This separates the toolkit's idle process cost from the CEF-enabled sample.
 (rl:run (lambda ()

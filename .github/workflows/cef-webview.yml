@@ -1,23 +1,22 @@
-name: CEF webview native build
+name: Cross-platform LUT webview
 on:
   workflow_dispatch:
   push:
     branches: ['**']
   pull_request:
-
 permissions:
   contents: read
 concurrency:
   group: cef-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  build:
+  check:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, ubuntu-22.04, windows-2022]
+        os: [macos-15, ubuntu-22.04, windows-2022]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,5 +24,67 @@ jobs:
           python-version: '3.12'
       - uses: ilammy/msvc-dev-cmd@v1
         if: runner.os == 'Windows'
+      - name: Linux desktop libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb libgl1-mesa-dri libgl1 libasound2 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgbm1 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxkbcommon0 libgtk-3-0
+      - name: Set up isolated SBCL
+        run: python webview/scripts/setup-sbcl.py
+      - name: Prepare pinned Lisp dependencies and raylib
+        run: python webview/scripts/prepare.py
+      - name: Headless LUT regression suite
+        run: sbcl --script webview/tests/headless.lisp
       - name: Build pinned CEF bridge and stage runtime
         run: python webview/scripts/build.py --download
+      - uses: ssciwr/setup-mesa-dist-win@v2
+        if: runner.os == 'Windows'
+      - name: Native Linux smoke test
+        if: runner.os == 'Linux'
+        env:
+          LUT_WEBVIEW_SMOKE: '1'
+          LUT_WEBVIEW_FRAMES: '600'
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a -s '-screen 0 1280x900x24' sbcl --script webview/scripts/run.lisp
+      - name: Native macOS and Windows smoke test
+        if: runner.os != 'Linux'
+        env:
+          LUT_WEBVIEW_SMOKE: '1'
+          LUT_WEBVIEW_FRAMES: '600'
+        run: sbcl --script webview/scripts/run.lisp
+      - name: Assemble offline Windows/Linux test bundle
+        if: runner.os != 'macOS'
+        run: python webview/scripts/package.py
+      - name: Test extracted Windows bundle
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          LUT_WEBVIEW_SMOKE: '1'
+          LUT_WEBVIEW_FRAMES: '600'
+        run: |
+          Expand-Archive dist/lut-webview-windows-x64.zip -DestinationPath "$env:RUNNER_TEMP/relocated bundle"
+          & "$env:RUNNER_TEMP/relocated bundle/lut-webview-windows-x64/test.cmd"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test extracted Linux bundle on Fedora
+        if: runner.os == 'Linux'
+        run: |
+          docker run --rm -v "$PWD/dist:/dist:ro" fedora:latest bash -lc '
+            set -e
+            dnf install -y xorg-x11-server-Xvfb mesa-libGL mesa-dri-drivers nss atk at-spi2-atk libXcomposite libXdamage libXrandr libxkbcommon alsa-lib cups-libs gtk3 tar gzip
+            mkdir -p "/tmp/relocated bundle"
+            tar -xzf /dist/lut-webview-linux-x64.tar.gz -C "/tmp/relocated bundle"
+            Xvfb :99 -screen 0 1280x900x24 >/tmp/xvfb.log 2>&1 &
+            sleep 2
+            cd "/tmp/relocated bundle/lut-webview-linux-x64"
+            DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 LUT_WEBVIEW_SMOKE=1 LUT_WEBVIEW_FRAMES=600 timeout 180 ./start.sh
+          '
+      - uses: actions/upload-artifact@v4
+        if: runner.os != 'macOS'
+        with:
+          name: lut-webview-${{ runner.os }}-x64
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 30

@@ -43,7 +43,7 @@ def main():
     if f'"{VERSION}"' not in header:
         raise SystemExit(f'This prototype requires CEF {VERSION}')
     build = ROOT / 'build'
-    run('cmake', '-S', ROOT/'native', '-B', build, f'-DCEF_ROOT={sdk}', '-DCMAKE_BUILD_TYPE=Release',
+    run('cmake', '-S', ROOT/'native', '-B', build, f'-DCEF_ROOT={sdk.as_posix()}', '-DCMAKE_BUILD_TYPE=Release',
         *(['-DPROJECT_ARCH=arm64' if machine == 'arm64' else '-DPROJECT_ARCH=x86_64'] if system == 'Darwin' else []))
     run('cmake', '--build', build, '--config', 'Release', '--parallel', '4')
     runtime = ROOT / 'runtime'
