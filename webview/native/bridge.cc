@@ -200,7 +200,7 @@ void lut_cef_key(void* p,int key,int modifiers) {
 }
 void lut_cef_text(void* p,const char* text) {
   if(auto b=browser(p)) { CefString s(text); auto u=s.ToString16();
-    for(auto ch:u) { CefKeyEvent e; e.type=KEYEVENT_CHAR;e.character=ch;e.unmodified_character=ch;b->GetHost()->SendKeyEvent(e); }
+    for(auto ch:u) { CefKeyEvent e; e.type=KEYEVENT_CHAR;e.windows_key_code=ch;e.character=ch;e.unmodified_character=ch;b->GetHost()->SendKeyEvent(e); }
   }
 }
 const void* lut_cef_frame(void* p,int* w,int* h,uint64_t* r) { auto v=view(p); *w=v->pixel_width;*h=v->pixel_height;*r=v->revision;return v->pixels.empty()?nullptr:v->pixels.data(); }

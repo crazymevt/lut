@@ -79,18 +79,19 @@ jobs:
       - name: Test extracted Linux bundle on Fedora
         if: runner.os == 'Linux'
         run: |
-          docker run --rm -v "$PWD/dist:/dist:ro" fedora:latest bash -lc '
-            set -e
+          docker run --rm --shm-size=1g -v "$PWD/dist:/dist:ro" fedora:latest bash -lc '
+            set -eux
+            cat /etc/os-release
             dnf install -y xorg-x11-server-Xvfb mesa-libGL mesa-dri-drivers nss atk at-spi2-atk libXcomposite libXdamage libXrandr libxkbcommon alsa-lib cups-libs gtk3 tar gzip
             mkdir -p "/tmp/relocated bundle"
             tar -xzf /dist/lut-webview-linux-x64.tar.gz -C "/tmp/relocated bundle"
             Xvfb :99 -screen 0 1280x900x24 >/tmp/xvfb.log 2>&1 &
             sleep 2
             cd "/tmp/relocated bundle/lut-webview-linux-x64"
-            DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 LUT_WEBVIEW_SMOKE=1 LUT_WEBVIEW_FRAMES=600 timeout 180 ./start.sh
+            DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 LUT_WEBVIEW_SMOKE=1 LUT_WEBVIEW_FRAMES=600 timeout 180 sh -x ./start.sh
           '
       - uses: actions/upload-artifact@v4
-        if: runner.os != 'macOS'
+        if: always() && runner.os != 'macOS' && hashFiles('dist/*.sha256') != ''
         with:
           name: lut-webview-${{ runner.os }}-x64
           path: |
