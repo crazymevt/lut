@@ -385,3 +385,26 @@ Linux/Windows native execution, physical input, full 108-window native rendering
 and packaging were not run for these history/launcher changes. No cell-grid or
 terminal feature expansion is included, and Argon must opt into the new policy
 when its editor adapter is ready.
+
+
+## Default retained widget rendering
+
+`tests/widget-cache-native.lisp` checks idle reuse, localized text invalidation,
+selection/styles, hover, inherited themes, child movement/removal, custom drawing
+frequency and direct/cached pixel parity at 100/125/200%. Opaque output matches
+exactly; transparent dynamic surfaces allow one color level for intermediate
+8-bit rounding. `tests/widget-cache-performance.lisp` measures actual demo CPU
+per frame and requires zero idle tile repaints. Standard native windows,
+polished-control screenshots, demo traversal and resource cleanup run under the
+default cached loop. SBCL and CCL portable/cache-parity checks pass locally on
+macOS ARM64. `cache-enabled-p` provides a direct-rendering comparison.
+
+
+Idle-loop regression checks also require no extra layout passes after warmup and
+at most five presentations in a 120-iteration idle run. Input/REPL servicing
+continues at a bounded cadence even when buffer swaps are skipped. Controller
+`:tick` deltas use monotonic elapsed time so skipping raylib EndDrawing does not
+freeze timer deltas. Native window/focus/resize changes request presentation.
+
+`tests/idle-native.lisp` checks cross-thread queued-work delivery, monotonic
+timer deltas and limited idle presentation; it passes on SBCL and CCL locally.

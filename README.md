@@ -268,8 +268,11 @@ and text/caret styling.
 
 ## Render-texture regions
 
-`lut/render-cache` provides reusable native region caching without requiring a
-LUT widget tree. It is also loaded by `lut/raylib`. See
+Native windows use retained region caching by default: widget changes dirty only
+the overlapping tiles. Custom views can call `invalidate-widget` or supply a
+`widget-render-key`; `cache-mode :dynamic` preserves continuous drawing, and
+root `cache-enabled-p` disables caching. The standalone `lut/render-cache` API
+also provides native region caching without requiring a LUT widget tree. It is also loaded by `lut/raylib`. See
 [the cache API and lifecycle example](docs/render-cache.md).
 Run `make test-render-cache-ui` for native reuse, clipping, HiDPI, fractional zoom,
 transparency, explicit invalidation and error-retry checks.

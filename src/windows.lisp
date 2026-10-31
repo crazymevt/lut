@@ -26,7 +26,7 @@
        :control-p (event-control-p e) :alt-p (event-alt-p e) :super-p (event-super-p e) :base-key (event-base-key e)
        :timestamp (event-timestamp e) :click-count (event-click-count e)))
 (defun encode-remote-frame (remote)
- "Render every frame for live code/custom drawing, but PNG-encode only changed pixels.
+ "Reuse clean retained frames; render dynamic/custom drawing and PNG-encode changed pixels.
 NIL means keep the worker's existing texture; control/input round trips continue."
  (let* ((root (remote-window-root remote)) (width (max 1 (round (* (width root) (ui-scale root)))))
         (height (max 1 (round (* (height root) (ui-scale root))))) (target (remote-window-target remote)))
@@ -34,8 +34,14 @@ NIL means keep the worker's existing texture; control/input round trips continue
                        (= height (rl:texture-height (rl:render-texture-texture target))))
      (when target (retire-render-target target))
      (setf target (rl:load-render-texture width height) (remote-window-target remote) target))
+   (let ((prepared (prepare-window-cache root :pixel-scale 1)))
+     (when (and prepared (zerop (window-tile-state-last-repaints prepared))
+                (remote-window-last-pixels remote)
+                (equal (list width height) (remote-window-last-size remote)))
+       (return-from encode-remote-frame nil)))
    (rl:with-texture-mode (target)
-     (rl:clear-background (style-value root :background)) (render-window root))
+     (rl:clear-background (style-value root :background))
+     (let ((*composite-window-cache* (render-identity root))) (render-window root)))
    (let ((image (rl:load-image-from-texture (rl:render-texture-texture target))))
      (unwind-protect
        (progn
@@ -108,11 +114,11 @@ NIL means keep the worker's existing texture; control/input round trips continue
      (retire-render-target (remote-window-target remote)) (setf (remote-window-target remote) nil))
    (let ((root (remote-window-root remote)))
      (when (and (remote-window-alive-p remote) root (not (disposed-p root)))
-       (emit root :tick (if *active-window* (rl:get-frame-time) 0))
+       (emit root :tick (if *active-window* *controller-frame-dt* 0))
        (when (and (eq root (remote-window-root remote)) (not (disposed-p root)))
-         (open-pending-dialogs root) (layout-window root)
-         (advance-text-selection root (if *active-window* (rl:get-frame-time) 0))
-         (advance-drag root (if *active-window* (rl:get-frame-time) 0))
+         (open-pending-dialogs root) (layout-window-if-needed root (width root) (height root))
+         (advance-text-selection root (if *active-window* *controller-frame-dt* 0))
+         (advance-drag root (if *active-window* *controller-frame-dt* 0))
          (send-snapshot remote))))))
 (defun spawn-window (window &key position (style-source *active-window*) (flags '(:window-resizable)))
  "Open WINDOW in a native worker process. Its objects and event callbacks stay in this REPL.
@@ -307,6 +313,7 @@ This is an intentional REPL evaluation API over private child-process pipes; nev
 
 (defun finalize-remote-window (remote)
  (let ((root (remote-window-root remote)))
+   (when root (release-window-cache root))
    (when root
      (handler-case (if (window-drag-controller root)
                        (unregister-drag-window (window-drag-controller root) root)

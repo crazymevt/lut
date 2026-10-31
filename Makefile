@@ -20,3 +20,11 @@ test-render-cache-ui:
 .PHONY: test-data-renderer-ui
 test-data-renderer-ui:
 	$(SBCL) --non-interactive --load tests/data-renderer-native.lisp
+
+.PHONY: test-widget-cache-ui benchmark-widget-cache
+test-widget-cache-ui:
+	$(SBCL) --script tests/widget-cache-native.lisp
+	$(SBCL) --script tests/idle-native.lisp
+
+benchmark-widget-cache:
+	$(SBCL) --script tests/widget-cache-performance.lisp

@@ -6,6 +6,11 @@
 (defvar *render-target-y* 0)
 (defvar *render-pixel-scale-x* 1)
 (defvar *render-pixel-scale-y* 1)
+(defvar *cache-output-pixel-scale* nil
+ "Internal destination backing scale override for controller-rendered worker windows.")
+(defvar *render-cache-painting* nil)
+(defvar *preserve-cache-contents* nil
+ "Internal dirty-composite updates keep untouched opaque pixels in an existing target.")
 
 (defun render-scissor-box (x y width height &key (scale *render-ui-scale*))
   "Convert a logical clip to native pixels for the active screen/texture target."
@@ -98,8 +103,8 @@ the cache before closing its native context. Hidden regions may simply be omitte
       (return-from update-cached-region (values nil nil)))
     (let* ((region (or (gethash id (render-cache-regions cache))
                        (setf (gethash id (render-cache-regions cache)) (make-cached-region))))
-           (sx (/ (rl:get-render-width) (max 1 (rl:get-screen-width))))
-           (sy (/ (rl:get-render-height) (max 1 (rl:get-screen-height))))
+           (sx (or *cache-output-pixel-scale* (/ (rl:get-render-width) (max 1 (rl:get-screen-width)))))
+           (sy (or *cache-output-pixel-scale* (/ (rl:get-render-height) (max 1 (rl:get-screen-height)))))
            (scale-x (* scale sx)) (scale-y (* scale sy))
            (left (floor (* x scale-x))) (top (floor (* y scale-y)))
            (width-px (max 1 (- (ceiling (* (+ x width) scale-x)) left)))
@@ -109,11 +114,13 @@ the cache before closing its native context. Hidden regions may simply be omitte
                           (list (rl:color-r background) (rl:color-g background)
                                 (rl:color-b background) (rl:color-a background))
                           (copy-tree background)) key))
-           (target (cached-region-target region)))
+           (target (cached-region-target region))
+           (preserve (and *preserve-cache-contents* target (cached-region-key region))))
       (when (or (null target)
                 (/= width-px (rl:texture-width (rl:render-texture-texture target)))
                 (/= height-px (rl:texture-height (rl:render-texture-texture target))))
         (when target (rl:unload-render-texture target))
+        (setf preserve nil)
         (setf (cached-region-target region) nil (cached-region-key region) nil)
         (setf target (rl:load-render-texture width-px height-px))
         (unless (rl:is-render-texture-valid target)
@@ -126,7 +133,8 @@ the cache before closing its native context. Hidden regions may simply be omitte
             (let ((*render-target-x* (/ left scale-x)) (*render-target-y* (/ top scale-y))
                   (*render-pixel-scale-x* sx) (*render-pixel-scale-y* sy))
               (rl:with-texture-mode (target)
-                (let* ((color (etypecase background
+                (unless preserve
+                 (let* ((color (etypecase background
                                 (rl:color background)
                                 (list (apply #'rl:color background))
                                 ((or symbol integer) (rl:color background))))
@@ -134,13 +142,14 @@ the cache before closing its native context. Hidden regions may simply be omitte
                   (rl:clear-background (rl:color (round (* alpha (rl:color-r color)))
                                                 (round (* alpha (rl:color-g color)))
                                                 (round (* alpha (rl:color-b color)))
-                                                (rl:color-a color))))
+                                                (rl:color-a color)))))
                 ;; RGB uses ordinary alpha blending; coverage must accumulate
                 ;; with ONE so glyph edges do not lower an opaque target's alpha.
                 (cffi:foreign-funcall "rlSetBlendFactorsSeparate"
                   :int #x0302 :int #x0303 :int 1 :int #x0303 :int #x8006 :int #x8006 :void)
-                (rl:with-blend-mode (:custom-separate)
-                  (call-with-render-transform painter :scale scale))))
+                (let ((*render-cache-painting* t))
+                  (rl:with-blend-mode (:custom-separate)
+                    (call-with-render-transform painter :scale scale)))))
             (setf (cached-region-key region) key
                   (cached-region-box region)
                   (list (/ left scale-x) (/ top scale-y) (/ width-px scale-x) (/ height-px scale-y)))
@@ -154,8 +163,9 @@ the cache before closing its native context. Hidden regions may simply be omitte
     (when (and region (cached-region-key region))
       (destructuring-bind (x y width height) (cached-region-box region)
         (let ((texture (rl:render-texture-texture (cached-region-target region))))
-          (rl:with-blend-mode (:alpha-premultiply)
+          (unwind-protect (rl:with-blend-mode (:alpha-premultiply)
             (rl:draw-texture-pro texture
             (rl:rect 0 0 (rl:texture-width texture) (- (rl:texture-height texture)))
-            (rl:rect x y width height) (rl:vec2 0 0) 0 :white))))
+            (rl:rect x y width height) (rl:vec2 0 0) 0 :white))
+            (when *render-cache-painting* (rl:begin-blend-mode :custom-separate)))))
       t)))

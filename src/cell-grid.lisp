@@ -69,7 +69,8 @@
  (unless (and (grid-color-p foreground) (grid-color-p background)) (error "Colours must be NIL or four RGBA bytes."))
  (check-type bold boolean) (check-type underline boolean)
  (setf (aref (grid-data grid) row column)
-       (list :character character :foreground (copy-list foreground) :background (copy-list background) :bold bold :underline underline)) grid)
+       (list :character character :foreground (copy-list foreground) :background (copy-list background) :bold bold :underline underline))
+ (invalidate-widget grid) grid)
 (defun grid-point-cell (grid px py &key clamp)
  "Map root logical coordinates to column,row; outside returns NIL,NIL unless CLAMP. Empty grids return NIL,NIL."
  (ensure-live grid)

@@ -1,7 +1,8 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:render-data-table #:render-data-scroll-container
+  (:export #:request-layout #:invalidate-widget #:cache-mode #:cache-enabled-p #:widget-render-key #:window-cache-statistics
+   #:render-data-table #:render-data-scroll-container
    #:render-cache #:make-render-cache #:update-cached-region #:draw-cached-region
    #:invalidate-render-cache #:render-cache-paint-count #:render-scissor-box #:call-with-render-transform
    #:capture-pointer #:release-pointer #:pointer-captured-p #:resize-handle #:resize-axis
