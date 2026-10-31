@@ -174,6 +174,11 @@ HISTORY-RETAIN-NEWEST-P keeps the newest record over a positive character budget
                (undo-history buffer) (bounded-buffer-history buffer (cons record (undo-history buffer)))
                (redo-history buffer) nil
                overflow-record record overflow-stack :undo))
+       ;; Shared edits update slots directly. Containers still need one layout
+       ;; request when extents change, including equal-length newline edits.
+       (dolist (view views)
+         (when (and (not (disposed-p view)) (eq (view-buffer view) buffer))
+           (request-layout view)))
        (let ((overflow (history-overflow-payload buffer overflow-record (or history-direction :edit) overflow-stack)))
          (setf (slot-value buffer 'buffer-notifying-p) t)
          (unwind-protect

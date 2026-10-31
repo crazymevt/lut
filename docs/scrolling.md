@@ -139,3 +139,6 @@ axes. Headers and cells scroll together, row selection is retained, and only
 visible columns are painted. Shift+wheel scrolls horizontally; Left/Right reveals
 the active column. `scroll-geometry` and `scroll-to` accept `:horizontal` for these
 tables just as they do for text views.
+
+Shared-buffer edits request layout so embedded scrollbar extents also update
+after replacements that preserve character count but change lines.
