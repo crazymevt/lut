@@ -1,7 +1,8 @@
 (defpackage #:lut-webview
   (:use #:cl)
   (:export #:webview #:navigate #:go-back #:go-forward #:reload-page #:stop-loading
-           #:page-title #:page-url #:loading-p #:load-error #:run-demo #:statistics))
+           #:page-title #:page-url #:loading-p #:load-error #:run-demo #:statistics #:execute-script #:attach-webview #:pump-webviews
+           #:initialize-cef #:close-session #:webviews-ready-p #:runtime-available-p #:call-with-native-run))
 (in-package #:lut-webview)
 (defclass webview (lut:widget)
  ((handle :initform nil :accessor handle)
@@ -9,6 +10,7 @@
   (native-size :initform nil :accessor native-size)
   (revision :initform 0 :accessor revision)
   (initial-url :initarg :url :initform "about:blank" :reader initial-url)
+  (local-messages-p :initarg :local-messages-p :initform nil :reader local-messages-p)
   (page-title :initform "" :reader page-title)
   (page-url :initform "" :reader page-url)
   (loading-p :initform t :reader loading-p)
@@ -24,3 +26,9 @@
 (defgeneric go-forward (view))
 (defgeneric reload-page (view))
 (defgeneric stop-loading (view))
+
+(defgeneric execute-script (view script))
+
+(defgeneric webviews-ready-p ())
+(defmethod webviews-ready-p () nil)
+(defgeneric attach-webview (view window))

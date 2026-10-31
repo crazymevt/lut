@@ -20,6 +20,11 @@ LUT_CEF_API void lut_cef_release(void* view);
 LUT_CEF_API void lut_cef_resize(void* view, int width, int height, double scale);
 LUT_CEF_API void lut_cef_state(void* view, int focus, int hidden);
 LUT_CEF_API void lut_cef_navigate(void* view, const char* url);
+/* Opt-in local-page messaging. Enabling locks top-level navigation to URL.
+   Messages are JSON strings from a page-owned console bridge; max 1 MiB each. */
+LUT_CEF_API void lut_cef_messages(void* view, const char* trusted_url);
+LUT_CEF_API int lut_cef_execute(void* view, const char* script);
+LUT_CEF_API const char* lut_cef_message(void* view);
 LUT_CEF_API void lut_cef_command(void* view, int command);
 LUT_CEF_API void lut_cef_mouse(void* view, int kind, int x, int y, int modifiers, int delta);
 LUT_CEF_API void lut_cef_key(void* view, int key, int modifiers);

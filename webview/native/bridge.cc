@@ -12,8 +12,13 @@
 #include "include/cef_command_line.h"
 #include <string>
 #include <vector>
+#include <deque>
+#include <filesystem>
+#include <chrono>
+#include "include/cef_request_handler.h"
 #ifndef _WIN32
 #include <signal.h>
+#include <unistd.h>
 #endif
 #ifdef __APPLE__
 #include "include/wrapper/cef_library_loader.h"
@@ -28,14 +33,16 @@ class BridgeApp final : public CefApp {
   IMPLEMENT_REFCOUNTING(BridgeApp);
 };
 bool initialized = false;
+std::filesystem::path profile;
 int live = 0;
 class View final : public CefClient, public CefRenderHandler,
                    public CefLifeSpanHandler, public CefDisplayHandler,
-                   public CefLoadHandler, public CefContextMenuHandler {
+                   public CefLoadHandler, public CefContextMenuHandler, public CefRequestHandler {
  public:
   int width, height; double scale; bool focus=false, hidden=false; bool closed = false, closing = false, loading = true;
   uint64_t revision = 0;
-  std::string title, url, error;
+  std::string title, url, error, trusted_url, last_message;
+  std::deque<std::string> messages;
   std::vector<unsigned char> pixels;
   int pixel_width = 0, pixel_height = 0;
   CefRefPtr<CefBrowser> browser;
@@ -46,6 +53,23 @@ class View final : public CefClient, public CefRenderHandler,
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return this; }
   CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
   CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override { return this; }
+  CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
+  bool OnBeforeBrowse(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>,
+                      CefRefPtr<CefRequest> request, bool, bool) override {
+    // A privileged local shell never becomes an arbitrary web browser.
+    return !trusted_url.empty() && request->GetURL().ToString() != trusted_url;
+  }
+  bool OnConsoleMessage(CefRefPtr<CefBrowser> b, cef_log_severity_t,
+                        const CefString& message, const CefString& source, int) override {
+    const std::string prefix="LUT_LOCAL_MESSAGE:";
+    auto text=message.ToString();
+    if(trusted_url.empty() || b->GetMainFrame()->GetURL().ToString()!=trusted_url ||
+       source.ToString()!=trusted_url || text.compare(0,prefix.size(),prefix)!=0) return false;
+    if(text.size()>1048576 || messages.size()>=128) {
+      error="Local page message limit exceeded"; return true;
+    }
+    messages.push_back(text.substr(prefix.size())); return true;
+  }
   void GetViewRect(CefRefPtr<CefBrowser>, CefRect& r) override { r = CefRect(0, 0, width, height); }
   bool GetScreenInfo(CefRefPtr<CefBrowser>, CefScreenInfo& info) override {
     info.device_scale_factor=scale;
@@ -118,7 +142,22 @@ int lut_cef_init(const char* runtime, const char* helper) {
   CefSettings settings;
   settings.no_sandbox=true; // Explicit development-only build, see README.
   settings.windowless_rendering_enabled=true;
-  CefString(&settings.root_cache_path)=std::string(runtime)+"/cache";
+  // Ephemeral per-host profile: independent editor processes do not share
+  // Chromium's SingletonLock or need write access to the installed runtime.
+  std::error_code profile_error;
+  auto temporary=std::filesystem::temp_directory_path(profile_error);
+  if(profile_error) return 0;
+#ifdef _WIN32
+  auto process_id=GetCurrentProcessId();
+#else
+  auto process_id=getpid();
+#endif
+  profile=temporary/("lut-cef-"+std::to_string(process_id)+"-"+
+    std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  std::filesystem::create_directory(profile,profile_error);
+  if(profile_error) return 0;
+  auto profile_utf8=profile.u8string();
+  CefString(&settings.root_cache_path)=std::string(profile_utf8.begin(),profile_utf8.end());
   CefString(&settings.browser_subprocess_path)=helper;
 #ifndef __APPLE__
   CefString(&settings.resources_dir_path)=runtime;
@@ -139,12 +178,14 @@ int lut_cef_init(const char* runtime, const char* helper) {
 #ifndef _WIN32
   for(int i=0;i<5;++i) sigaction(signals[i],&previous[i],nullptr);
 #endif
+  if(!initialized) std::filesystem::remove_all(profile,profile_error);
   return initialized;
 }
 void lut_cef_pump() { if(initialized) CefDoMessageLoopWork(); }
 int lut_cef_shutdown() {
   if(!initialized || live) return 0;
-  CefShutdown(); initialized=false; return 1;
+  CefShutdown(); initialized=false;
+  std::error_code ignored; std::filesystem::remove_all(profile,ignored); return 1;
 }
 void* lut_cef_create(const char* url, int w, int h, double scale) {
   if(!initialized || w<1 || h<1 || scale<=0 || w*scale>8192 || h*scale>8192) return nullptr;
@@ -163,8 +204,33 @@ void lut_cef_resize(void* p,int w,int h,double scale) {
   v->width=w; v->height=h; v->scale=scale; if(v->browser) { v->browser->GetHost()->NotifyScreenInfoChanged(); v->browser->GetHost()->WasResized(); }
 }
 void lut_cef_state(void* p,int focus,int hidden) { view(p)->focus=focus;view(p)->hidden=hidden; if(auto b=browser(p)) { b->GetHost()->SetFocus(focus); b->GetHost()->WasHidden(hidden); } }
-void lut_cef_navigate(void* p,const char* url) { if(auto b=browser(p)) b->GetMainFrame()->LoadURL(url); }
-void lut_cef_command(void* p,int cmd) { if(auto b=browser(p)) switch(cmd) { case 0:b->GoBack();break; case 1:b->GoForward();break; case 2:b->Reload();break; case 3:b->StopLoad();break; } }
+void lut_cef_navigate(void* p,const char* url) {
+  auto v=view(p); CefURLParts parts;
+  if(!v->trusted_url.empty() && (!CefParseURL(url,parts) ||
+     v->trusted_url!=CefString(&parts.spec).ToString())) return;
+  if(auto b=browser(p)) b->GetMainFrame()->LoadURL(url);
+}
+void lut_cef_messages(void* p,const char* url) {
+  auto v=view(p); const std::string target=url?url:"";
+  // Canonicalize spaces, Unicode and Windows paths exactly as Chromium does.
+  // Privileges cannot be granted to network documents or changed after enable.
+  CefURLParts parts;
+  if(v->trusted_url.empty() && CefParseURL(target,parts) &&
+     CefString(&parts.scheme).ToString()=="file" &&
+     (CefString(&parts.host).empty() || CefString(&parts.host).ToString()=="localhost"))
+    v->trusted_url=CefString(&parts.spec).ToString();
+}
+int lut_cef_execute(void* p,const char* script) {
+  auto v=view(p); auto b=browser(p);
+  if(!b || v->closing || v->trusted_url.empty() ||
+     b->GetMainFrame()->GetURL().ToString()!=v->trusted_url || !script || std::strlen(script)>4194304) return 0;
+  b->GetMainFrame()->ExecuteJavaScript(script,v->trusted_url,1); return 1;
+}
+const char* lut_cef_message(void* p) {
+  auto v=view(p); if(v->messages.empty()) return nullptr;
+  v->last_message=std::move(v->messages.front()); v->messages.pop_front(); return v->last_message.c_str();
+}
+void lut_cef_command(void* p,int cmd) { if(!view(p)->trusted_url.empty() && cmd<2) return; if(auto b=browser(p)) switch(cmd) { case 0:b->GoBack();break; case 1:b->GoForward();break; case 2:b->Reload();break; case 3:b->StopLoad();break; } }
 void lut_cef_mouse(void* p,int kind,int x,int y,int modifiers,int delta) {
   if(auto b=browser(p)) { CefMouseEvent e; e.x=x;e.y=y;e.modifiers=modifiers;
     if(kind==0) b->GetHost()->SendMouseMoveEvent(e,false);

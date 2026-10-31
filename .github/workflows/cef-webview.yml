@@ -47,6 +47,11 @@ jobs:
         run: python webview/scripts/check-runner.py
       - name: Build pinned CEF bridge and stage runtime
         run: python webview/scripts/build.py --download
+      - name: Linux CEF offscreen bridge and trusted-page messages
+        if: runner.os == 'Linux'
+        env:
+          LUT_CEF_DISABLE_GPU: '1'
+        run: xvfb-run -a sbcl --script webview/tests/cef-offscreen.lisp
       - name: Native Linux smoke test
         if: runner.os == 'Linux'
         env:
@@ -54,8 +59,8 @@ jobs:
           LUT_WEBVIEW_FRAMES: '600'
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: xvfb-run -a -s '-screen 0 1280x900x24' sbcl --script webview/scripts/run.lisp
-      - name: macOS CEF offscreen bridge integration (hosted VM has no OpenGL)
-        if: runner.os == 'macOS'
+      - name: CEF offscreen bridge and trusted-page messages
+        if: runner.os != 'Linux'
         env:
           LUT_CEF_DISABLE_GPU: '1'
         run: sbcl --script webview/tests/cef-offscreen.lisp

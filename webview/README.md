@@ -158,3 +158,35 @@ optional hardware OpenGL launcher. Runtime packaging omits upstream docs/theme
 examples, checks archive path lengths, and uses short compiled-cache paths.
 Failed window initialization skips native window cleanup to preserve the
 original graphics error instead of risking a secondary native crash.
+
+
+## Trusted local application pages
+
+`lut/webview` exposes the widget contract without loading native libraries.
+`lut/cef` supplies `runtime-available-p`, `initialize-cef`, `webviews-ready-p`,
+`call-with-native-run`, `attach-webview`, `pump-webviews` and `close-session` for
+hosts. Initialize CEF on the native thread before creating a LUT window, attach
+views after placing them in that window, and call `pump-webviews` from its tick
+handler. The toolkit owns painting, retained textures and release before native
+context teardown. Dispose the window/views and close the CEF session on exit.
+CEF profiles are temporary, writable, isolated per host process and removed at
+shutdown; installed runtime directories need not be writable.
+
+A view created with `:local-messages-p t` opts into messaging for its initial
+local `file://` document. Network documents cannot opt in. URLs are canonicalized
+for spaces/Unicode/Windows paths. The view blocks host navigation/history to
+other documents and rejects script execution/messages when the trusted document
+is not loaded. A trusted page posts JSON text with
+`console.info('LUT_LOCAL_MESSAGE:' + JSON.stringify(event))`; listen for the LUT
+`:message` event on the view. `execute-script` submits trusted host JavaScript
+and returns false until the expected document is loaded. It does not evaluate
+arbitrary page messages. Hosts must validate event types, arguments and prompt
+identities, and serialize all injected data as JSON. A restrictive CSP and
+escaped/inert model content are requirements for a privileged local shell.
+Messages are bounded to 1 MiB and 128 queued entries; scripts are limited to
+4 MiB. Bridge errors publish through the existing `:load-error` event.
+
+Offscreen integration tests exercise Unicode JSON delivery, a filename with a
+space, rejection before opt-in, and blocked navigation on all CI platforms.
+This remains the prototype's unsandboxed development runtime, not a general
+trusted bridge for arbitrary browsing.
