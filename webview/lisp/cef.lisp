@@ -145,6 +145,15 @@
                   (when key (%key (handle view) key modifiers)))))
       (:text (%text (handle view) (lut:event-text event)))
       (otherwise (return-from lut::embedded-input nil)))) t)
+(defun finish-cef-shutdown ()
+  ;; OnBeforeClose precedes final deferred client releases on some platforms.
+  ;; Pump those releases before attempting CEF teardown.
+  (let ((deadline (+ (get-internal-real-time) (* 10 internal-time-units-per-second))))
+    (loop until (= 1 (%shutdown)) do
+      (when (> (get-internal-real-time) deadline)
+        (error "CEF retained live clients after browser closure."))
+      (%pump) (sleep 0.01)))
+  (setf *initialized* nil))
 (defun close-session ()
   (dolist (view (copy-list *views*)) (lut:dispose view))
   (let ((deadline (+ (get-internal-real-time) (* 10 internal-time-units-per-second))))
@@ -152,8 +161,7 @@
       (when (> (get-internal-real-time) deadline)
         (error "CEF close timed out; runtime retained to avoid unsafe shutdown."))
       (sleep 0.01)))
-  (unless (= 1 (%shutdown)) (error "CEF refused shutdown with live browser references."))
-  (setf *initialized* nil))
+  (finish-cef-shutdown))
 
 (defun call-with-native-run (function)
   "Run synchronously on the native thread and re-signal failures after cleanup.

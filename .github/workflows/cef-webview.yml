@@ -43,8 +43,6 @@ jobs:
         run: python webview/scripts/check-runner.py
       - name: Build pinned CEF bridge and stage runtime
         run: python webview/scripts/build.py --download
-      - uses: ssciwr/setup-mesa-dist-win@v2
-        if: runner.os == 'Windows'
       - name: Native Linux smoke test
         if: runner.os == 'Linux'
         env:
@@ -57,11 +55,12 @@ jobs:
         env:
           LUT_CEF_DISABLE_GPU: '1'
         run: sbcl --script webview/tests/cef-offscreen.lisp
-      - name: Native Windows smoke test
+      - name: Native Windows smoke test (bundled Mesa)
         if: runner.os == 'Windows'
         env:
           LUT_WEBVIEW_SMOKE: '1'
           LUT_WEBVIEW_FRAMES: '600'
+          GALLIUM_DRIVER: llvmpipe
         run: sbcl --script webview/scripts/run.lisp
       - name: Assemble offline Windows/Linux test bundle
         if: runner.os != 'macOS'

@@ -8,3 +8,11 @@ if result.returncode==0 or 'intentional CI runner failure' not in result.stdout:
     print(result.stdout)
     raise SystemExit('Native runner did not propagate the intended failure as a nonzero process exit')
 print('PASS: native runner failures produce a nonzero process exit.')
+
+cleanup=subprocess.run(['sbcl','--script',str(root/'tests/window-failure.lisp')],
+                       stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
+                       encoding='utf-8',errors='replace',timeout=90)
+if cleanup.returncode != 0 or 'PASS: failed OpenGL' not in cleanup.stdout:
+    print(cleanup.stdout)
+    raise SystemExit('Failed-window cleanup regression')
+print('PASS: failed OpenGL initialization skips unsafe native cleanup.')

@@ -28,8 +28,11 @@ Wayland is not tested; normal Fedora Workstation sessions can use XWayland.
 The x86-64 Linux runtime requires glibc 2.38+ and normal desktop libraries (NSS,
 GTK/ATK, X11/XWayland, ALSA and OpenGL/Mesa). Fedora Workstation supplies most of
 these by default. Bare/minimal/server installations are outside the test target.
-Windows targets Windows 10/11 x64 with working desktop OpenGL graphics drivers;
-CI installs Mesa software graphics because the hosted runner lacks a hardware GPU.
+Windows targets Windows 10/11 x64. Its default launcher uses per-application
+bundled Mesa software OpenGL; it does not require a compatible GPU driver or
+change system graphics settings. `Start with hardware OpenGL.cmd` is an optional
+launcher for machines with a working OpenGL driver. CI tests the bundled Mesa
+DLLs without installing Mesa system-wide.
 
 After **all three platform jobs pass**, a main-branch run publishes a prerelease
 with the tested Windows ZIP, Linux tar.gz, and SHA-256 checksums. Pull requests and
@@ -41,6 +44,11 @@ Download from https://github.com/crazymevt/lut/releases:
 
 - Windows: extract the entire ZIP, then double-click `Start LUT Webview.cmd`.
 - Fedora: extract the entire tar.gz, then run `./start.sh` in a desktop session.
+
+Upstream documentation themes/examples are omitted from the runtime archive,
+dependency directory names are shortened, and packaging rejects paths longer
+than 140 characters. Compiled Lisp files use a flat per-build cache to avoid
+recreating long source paths under Windows user profiles.
 
 Keep the extracted directory intact. F12 releases browser focus, and Tab returns
 to LUT controls. The included `BUILD.json` records the exact source commit.

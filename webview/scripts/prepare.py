@@ -63,6 +63,9 @@ def main():
       (return-from build-shim prebuilt)))
 ''' + source[pos:]
         library.write_text(source)
+        scopes=binding/'src/lisp/scopes.lisp'
+        scopes.write_text(scopes.read_text().replace('(close-window)\n      (release-app)',
+            '(when (is-window-ready) (close-window))\n      (release-app)',1))
     system = platform.system()
     item = LOCK['raylib'][system]
     sdk = CACHE/item['directory']
@@ -81,8 +84,11 @@ def main():
     run('cmake','--install',build,'--config','Release','--prefix',runtime)
     shutil.copy2(sdk/'LICENSE',runtime/'RAYLIB_LICENSE')
     (DEPS/'PROVENANCE.json').write_text(json.dumps(LOCK,indent=2))
-    (DEPS/'BINDING_PATCH.txt').write_text('Pinned upstream raylib binding with RAYLIB_LISP_PREBUILT_SHIM override added by scripts/prepare.py. All upstream license files retained.\n')
+    (DEPS/'BINDING_PATCH.txt').write_text('Pinned upstream raylib binding with bundled/precompiled library lookup and failed-window cleanup guard added by scripts/prepare.py. All upstream license files retained.\n')
     if os.environ.get('GITHUB_PATH'):
         with open(os.environ['GITHUB_PATH'],'a') as f: f.write(str(runtime.resolve())+'\n')
+    if system == 'Windows':
+        from software import stage_mesa
+        stage_mesa()
     print('Pinned Lisp dependencies and native raylib shim ready.')
 if __name__ == '__main__': main()

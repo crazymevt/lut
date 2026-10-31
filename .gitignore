@@ -15,3 +15,5 @@ debug.log
 /webview/.sbcl-info.json
 /dist/
 __pycache__/
+
+/webview/software-opengl/

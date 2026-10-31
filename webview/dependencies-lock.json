@@ -85,5 +85,11 @@
       "sha256": "8467b5dd6db4d7ab942f3148a3d30d93be6ed9b2fab88069d177e59604268ebd",
       "directory": "raylib-6.2_win64_msvc16"
     }
+  },
+  "mesa": {
+    "name": "mesa3d-26.0.3-release-msvc.7z",
+    "version": "26.0.3",
+    "url": "https://github.com/pal1000/mesa-dist-win/releases/download/26.0.3/mesa3d-26.0.3-release-msvc.7z",
+    "sha256": "de1ec45c906164de2c046288a8969e83cf2d51d031dc8dfd1f9371bb31cd6755"
   }
 }

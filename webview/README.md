@@ -152,3 +152,9 @@ secondary-window workers are not integrated. CEF uses a development cache under
 `webview/runtime/cache/`; application profile/cache policy belongs in a later
 integration. Frames are limited to 8192×8192 physical pixels. DPI changes and
 monitor transitions require further multi-monitor QA.
+
+The Windows download defaults to bundled Mesa software OpenGL. It includes an
+optional hardware OpenGL launcher. Runtime packaging omits upstream docs/theme
+examples, checks archive path lengths, and uses short compiled-cache paths.
+Failed window initialization skips native window cleanup to preserve the
+original graphics error instead of risking a secondary native crash.
