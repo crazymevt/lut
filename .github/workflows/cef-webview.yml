@@ -2,11 +2,14 @@ name: CEF webview native build
 on:
   workflow_dispatch:
   push:
-    paths: ['webview/**', '.github/workflows/cef-webview.yml']
+    branches: ['**']
   pull_request:
-    paths: ['webview/**', '.github/workflows/cef-webview.yml']
+
 permissions:
   contents: read
+concurrency:
+  group: cef-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     strategy:
@@ -14,6 +17,7 @@ jobs:
       matrix:
         os: [macos-14, ubuntu-22.04, windows-2022]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
