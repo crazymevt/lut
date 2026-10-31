@@ -77,9 +77,10 @@ jobs:
           & "$env:RUNNER_TEMP/relocated bundle/lut-webview-windows-x64/test.cmd"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test extracted Linux bundle on Fedora
+        timeout-minutes: 6
         if: runner.os == 'Linux'
         run: |
-          docker run --rm --shm-size=1g -v "$PWD/dist:/dist:ro" fedora:latest bash -lc '
+          docker run --init --rm --shm-size=1g -v "$PWD/dist:/dist:ro" fedora:latest bash -lc '
             set -eux
             cat /etc/os-release
             dnf install -y xorg-x11-server-Xvfb mesa-libGL mesa-dri-drivers nss atk at-spi2-atk libXcomposite libXdamage libXrandr libxkbcommon alsa-lib cups-libs gtk3 tar gzip
@@ -88,7 +89,7 @@ jobs:
             Xvfb :99 -screen 0 1280x900x24 >/tmp/xvfb.log 2>&1 &
             sleep 2
             cd "/tmp/relocated bundle/lut-webview-linux-x64"
-            DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 LUT_WEBVIEW_SMOKE=1 LUT_WEBVIEW_FRAMES=600 timeout 180 sh -x ./start.sh
+            DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 LUT_WEBVIEW_SMOKE=1 LUT_WEBVIEW_FRAMES=600 sh -x ./start.sh
           '
       - uses: actions/upload-artifact@v4
         if: always() && runner.os != 'macOS' && hashFiles('dist/*.sha256') != ''

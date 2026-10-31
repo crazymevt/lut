@@ -87,7 +87,8 @@ F12 releases browser focus so you can Tab back to LUT controls.
             for path in bundle.rglob('*'):
                 if path.is_file(): output.write(path,path.relative_to(dist))
     else:
-        with tarfile.open(archive,'w:gz') as output: output.add(bundle,arcname=name)
+        print(f'Compressing {archive.name}',flush=True)
+        with tarfile.open(archive,'w:gz',compresslevel=3) as output: output.add(bundle,arcname=name)
     (dist/(archive.name+'.sha256')).write_text(hashlib.sha256(archive.read_bytes()).hexdigest()+'  '+archive.name+'\n')
     print(archive)
 if __name__=='__main__': main()
