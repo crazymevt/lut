@@ -28,7 +28,11 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y xvfb libgl1-mesa-dri libgl1 libasound2t64 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 libgbm1 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxkbcommon0 libgtk-3-0t64
+          sudo apt-get install -y libx11-dev xvfb libgl1-mesa-dri libgl1 libasound2t64 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 libgbm1 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxkbcommon0 libgtk-3-0t64
+      - uses: actions/cache@v4
+        with:
+          path: webview/.cache
+          key: webview-sdk-${{ matrix.os }}-${{ runner.arch }}-${{ hashFiles('webview/sdk-lock.json', 'webview/dependencies-lock.json') }}
       - name: Set up isolated SBCL
         run: python webview/scripts/setup-sbcl.py
       - name: Prepare pinned Lisp dependencies and raylib
@@ -93,6 +97,7 @@ jobs:
             dist/*.sha256
           if-no-files-found: error
           retention-days: 30
+          compression-level: 0
 
   publish-test-build:
     needs: check
