@@ -290,3 +290,11 @@ The optional standalone Chromium widget lives under [`webview/`](webview/README.
 It has its own pinned SDK build, CFFI bridge, native helpers and smoke tests;
 normal LUT systems do not load or distribute CEF. See its README for platform
 validation status and development-only limitations.
+
+## CI and downloadable webview test builds
+
+[CI](https://github.com/crazymevt/lut/actions) checks Windows, Linux and macOS on
+branch pushes and pull requests, excluding tag pushes. Successful main-branch
+runs publish [Windows and Fedora Linux test downloads](https://github.com/crazymevt/lut/releases)
+with bundled Lisp/native dependencies. See [test build instructions](docs/test-builds.md)
+for launch commands and the exact CI coverage.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Install an isolated SBCL for CI; use the same runtime in downloadable builds."""
-import json, os, pathlib, platform, shutil, subprocess
+import json, os, pathlib, platform, shutil, subprocess, urllib.request
 from prepare import ROOT, CACHE, LOCK, fetch, extract, run
 
 def main():
@@ -29,6 +29,9 @@ def main():
         if not candidates: raise RuntimeError('SBCL administrative extraction produced no executable')
         executable=candidates[0]
         home=next(install.rglob('sbcl.core')).parent
+    CACHE.mkdir(exist_ok=True)
+    with urllib.request.urlopen('https://raw.githubusercontent.com/sbcl/sbcl/sbcl-2.6.10/COPYING', timeout=60) as response:
+        (CACHE/'SBCL_COPYING').write_bytes(response.read())
     info={'executable':str(executable.resolve()),'home':str(home.resolve())}
     (ROOT/'.sbcl-info.json').write_text(json.dumps(info,indent=2))
     if os.environ.get('GITHUB_PATH'):

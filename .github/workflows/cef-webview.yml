@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, ubuntu-22.04, windows-2022]
+        os: [macos-15, ubuntu-24.04, windows-2022]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
@@ -28,7 +28,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y xvfb libgl1-mesa-dri libgl1 libasound2 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libgbm1 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxkbcommon0 libgtk-3-0
+          sudo apt-get install -y xvfb libgl1-mesa-dri libgl1 libasound2t64 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 libgbm1 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxkbcommon0 libgtk-3-0t64
       - name: Set up isolated SBCL
         run: python webview/scripts/setup-sbcl.py
       - name: Prepare pinned Lisp dependencies and raylib
@@ -46,8 +46,13 @@ jobs:
           LUT_WEBVIEW_FRAMES: '600'
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: xvfb-run -a -s '-screen 0 1280x900x24' sbcl --script webview/scripts/run.lisp
-      - name: Native macOS and Windows smoke test
-        if: runner.os != 'Linux'
+      - name: macOS CEF offscreen bridge integration (hosted VM has no OpenGL)
+        if: runner.os == 'macOS'
+        env:
+          LUT_CEF_DISABLE_GPU: '1'
+        run: sbcl --script webview/tests/cef-offscreen.lisp
+      - name: Native Windows smoke test
+        if: runner.os == 'Windows'
         env:
           LUT_WEBVIEW_SMOKE: '1'
           LUT_WEBVIEW_FRAMES: '600'
@@ -88,3 +93,34 @@ jobs:
             dist/*.sha256
           if-no-files-found: error
           retention-days: 30
+
+  publish-test-build:
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: lut-webview-*-x64
+          merge-multiple: true
+          path: release-artifacts
+      - name: Publish tested Windows and Linux downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BUILD_TAG: webview-test-${{ github.run_number }}-${{ github.run_attempt }}
+          BUILD_COMMIT: ${{ github.sha }}
+        run: |
+          cat > release-notes.md <<'NOTES'
+          Standalone LUT/CEF development test builds. All three platform checks must pass before this release is published.
+
+          **Windows x64:** extract the ZIP, then double-click `Start LUT Webview.cmd`.
+          **Fedora Linux x64:** extract the tar.gz, then run `./start.sh` in your desktop session (X11 or XWayland).
+
+          SBCL, Lisp dependencies, raylib and CEF are included. No Lisp/compiler installation or build step is required. First launch compiles the bundled Lisp sources into your user cache. Linux requires glibc 2.38+ and normal desktop graphics/runtime libraries.
+
+          Development prototype: Chromium sandbox is disabled; use trusted test content. See the included READ ME and webview documentation for remaining limits. SHA-256 files accompany both archives.
+          NOTES
+          gh release create "$BUILD_TAG" release-artifacts/* --target "$BUILD_COMMIT" --prerelease --title "LUT webview test build ${{ github.run_number }}" --notes-file release-notes.md

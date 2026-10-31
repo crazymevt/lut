@@ -15,6 +15,7 @@ SDK's README for its OS minimums and Linux runtime dependencies.
 From the LUT checkout:
 
 ```sh
+python3 webview/scripts/prepare.py
 python3 webview/scripts/build.py --download
 sbcl --script webview/scripts/run.lisp
 ```
@@ -81,8 +82,8 @@ fails the run at its frame limit. `LUT_WEBVIEW_SCREENSHOT=/absolute/path.png`
 optionally captures the rendered fixture. Host idle CPU is process CPU divided
 by wall time during a three-second static-page interval after warm-up; it includes CEF's browser-process
 pump but **excludes CEF helper processes**. It is not a total browser CPU metric.
-The CI workflow builds the native bridge on Windows/macOS/Linux; this is distinct
-from native runtime verification with a desktop and LUT's raylib environment.
+See [cross-platform CI and test downloads](../docs/test-builds.md) for the hosted
+checks, macOS VM graphics limitation, Fedora validation and offline bundles.
 
 ## Recorded validation (2026-10-31)
 
@@ -95,9 +96,10 @@ no more than four idle presentations, and unchanged browser paint/upload
 revisions during the sample. These short local samples are indicative, not a
 cross-platform performance guarantee; helper-process CPU is excluded.
 
-Windows and Linux native runtime validation is pending. The build matrix has
-been added but has not been run from this local session. macOS x64, Linux ARM64,
-multi-monitor behavior and native Wayland remain unverified.
+Current hosted CI results and Windows/Linux test downloads are available in the
+[public repository](https://github.com/crazymevt/lut/actions). See
+[CI coverage](../docs/test-builds.md) for the exact tests and platform limits.
+macOS x64, Linux ARM64, multi-monitor behavior and native Wayland remain unverified.
 
 ## Architecture and boundaries
 

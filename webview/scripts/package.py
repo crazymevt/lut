@@ -31,6 +31,7 @@ def main():
     for dll in executable.parent.glob('*.dll'): shutil.copy2(dll,binary/dll.name)
     # Preserve the runtime's distribution notices in addition to contrib notices.
     notices=bundle/'licenses'; notices.mkdir()
+    shutil.copy2(ROOT/'.cache/SBCL_COPYING',notices/'SBCL-COPYING')
     for parent in (home,home.parent,executable.parent,ROOT/'.cache/sbcl-linux'):
         for pattern in ('COPYING','CREDITS','README','copyright'):
             for path in parent.glob(pattern):
@@ -68,7 +69,7 @@ Linux: extract the whole tar.gz, then run ./start.sh in a desktop session.
 No Lisp installation, compiler, Quicklisp or build steps are needed.
 The first launch compiles bundled Lisp sources into your user cache.
 
-Linux target: x86-64 Fedora Workstation (glibc >= 2.35), X11 or XWayland.
+Linux target: x86-64 Fedora Workstation (glibc >= 2.38), X11 or XWayland.
 A desktop graphics driver and standard desktop libraries are still required.
 Native Wayland is not yet validated. Windows target: Windows 10/11 x64.
 

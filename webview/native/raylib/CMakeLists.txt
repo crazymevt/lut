@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(lut_raylib_shim C)
 add_library(raylib-shim SHARED "${BINDING_ROOT}/src/generated/shim.c")
-set_target_properties(raylib-shim PROPERTIES PREFIX "lib")
+set_target_properties(raylib-shim PROPERTIES PREFIX "lib" BUILD_WITH_INSTALL_RPATH TRUE)
 target_include_directories(raylib-shim PRIVATE "${RAYLIB_ROOT}/include")
 if(WIN32)
   target_link_libraries(raylib-shim PRIVATE "${RAYLIB_ROOT}/lib/raylibdll.lib")

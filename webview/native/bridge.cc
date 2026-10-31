@@ -8,6 +8,8 @@
 #include "include/wrapper/cef_helpers.h"
 #include <algorithm>
 #include <cstring>
+#include <cstdlib>
+#include "include/cef_command_line.h"
 #include <string>
 #include <vector>
 #ifndef _WIN32
@@ -18,6 +20,13 @@
 extern bool lut_cef_prepare_cocoa();
 #endif
 namespace {
+class BridgeApp final : public CefApp {
+ public:
+  void OnBeforeCommandLineProcessing(const CefString&, CefRefPtr<CefCommandLine> command) override {
+    if(std::getenv("LUT_CEF_DISABLE_GPU")) command->AppendSwitch("disable-gpu");
+  }
+  IMPLEMENT_REFCOUNTING(BridgeApp);
+};
 bool initialized = false;
 int live = 0;
 class View final : public CefClient, public CefRenderHandler,
@@ -122,7 +131,7 @@ int lut_cef_init(const char* runtime, const char* helper) {
   struct sigaction previous[5];
   for(int i=0;i<5;++i) sigaction(signals[i],nullptr,&previous[i]);
 #endif
-  initialized=CefInitialize(args,settings,nullptr,nullptr);
+  initialized=CefInitialize(args,settings,new BridgeApp,nullptr);
 #ifndef _WIN32
   for(int i=0;i<5;++i) sigaction(signals[i],&previous[i],nullptr);
 #endif
