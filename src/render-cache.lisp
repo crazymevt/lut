@@ -126,8 +126,21 @@ the cache before closing its native context. Hidden regions may simply be omitte
             (let ((*render-target-x* (/ left scale-x)) (*render-target-y* (/ top scale-y))
                   (*render-pixel-scale-x* sx) (*render-pixel-scale-y* sy))
               (rl:with-texture-mode (target)
-                (rl:clear-background background)
-                (call-with-render-transform painter :scale scale)))
+                (let* ((color (etypecase background
+                                (rl:color background)
+                                (list (apply #'rl:color background))
+                                ((or symbol integer) (rl:color background))))
+                       (alpha (/ (rl:color-a color) 255)))
+                  (rl:clear-background (rl:color (round (* alpha (rl:color-r color)))
+                                                (round (* alpha (rl:color-g color)))
+                                                (round (* alpha (rl:color-b color)))
+                                                (rl:color-a color))))
+                ;; RGB uses ordinary alpha blending; coverage must accumulate
+                ;; with ONE so glyph edges do not lower an opaque target's alpha.
+                (cffi:foreign-funcall "rlSetBlendFactorsSeparate"
+                  :int #x0302 :int #x0303 :int 1 :int #x0303 :int #x8006 :int #x8006 :void)
+                (rl:with-blend-mode (:custom-separate)
+                  (call-with-render-transform painter :scale scale))))
             (setf (cached-region-key region) key
                   (cached-region-box region)
                   (list (/ left scale-x) (/ top scale-y) (/ width-px scale-x) (/ height-px scale-y)))

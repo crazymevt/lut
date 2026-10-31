@@ -16,3 +16,7 @@ smoke-lut-demo:
 .PHONY: test-render-cache-ui
 test-render-cache-ui:
 	$(SBCL) --non-interactive --load tests/render-cache-native.lisp
+
+.PHONY: test-data-renderer-ui
+test-data-renderer-ui:
+	$(SBCL) --non-interactive --load tests/data-renderer-native.lisp

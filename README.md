@@ -270,3 +270,10 @@ LUT widget tree. It is also loaded by `lut/raylib`. See
 [the cache API and lifecycle example](docs/render-cache.md).
 Run `make test-render-cache-ui` for native reuse, clipping, HiDPI, fractional zoom,
 transparency, explicit invalidation and error-retry checks.
+
+## Embedding tables in another frontend
+
+`lut/data-renderer` provides the same virtual data-table painter used by
+`lut/raylib`, with a borrowed host font and no window-controller dependency.
+See [the host embedding API](docs/table-embedding.md). Run
+`make test-data-renderer-ui` for standalone native checks.
