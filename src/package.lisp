@@ -41,7 +41,7 @@
    #:row-icon-function #:row-label-function #:visible-model-range #:map-visible-model-rows #:reveal-model-index
    #:data-column #:make-data-column #:data-column-title #:data-column-id #:table-columns
    #:cell-presentation #:active-column #:begin-cell-edit #:commit-cell-edit #:cancel-cell-edit #:cell-editor
-   #:styled-text-view #:document-view #:gutter-width #:set-text-presentation
+   #:styled-text-view #:document-view #:line-numbers-p #:gutter-width #:set-text-presentation
    #:invalidate-text-presentation #:text-presentation-revision #:text-runs #:text-decorations
    #:text-style-at #:document-links #:document-images #:document-hit-test
    #:anchored-surface #:suggestion-surface #:show-anchored-surface #:dismiss-anchored-surface

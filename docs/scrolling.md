@@ -142,3 +142,9 @@ tables just as they do for text views.
 
 Shared-buffer edits request layout so embedded scrollbar extents also update
 after replacements that preserve character count but change lines.
+
+`styled-text-view` accepts `:line-numbers-p t` for a fixed, right-aligned gutter.
+Numbers use logical (one-based) lines, including the empty final line. Gutter
+width tracks line-count digits and editor font metrics during layout. Only
+visible numbers are painted; horizontal scrolling leaves the gutter fixed.
+`:gutter-background` and `:gutter-foreground` may be themed independently.

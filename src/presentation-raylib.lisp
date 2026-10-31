@@ -82,8 +82,13 @@
    (when (plusp (gutter-width view))
      (let ((clip (intersect-rectangles *clip* (list (x view) (y view) (text-left-padding view) (height view)))))
        (with-ui-scissor ((first clip) (second clip) (third clip) (fourth clip))
-         (rl:draw-rectangle (x view) (y view) (text-left-padding view) (height view) (style-value view :background))
-         (map-visible-text-lines view (lambda (line start end px py) (declare (ignore line px))
+         (rl:draw-rectangle (x view) (y view) (text-left-padding view) (height view) (style-value view :gutter-background (style-value view :background)))
+         (map-visible-text-lines view (lambda (line start end px py) (declare (ignore px))
+           (when (line-numbers-p view)
+             (let ((number (write-to-string (1+ line))))
+               (draw-string view number
+                 (- (+ (x view) (text-left-padding view)) 12 (text-width view number)) py
+                 (style-value view :gutter-foreground (style-value view :foreground)))))
            (map-text-decorations view start (1+ end) (lambda (record)
              (when (eq (getf record :kind) :gutter)
                (draw-string view (or (getf record :text) "") (+ (x view) (style-value view :padding)) py

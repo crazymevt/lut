@@ -1,5 +1,27 @@
 (in-package #:lut-tests)
 (defun text-presentation-tests ()
+ ;; Automatic numbers reserve fixed space without per-document decorations.
+ (let* ((root (lut:make-widget 'lut:window))
+        (view (lut:add-child root (lut:make-widget 'lut:styled-text-view
+                  :line-numbers-p t :style '(:font-size 12 :padding 4 :line-height 18)))))
+   (lut:layout view 0 0 200 100)
+   (assert (= 1 (lut:text-line-count view)))
+   (assert (plusp (lut:gutter-width view)))
+   (assert (null (lut:text-decorations view)))
+   (let ((small (lut:gutter-width view)))
+     (setf (lut:text view) (make-string 1000 :initial-element #\Newline))
+     (lut:layout view 0 0 200 100)
+     (assert (= 1001 (lut:text-line-count view)))
+     (assert (> (lut:gutter-width view) small))
+     (let ((large (lut:gutter-width view)) (revision (lut:text-presentation-revision view)))
+       (dotimes (i 10) (lut:layout view 0 0 200 100))
+       (assert (= revision (lut:text-presentation-revision view)))
+       (setf (lut:style view) '(:font-size 24 :padding 4 :line-height 36))
+       (lut:layout view 0 0 200 100)
+       (assert (> (lut:gutter-width view) large))))
+   (setf (lut:line-numbers-p view) nil)
+   (assert (zerop (lut:gutter-width view)))
+   (lut:dispose root))
  ;; Style metrics and gutter offsets drive drawing geometry and hit testing.
  (let* ((view (lut:make-widget 'lut:styled-text-view :text "abcd" :x 10 :y 20 :width 200 :height 80
                                :gutter-width 20 :style '(:padding 2 :font-size 10 :line-height 30)))

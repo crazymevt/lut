@@ -1,6 +1,7 @@
 (in-package #:lut)
 (defwidget styled-text-view (text-view) "Unwrapped text with application-supplied character runs and decorations."
- ((gutter-width 0 (real 0 *) "Reserved left gutter width in pixels.")
+ ((line-numbers-p nil boolean "Display one-based logical line numbers in a fixed left gutter.")
+  (gutter-width 0 (real 0 *) "Reserved left gutter width in pixels.")
   (presentation-runs #() vector "Internal disjoint style intervals.")
   (presentation-decorations #() vector "Internal overlapping decoration intervals.")
   (decoration-max-ends #() vector "Internal decoration prefix interval index.")
@@ -9,6 +10,18 @@
   (presentation-metric-revision 0 (integer 0 *) "Internal geometry generation, independent of paint-only changes.")
   (presentation-revision 0 (integer 0 *) "Internal presentation cache generation.")
   (pressed-document-link nil t "Internal link pointer capture.")))
+(defun update-line-number-gutter (view)
+ ;; Indexed line count is constant-time; numbers are generated only for visible
+ ;; lines while painting. Width changes only at digit/font-size boundaries.
+ (let* ((digits (max 3 (length (write-to-string (text-line-count view)))))
+        (width (+ 12 (text-width view (make-string digits :initial-element #\0)))))
+   (unless (= width (gutter-width view)) (setf (gutter-width view) width))))
+(defmethod layout :before ((view styled-text-view) x y width height)
+ (declare (ignore x y width height))
+ (when (line-numbers-p view) (update-line-number-gutter view)))
+(defmethod (setf line-numbers-p) :after (enabled (view styled-text-view))
+ (if enabled (update-line-number-gutter view) (setf (gutter-width view) 0)))
+
 (defwidget document-view (styled-text-view) "Read-only selectable document; applications supply text, links, images and formatting."
  ((read-only-p t boolean "Document views always reject interactive edits; programmatic TEXT refresh is permitted.")
   (history-limit 0 (integer 0 *) "Standalone document refreshes do not retain undo by default; shared models keep their own policy.")))
