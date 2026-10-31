@@ -106,7 +106,7 @@ class View final : public CefClient, public CefRenderHandler,
   }
   void OnBeforeClose(CefRefPtr<CefBrowser>) override { browser=nullptr; closed=true; }
   bool OnBeforePopup(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, int,
-    const CefString&, const CefString&, WindowOpenDisposition, bool,
+    const CefString&, const CefString&, CefLifeSpanHandler::WindowOpenDisposition, bool,
     const CefPopupFeatures&, CefWindowInfo&, CefRefPtr<CefClient>&,
     CefBrowserSettings&, CefRefPtr<CefDictionaryValue>&, bool*) override { return true; }
   void OnBeforeContextMenu(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>,
