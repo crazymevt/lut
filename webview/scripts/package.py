@@ -80,11 +80,11 @@ set "GALLIUM_DRIVER=llvmpipe"
 "%~dp0sbcl\\sbcl.exe" --noinform --no-sysinit --no-userinit --script "%~dp0app\\webview\\scripts\\run.lisp"
 if errorlevel 1 pause
 '''
-        (bundle/'Start LUT Webview.cmd').write_text(launcher.replace('\n','\r\n'))
+        (bundle/'Start LUT Webview.cmd').write_text(launcher,newline='\r\n')
         hardware_launcher=launcher.replace('sbcl\\sbcl.exe','sbcl-hardware\\sbcl.exe').replace('set "GALLIUM_DRIVER=llvmpipe"','set "GALLIUM_DRIVER="')
-        (bundle/'Start with hardware OpenGL.cmd').write_text(hardware_launcher.replace('\n','\r\n'))
+        (bundle/'Start with hardware OpenGL.cmd').write_text(hardware_launcher,newline='\r\n')
         # CI-only callers use --script directly, so failures never pause.
-        (bundle/'test.cmd').write_text(launcher.replace('if errorlevel 1 pause','exit /b %errorlevel%').replace('\n','\r\n'))
+        (bundle/'test.cmd').write_text(launcher.replace('if errorlevel 1 pause','exit /b %errorlevel%'),newline='\r\n')
     else:
         launcher='''#!/bin/sh
 set -eu
@@ -114,7 +114,7 @@ app/webview/runtime, sbcl-home, licenses, and app/LICENSE.
 F12 releases browser focus so you can Tab back to LUT controls.
 ''')
     sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip()
-    (web/'BUILD_ID').write_text(sha[:12]+'\n')
+    (web/'BUILD_ID').write_text(sha[:12]+'\n',newline='\n')
     (bundle/'BUILD.json').write_text(json.dumps({'commit':sha,'platform':system,'architecture':'x86_64',
                                                'cef':(ROOT/'runtime/CEF_VERSION').read_text().strip()},indent=2))
     lengths=[(len(str(path.relative_to(dist))),str(path.relative_to(dist))) for path in bundle.rglob('*')]

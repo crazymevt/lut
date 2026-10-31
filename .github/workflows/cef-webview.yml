@@ -39,6 +39,8 @@ jobs:
         run: python webview/scripts/prepare.py
       - name: Headless LUT regression suite
         run: sbcl --script webview/tests/headless.lisp
+      - name: Verify CRLF metadata and short cache paths
+        run: python webview/scripts/check-cache.py
       - name: Verify native errors fail CI
         run: python webview/scripts/check-runner.py
       - name: Build pinned CEF bridge and stage runtime

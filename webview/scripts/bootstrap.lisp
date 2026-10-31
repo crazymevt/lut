@@ -18,7 +18,8 @@
 (let ((base (uiop:getenv "LUT_WEBVIEW_CACHE")))
   (when base
     (let* ((marker (merge-pathnames "webview/BUILD_ID" *lut-checkout*))
-           (build (if (probe-file marker) (with-open-file (stream marker) (read-line stream)) "development")))
+           (build (if (probe-file marker) (with-open-file (stream marker)
+                      (string-trim '(#\Return #\Newline #\Space #\Tab) (read-line stream))) "development")))
       (setf *lut-short-cache*
         (merge-pathnames (format nil "~a/~a/" (lisp-implementation-version) build)
                          (uiop:ensure-directory-pathname base))))
