@@ -13,6 +13,75 @@
  (cffi:defcfun ("class_addMethod" cocoa-add-method) :uint8 (class :pointer) (selector :pointer) (implementation :pointer) (types :string))
  (defmacro cocoa-send (object selector &rest arguments)
    `(cffi:foreign-funcall "objc_msgSend" :pointer ,object :pointer (cocoa-selector ,selector) ,@arguments))
+ ;; NSWindow's title-bar gesture is not reliably provided by GLFW's plain
+ ;; window subclass. Intercept only the second title-bar press, before AppKit
+ ;; enters its synchronous drag tracking loop. Everything else keeps GLFW's
+ ;; original event dispatch. No event monitor, polling or drawing hook.
+ (cffi:defcstruct cocoa-point (x :double) (y :double))
+ (cffi:defcstruct cocoa-size (width :double) (height :double))
+ (cffi:defcstruct cocoa-rect (origin (:struct cocoa-point)) (size (:struct cocoa-size)))
+ (defun cocoa-view-frame (view)
+   ;; Intel's Objective-C ABI returns NSRect through objc_msgSend_stret;
+   ;; Apple Silicon uses ordinary objc_msgSend for all structure returns.
+   #+x86-64
+   (cffi:with-foreign-object (rect '(:struct cocoa-rect))
+     (cffi:foreign-funcall "objc_msgSend_stret" :pointer rect :pointer view
+       :pointer (cocoa-selector "frame") :void)
+     (cffi:mem-ref rect '(:struct cocoa-rect)))
+   #-x86-64 (cocoa-send view "frame" (:struct cocoa-rect)))
+ (cffi:defcfun ("object_getClass" cocoa-object-class) :pointer (object :pointer))
+ (cffi:defcfun ("class_getMethodImplementation" cocoa-method) :pointer (class :pointer) (selector :pointer))
+ (cffi:defcfun ("class_getSuperclass" cocoa-superclass) :pointer (class :pointer))
+ (defvar *cocoa-window-dispatch* (make-hash-table))
+ (defun cocoa-titlebar-double-click-p (window event)
+   (and (= 1 (cocoa-send event "type" :unsigned-long)) ; NSEventTypeLeftMouseDown
+        (= 2 (cocoa-send event "clickCount" :long))
+        (= 9 (logand 9 (cocoa-send window "styleMask" :unsigned-long))) ; titled + resizable
+        (zerop (logand (ash 1 14) (cocoa-send window "styleMask" :unsigned-long))) ; not full screen
+        (let* ((point (cocoa-send event "locationInWindow" (:struct cocoa-point)))
+               (view (cocoa-send window "contentView" :pointer))
+               (rect (cocoa-view-frame view))
+               (origin (getf rect 'origin)) (size (getf rect 'size))
+               (x (getf point 'x)) (y (getf point 'y)))
+          (and (<= (getf origin 'x) x) (< x (+ (getf origin 'x) (getf size 'width)))
+               (>= y (+ (getf origin 'y) (getf size 'height)))
+               ;; Native traffic lights must keep their own click behavior.
+               (let* ((frame-view (cocoa-send view "superview" :pointer))
+                      (hit (cocoa-send frame-view "hitTest:" (:struct cocoa-point) point :pointer)))
+                 (loop for node = hit then (cocoa-send node "superview" :pointer)
+                       until (cffi:null-pointer-p node)
+                       never (plusp (cocoa-send node "isKindOfClass:" :pointer (cocoa-class "NSControl") :uint8))))))))
+ (cffi:defcallback cocoa-window-send-event :void ((self :pointer) (selector :pointer) (event :pointer))
+   ;; Never unwind a Lisp condition through AppKit/GLFW.
+   (let ((handled (handler-case
+                     (when (cocoa-titlebar-double-click-p self event)
+                       (cocoa-send self "zoom:" :pointer (cffi:null-pointer) :void) t)
+                   (error (condition) (warn "Title-bar zoom failed: ~A" condition) nil))))
+     (unless handled
+       (let ((implementation
+               (loop for class = (cocoa-object-class self) then (cocoa-superclass class)
+                     until (cffi:null-pointer-p class)
+                     for method = (gethash (cffi:pointer-address class) *cocoa-window-dispatch*)
+                     when method return method)))
+         (if implementation
+             (cffi:foreign-funcall-pointer implementation ()
+               :pointer self :pointer selector :pointer event :void)
+             (warn "Missing original native window event dispatcher."))))))
+ (defun install-cocoa-titlebar-zoom ()
+   ;; Extend GLFW's window class, not an individual window's isa: AppKit may
+   ;; already have installed a KVO subclass, which must remain untouched.
+   (let* ((window (rl:get-window-handle)) (class (cocoa-class "GLFWWindow"))
+          (key (cffi:pointer-address class)) (selector (cocoa-selector "sendEvent:")))
+     (when (or (cffi:null-pointer-p class)
+               (zerop (cocoa-send window "isKindOfClass:" :pointer class :uint8)))
+       (error "Unsupported native window class for title-bar zoom."))
+     (unless (gethash key *cocoa-window-dispatch*)
+       (let ((original (cocoa-method class selector)))
+         ;; Add an override of NSWindow's inherited implementation. Do not
+         ;; replace another backend's implementation or change NSWindow itself.
+         (unless (plusp (cocoa-add-method class selector (cffi:callback cocoa-window-send-event) "v@:@"))
+           (error "Could not install GLFW title-bar event dispatch."))
+         (setf (gethash key *cocoa-window-dispatch*) original)))))
  (defun cocoa-string (string) (cocoa-send (cocoa-class "NSString") "stringWithUTF8String:" :string string :pointer))
  (defun cocoa-lisp-string (object)
    (unless (cffi:null-pointer-p object)

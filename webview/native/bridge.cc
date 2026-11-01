@@ -240,7 +240,32 @@ void lut_cef_mouse(void* p,int kind,int x,int y,int modifiers,int delta) {
   }
 }
 void lut_cef_key(void* p,int key,int modifiers) {
-  if(auto b=browser(p)) { CefKeyEvent e; e.windows_key_code=key; e.modifiers=modifiers;
+  if(auto b=browser(p)) {
+#ifdef __APPLE__
+    // OSR has no NSView responder chain to translate Command editing shortcuts.
+    // Use Chromium's focused-frame actions, not injected text: Paste must retain
+    // native clipboard formats and dispatch the page's trusted paste event.
+    if ((modifiers & EVENTFLAG_COMMAND_DOWN) &&
+        !(modifiers & (EVENTFLAG_CONTROL_DOWN | EVENTFLAG_ALT_DOWN))) {
+      auto frame = b->GetFocusedFrame();
+      if (frame) {
+        const bool shift = (modifiers & EVENTFLAG_SHIFT_DOWN) != 0;
+        if (!shift) {
+          switch (key) {
+            case 'V': frame->Paste(); return;
+            case 'C': frame->Copy(); return;
+            case 'X': frame->Cut(); return;
+            case 'A': frame->SelectAll(); return;
+          }
+        }
+        if (key == 'Z') {
+          if (shift) frame->Redo(); else frame->Undo();
+          return;
+        }
+      }
+    }
+#endif
+    CefKeyEvent e; e.windows_key_code=key; e.modifiers=modifiers;
 #ifdef __APPLE__
     switch(key) {
       case 8:e.native_key_code=51;e.character=0x7f;break;

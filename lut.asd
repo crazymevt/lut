@@ -9,7 +9,7 @@
 (asdf:defsystem "lut/data-renderer" :version "0.2.2"
   :description "Shared native table rendering for LUT and embedded hosts"
   :depends-on ("lut/render-cache") :components ((:file "src/data-renderer")))
-(asdf:defsystem "lut/raylib" :depends-on ("lut/data-renderer" "raylib" "bordeaux-threads" "cl-base64")
+(asdf:defsystem "lut/raylib" :depends-on ("lut/data-renderer" "raylib" "bordeaux-threads" "cl-base64" #+darwin "cffi-libffi")
   :serial t :components ((:file "src/raylib") (:file "src/presentation-raylib") (:file "src/data-raylib") (:file "src/platform-macos") (:file "src/windows") (:file "src/application-raylib") (:file "src/cell-grid-raylib") (:file "src/extra-controls-raylib") (:file "src/widget-cache-raylib")))
 (asdf:defsystem "lut/examples" :depends-on ("lut/raylib")
   :serial t :components ((:file "examples/demos") (:file "examples/data-models") (:file "examples/platform") (:file "examples/advanced-interaction") (:file "examples/measured-layout") (:file "examples/wrapped-text") (:file "examples/scrolling") (:file "examples/application-adapters") (:file "examples/cell-grid")))

@@ -298,3 +298,15 @@ branch pushes and pull requests, excluding tag pushes. Successful main-branch
 runs publish [Windows and Fedora Linux test downloads](https://github.com/crazymevt/lut/releases)
 with bundled Lisp/native dependencies. See [test build instructions](docs/test-builds.md)
 for launch commands and the exact CI coverage.
+
+## macOS title-bar zoom
+
+Double-clicking an empty title-bar area in a resizable native window toggles
+AppKit zoom/restore (not full screen). Single-click dragging, native window
+buttons and content clicks keep their normal behavior. The handler is installed
+once; there is no per-frame title-bar work. macOS uses `cffi-libffi` for AppKit
+structure arguments. Run the native regression test from this directory with:
+
+```sh
+/Users/jessie/.local/bin/quiet-run.sh -- sbcl --noinform --non-interactive --load tests/titlebar-native.lisp
+```

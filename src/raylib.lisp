@@ -874,6 +874,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
    (unwind-protect
      (rl:with-window ((round (* (nth-value 0 (normal-window-size w)) (ui-scale w))) (round (* (nth-value 1 (normal-window-size w)) (ui-scale w))) (text w)
                      :flags '(:window-resizable :window-highdpi :vsync-hint) :exit-key :null)
+       #+darwin (install-cocoa-titlebar-zoom)
        (unwind-protect
          (if (close-request-handler w)
              ;; Raylib's GAME-LOOP closes before calling the frame function.
