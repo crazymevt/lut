@@ -19,6 +19,20 @@
      ;; Resizing must invalidate the pixel comparison, even for identical colors.
      (lut::layout-window secondary 200 400)
      (assert (stringp (lut::encode-remote-frame remote)))
+     ;; Uncached roots read back every snapshot; native comparison still suppresses
+     ;; unchanged frames, and copied PNG bytes still decode.
+     (let* ((plain (lut:with-ui (lut:window :width 120 :height 80 :cache-enabled-p nil)
+                     (lut:make-widget 'lut:label :text "Uncached")))
+            (uncached (lut::make-remote-window :root plain)))
+       (lut::layout-window plain)
+       (let ((frame (lut::encode-remote-frame uncached)))
+         (assert (stringp frame)) (rl:unload-texture (lut::decode-remote-frame frame)))
+       (assert (null (lut::prepare-window-cache plain :pixel-scale 1)))
+       (assert (null (lut::encode-remote-frame uncached)))
+       (setf (lut:text (first (lut:children plain))) "Changed")
+       (assert (stringp (lut::encode-remote-frame uncached)))
+       (assert (= 2 (lut::remote-window-encoded-frames uncached)))
+       (lut::finalize-remote-window uncached))
      (lut::finalize-remote-window remote)
      (assert (null (lut::remote-window-last-pixels remote)))
      (assert (null (lut::remote-window-last-size remote)))
@@ -28,4 +42,4 @@
  (lut:run w :frames 5)
  (assert done) (assert (null lut:*window*)) (assert (null lut::*primary-window*))
  (assert (null lut::*remote-windows*))
- (format t "F12 primary disposal and F14 unchanged-frame suppression checks passed.~%"))
+ (format t "F12 primary disposal and F14 cached/uncached unchanged-frame suppression checks passed.~%"))

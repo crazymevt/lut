@@ -62,7 +62,13 @@ transitions while idle. Translucent root backgrounds use direct rendering rather
 than opaque dirty-frame patching. Cache keys use numeric widget identities, not widget
 references. `:memory-bytes` counts RGBA color texture bytes, excluding driver
 and depth-buffer overhead. Workers skip readback/PNG work when retained frames
-are unchanged, while input and metadata round trips continue.
+are unchanged, while input and metadata round trips continue. Worker processes
+likewise present only new snapshots, native size/focus/minimize changes and the
+one-second refresh; otherwise they wait for the next snapshot (bounded by the
+idle interval) and pump input. Built-in drag feedback dirties only tiles under
+its target outline and pointer marker; an application `render-drag-feedback`
+method keeps whole-window invalidation while a drag is pending or active. A
+failed paint forces the next pass to rebuild the retained frame from all tiles.
 
 The cache preserves paint order, clipping, fractional scaling and overlays.
 Opaque controls have exact direct/cached pixel parity in the native checks;

@@ -58,6 +58,13 @@
            (window-tile-state-last-present-time state) (rl:get-time))
      (incf (window-tile-state-presents state)))))
 
+(defun library-method-p (method)
+ "True when every class specializer of METHOD belongs to LUT."
+ (every (lambda (specializer)
+          (or (not (typep specializer 'class))
+              (eq (symbol-package (class-name specializer)) (find-package :lut))))
+        #+sbcl (sb-mop:method-specializers method)
+        #+ccl (ccl:method-specializers method)))
 (defun widget-dynamic-p (widget &optional methods)
  (case (cache-mode widget)
    (:dynamic t) (:retained nil)
@@ -68,13 +75,7 @@
         ;; Subclasses that only inherit a built-in painter can stay retained.
         ;; Custom painters explicitly opt in and publish their dirty state.
         (and (not (eq (symbol-package (class-name (class-of widget))) (find-package :lut)))
-             (some (lambda (method)
-                     (some (lambda (specializer)
-                             (and (typep specializer 'class)
-                                  (not (eq (symbol-package (class-name specializer)) (find-package :lut)))))
-                           #+sbcl (sb-mop:method-specializers method)
-                           #+ccl (ccl:method-specializers method)))
-                   (or methods (compute-applicable-methods #'render (list widget)))))
+             (notevery #'library-method-p (or methods (compute-applicable-methods #'render (list widget)))))
         (and (typep widget 'notebook)
              (some (lambda (page) (let ((action (page-action widget page)))
                                     (and action (notebook-action-draw-function action)))) (children widget)))))))
@@ -121,8 +122,33 @@
                         (dolist (child (active-children w)) (visit child clip))))))))
      (let ((clip (list (x root) (y root) (width root) (height root))))
        (visit root clip)
-       (dolist (overlay (reverse (slot-value root 'overlays))) (visit overlay clip))))
+       (dolist (overlay (reverse (slot-value root 'overlays))) (visit overlay clip))
+       (dolist (record (drag-feedback-records root frame)) (push record records))))
    (values (nreverse records) (nreverse dynamic))))
+(defun drag-feedback-records (root frame)
+ "Paint records for the drag preview: its target outline and pointer marker only."
+ (let ((session (visible-drag root)) (margin 4))
+   (flet ((padded (box) (list (- (first box) margin) (- (second box) margin)
+                              (+ (third box) (* 2 margin)) (+ (fourth box) (* 2 margin)))))
+     (cond ((notevery #'library-method-p (compute-applicable-methods #'render-drag-feedback (list root)))
+            ;; Application feedback may draw anywhere from external state.
+            (when (or session (slot-value root 'drag-context))
+              (list (list (list (x root) (y root) (width root) (height root)) (list :drag-feedback frame)))))
+           ((and session (eq (drag-state session) :dragging))
+            (let ((target (drag-target session)) (source (drag-source session))
+                  (x (drag-x session)) (y (drag-y session)))
+              ;; Mirrors RENDER-DRAG-FEEDBACK: tokens hold only what its pixels read.
+              (cons (list (padded (list (- x 4) (- y 4) 8 8))
+                          (list :drag-marker x y (not (null target)) (and source (render-revision source))))
+                    (when target
+                      (let ((clip (list 0 0 (width root) (height root))))
+                        (loop for node = target then (parent node) while node do
+                          (setf clip (intersect-rectangles clip (list (x node) (y node) (width node) (height node)))))
+                        (when (and (plusp (third clip)) (plusp (fourth clip)))
+                          (list (list (padded clip)
+                                      (list :drag-target (render-identity target) (render-revision target) clip
+                                            (list (x target) (y target) (width target) (height target))
+                                            (and (typep target 'notebook) (notebook-tab-p (drag-payload session)) x))))))))))))))
 (defun rectangles-overlap-p (a b)
  (and (< (first a) (+ (first b) (third b))) (< (first b) (+ (first a) (third a)))
       (< (second a) (+ (second b) (fourth b))) (< (second b) (+ (second a) (fourth a)))))
@@ -156,11 +182,15 @@
                        (let ((previous (window-tile-state-defaults-key state)))
                          (if (equal previous *style-defaults*) previous
                              (setf (window-tile-state-defaults-key state) (copy-tree *style-defaults*))))
-                       (symbol-function 'draw-string) (symbol-function 'paint-surface)
-                       (and (slot-value root 'drag-context) frame)))
+                       (symbol-function 'draw-string) (symbol-function 'paint-surface)))
         (*cache-output-pixel-scale* pixel-scale)
         (*font-discovery-pass* (make-hash-table :test #'eq)))
    (setf (window-tile-state-ready-p state) nil (window-tile-state-last-repaints state) 0)
+   ;; DIRTY-IDS lives for this pass only. If a later paint fails, tiles already
+   ;; repainted would never reach the patched frame: force a full rebuild instead.
+   (let ((complete nil))
+    (unwind-protect
+     (progn
    ;; Evaluate arbitrary/animated render callbacks once, not once per intersected tile.
    (dolist (record dynamic)
      (destructuring-bind (widget bounds) record
@@ -185,6 +215,8 @@
                                    :scale (ui-scale root) :background (style-value root :background))
            (declare (ignore region))
            (when repainted (push id dirty-ids) (incf (window-tile-state-last-repaints state)) (incf (window-tile-state-repaints state)))))))
+     (setf complete t))
+     (unless complete (invalidate-render-cache cache :frame))))
    ;; Removed/resized tiles own no widget references and release textures promptly.
    (let (removed)
      (maphash (lambda (id region)
