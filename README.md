@@ -12,6 +12,21 @@ rendering parity. See [acceptance status](docs/status.md).
 
 ## Install and run
 
+Build/configure the wakeable backend once:
+
+```sh
+make event-backend-build
+```
+
+LUT then selects it by default in fresh Lisp processes; applications do not need
+backend environment variables. Setup reuses a local CEF SDK when available;
+`CEF_DOWNLOAD=1` explicitly permits downloading one. `LUT_EVENT_LOOP=0` selects
+compatibility polling, and explicit native-library overrides are respected.
+No download or compilation happens at application startup. See
+[the event-loop guide](docs/event-loop.md) for prerequisites, configuration,
+remaining active cadences and platform coverage. `QUIET_RUN` is optional outside
+this workstation; set it to a local wrapper if desired.
+
 For Quicklisp, link the checkout into its local projects and refresh the index:
 
 ```sh

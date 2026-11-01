@@ -35,3 +35,15 @@ webview:
 
 test-webview:
 	$(SBCL) --script webview/tests/headless.lisp
+	$(SBCL) --script webview/tests/regions.lisp
+
+.PHONY: test-webview-damage
+test-webview-damage:
+	$(SBCL) --script webview/tests/damage.lisp
+
+.PHONY: event-backend-build
+PYTHON ?= python3
+QUIET_RUN ?= $(wildcard /Users/jessie/.local/bin/quiet-run.sh)
+QUIET_PREFIX = $(if $(QUIET_RUN),"$(QUIET_RUN)" --)
+event-backend-build:
+	@$(QUIET_PREFIX) "$(PYTHON)" tools/setup-event-backend.py $(if $(CEF_ROOT),--cef-root "$(CEF_ROOT)") $(if $(filter 1,$(CEF_DOWNLOAD)),--download-cef) $(if $(filter 1,$(WITHOUT_CEF)),--without-cef) $(if $(filter 1,$(WAYLAND)),--wayland)

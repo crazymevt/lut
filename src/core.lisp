@@ -75,6 +75,7 @@
   (spacing 8 (real 0 *) "Space between children.")))
 (defwidget window (box) "Root of a GUI tree. One native raylib window per process."
  ((layout-revision 0 integer "Internal requested-layout generation.")
+  (initial-focus-p t boolean "Request focus when creating the primary native window; NIL permits visible background diagnostics.")
   (cache-enabled-p t boolean "Use retained dirty-region rendering in native loops; NIL requests direct drawing.")
   (close-request-handler nil (or null function) "Optional (window) predicate for OS close requests. NIL return vetoes closing; guarded native launches require synchronous START or FRAMES.")
   (native-operation-generation 0 (integer 0 *) "Internal IPC request/report generation.")
@@ -82,6 +83,7 @@
   (native-normal-width nil (or null (real (0) *)) "Internal saved normal logical width.")
   (native-normal-height nil (or null (real (0) *)) "Internal saved normal logical height.")
   (native-state-pending nil (member nil :normal :maximized) "Internal pending native mode.")
+  (damage-revision 0 (integer 0 *) "Root paint-generation for event-driven cache preparation.")
   (native-state-settle-frames 0 (integer 0 *) "Internal normal-size capture guard during OS transitions.")
   (text "LUT" string "Native title.") (theme *light-theme* list "Inherited theme property list.")
   (theme-explicit-p nil boolean "Internal flag distinguishing an explicit theme from the default palette.")
@@ -218,17 +220,20 @@
    (when (fboundp 'request-layout) (request-layout container)))
  (when dispose (dispose child)) child)
 (defun root-of (widget) (if (parent widget) (root-of (parent widget)) widget))
-(defstruct connection source owner event callback (active-p t))
+(defstruct connection source owner event callback interval (active-p t))
 (defun ensure-live (widget)
  (when (disposed-p widget) (error "Widget ~s has been disposed." widget)) widget)
-(defun on (widget event callback &key owner)
+(defun on (widget event callback &key owner (interval (when (eq event :tick) (/ 1.0d0 30))))
  "Register CALLBACK (widget payload). OWNER optionally disconnects this binding when disposed.
-Return CALLBACK and, as a second value, a CONNECTION handle for DISCONNECT."
+Return CALLBACK and, as a second value, a CONNECTION handle for DISCONNECT.
+:TICK defaults to an explicit 30 Hz compatibility cadence; :INTERVAL NIL observes
+controller turns without creating wakeups. Positive intervals opt into cadence."
  (ensure-live widget) (when owner (ensure-live owner))
+ (when interval (check-type interval (real (0) *)))
  (unless (keywordp event) (error 'type-error :datum event :expected-type 'keyword))
  (unless (or (functionp callback) (symbolp callback))
    (error 'type-error :datum callback :expected-type '(or function symbol)))
- (let ((connection (make-connection :source widget :owner owner :event event :callback callback)))
+ (let ((connection (make-connection :source widget :owner owner :event event :callback callback :interval interval)))
    (push connection (slot-value widget 'handlers))
    (when owner (push connection (slot-value owner 'connections)))
    (values callback connection)))

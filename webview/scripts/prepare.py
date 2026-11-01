@@ -63,7 +63,7 @@ def main():
         shutil.copytree(next(unpack.iterdir()),binding)
         library = binding/'src/runtime/library.lisp'
         source = library.read_text()
-        source = source.replace('  (append\n', '  (append\n   (let ((runtime (ignore-errors (asdf:system-relative-pathname "lut/webview" "webview/runtime/"))))\n     (when runtime (list runtime)))\n',1)
+        source = source.replace('  (append\n', '  (append\n   (let ((runtime (ignore-errors (asdf:system-relative-pathname "lut/webview" "webview/runtime/"))))\n     (when (and runtime (not (uiop:getenv "RAYLIB_LISP_LIBRARY_PATH"))) (list runtime)))\n',1)
         needle = '(defun build-shim (library)'
         # Retain the upstream implementation, adding a precompiled-shim override
         # before its LET body. No consumer compiler is needed in packaged builds.

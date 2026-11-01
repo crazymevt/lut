@@ -6,10 +6,18 @@
    (let ((root (root-of widget)))
      (when (typep root 'window) (incf (slot-value root 'layout-revision))))) widget)
 
+(defun request-paint (widget)
+ "Schedule validation of published render-region keys without changing widget
+geometry or its whole-widget render key. Use ON-UI in a running native loop."
+ (unless (disposed-p widget)
+   (let ((root (root-of widget)))
+     (when (typep root 'window) (incf (slot-value root 'damage-revision))))) widget)
+
 (defun invalidate-widget (widget &key descendants)
  "Mark WIDGET's painted region dirty. With DESCENDANTS, invalidate owned children/overlays too. No native calls; use ON-UI while a native loop is active. Return WIDGET."
  (unless (disposed-p widget)
    (request-layout widget)
+   (request-paint widget)
    (incf (slot-value widget 'render-revision))
    (when descendants
      (dolist (child (children widget)) (invalidate-widget child :descendants t))
@@ -23,13 +31,17 @@
  ;; Focus is included only in the focused widget's render key, avoiding a root repaint.
  (unless (member slot '(x y width height tab-offset scroll-offset text-offset vertical-offset
                        tab-layout-width tab-layout-extent tab-reveal-p
-                       layout-revision render-revision render-identity geometry-cache text-root indexed-string
+                       damage-revision layout-revision render-revision render-identity geometry-cache text-root indexed-string
                        horizontal-extent-cache last-cursor navigation-x layout-width-hint layout-height-hint
                        focused-widget focus-visible-p pressed-widget handlers connections command-links
                        native-operation-generation native-state-settle-frames native-window-mode
                        native-normal-width native-normal-height native-state-pending))
    (invalidate-widget widget :descendants
      (member slot '(style state-style theme style-rules style-source ui-scale parent enabled-p visible-p)))))
+
+(defgeneric widget-render-regions (widget)
+ (:documentation "Optional additional spatial paint dependencies: a list of (local-rectangle immutable-EQUAL-key). Rectangles use widget-local UI units. Keep the ordinary render key stable for region-only changes. Publish complete current state, not consumable damage: skipped cache passes, overlapping tiles, moves and retries must remain correct. NIL preserves whole-widget invalidation."))
+(defmethod widget-render-regions ((w widget)) nil)
 
 (defgeneric widget-render-key (widget)
  (:documentation "Return an immutable EQUAL key for externally owned visual state. Built-ins supply text/model/presentation dependencies. Custom retained views specialize and combine CALL-NEXT-METHOD, or call INVALIDATE-WIDGET when external data changes. Never mutate returned key objects."))

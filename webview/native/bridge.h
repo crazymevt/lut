@@ -12,6 +12,12 @@ extern "C" {
    Strings and frame pointers are borrowed until the next bridge call/pump. */
 LUT_CEF_API int lut_cef_init(const char* runtime, const char* helper);
 LUT_CEF_API void lut_cef_pump(void);
+/* These two are thread-safe; WAKE must be a native function, never a Lisp callback. */
+LUT_CEF_API void lut_cef_set_wake(void (*wake)(void));
+LUT_CEF_API int64_t lut_cef_next_delay_ms(void);
+LUT_CEF_API uint64_t lut_cef_schedule_count(void);
+LUT_CEF_API uint64_t lut_cef_pump_count(void);
+LUT_CEF_API uint64_t lut_cef_fallback_count(void);
 LUT_CEF_API int lut_cef_shutdown(void);
 LUT_CEF_API void* lut_cef_create(const char* url, int width, int height, double scale);
 LUT_CEF_API void lut_cef_close(void* view);
@@ -29,6 +35,11 @@ LUT_CEF_API void lut_cef_command(void* view, int command);
 LUT_CEF_API void lut_cef_mouse(void* view, int kind, int x, int y, int modifiers, int delta);
 LUT_CEF_API void lut_cef_key(void* view, int key, int modifiers);
 LUT_CEF_API void lut_cef_text(void* view, const char* utf8);
+/* Iterate changed 128px blocks since a successfully consumed frame revision.
+   Initialize cursor to zero. Returns packed RGBA or NULL at end. Non-destructive;
+   skipped frames and retries retain damage. Thread/lifetime rules as above. */
+LUT_CEF_API const void* lut_cef_damage(void* view, uint64_t since, int* cursor,
+                                     int* x, int* y, int* width, int* height);
 LUT_CEF_API const void* lut_cef_frame(void* view, int* width, int* height, uint64_t* revision);
 LUT_CEF_API const char* lut_cef_title(void* view);
 LUT_CEF_API const char* lut_cef_url(void* view);

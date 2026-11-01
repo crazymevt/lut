@@ -45,7 +45,8 @@
           (time (or (event-timestamp event) (/ (get-internal-real-time) internal-time-units-per-second)))
           (pending (slot-value menu 'hover-pending)))
      ;; Give diagonal travel into an open submenu a short grace period. Native
-     ;; polling sends MOVE each frame, so a stationary sibling opens after 200ms.
+     ;; dispatch revisits MOVE at the grace deadline (or compatibility frame),
+     ;; so a stationary sibling opens after 200ms without an idle poll.
      (when (and child (not (eq (popup-owner child) item)))
        (unless (and pending (eq item (first pending)))
          (setf pending (list item time) (slot-value menu 'hover-pending) pending))

@@ -11,6 +11,8 @@ def run(*args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--cef-root', type=pathlib.Path)
+    parser.add_argument('--runtime-dir', type=pathlib.Path, help='Stage a separate runtime without replacing an active one')
+    parser.add_argument('--build-dir', type=pathlib.Path, help='Separate native build directory')
     parser.add_argument('--download', action='store_true', help='Download the pinned official SDK')
     args = parser.parse_args()
     system, machine = platform.system(), platform.machine().lower()
@@ -42,11 +44,11 @@ def main():
     header = (sdk / 'include/cef_version.h').read_text()
     if f'"{VERSION}"' not in header:
         raise SystemExit(f'This prototype requires CEF {VERSION}')
-    build = ROOT / 'build'
+    build = (args.build_dir or ROOT / 'build').resolve()
     run('cmake', '-S', ROOT/'native', '-B', build, f'-DCEF_ROOT={sdk.as_posix()}', '-DCMAKE_BUILD_TYPE=Release',
         *(['-DPROJECT_ARCH=arm64' if machine == 'arm64' else '-DPROJECT_ARCH=x86_64'] if system == 'Darwin' else []))
     run('cmake', '--build', build, '--config', 'Release', '--parallel', '4')
-    runtime = ROOT / 'runtime'
+    runtime = (args.runtime_dir or ROOT / 'runtime').resolve()
     run('cmake', '--install', build, '--config', 'Release', '--prefix', runtime)
     if system == 'Darwin':
         framework = 'Chromium Embedded Framework.framework'

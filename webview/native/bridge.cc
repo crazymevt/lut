@@ -6,6 +6,8 @@
 #include "include/cef_render_handler.h"
 #include "include/cef_parser.h"
 #include "include/wrapper/cef_helpers.h"
+#include <atomic>
+#include <limits>
 #include <algorithm>
 #include <cstring>
 #include <cstdlib>
@@ -25,8 +27,28 @@
 extern bool lut_cef_prepare_cocoa();
 #endif
 namespace {
-class BridgeApp final : public CefApp {
+std::atomic<int64_t> pump_deadline{std::numeric_limits<int64_t>::max()};
+std::atomic<uint64_t> pump_schedules{0}, pump_calls{0}, pump_fallbacks{0};
+int64_t pump_last = 0;
+// CEF's reference external pump retains a 30 Hz maximum servicing interval.
+// Restrict that compatibility deadline to live clients, independently of paint.
+constexpr int64_t pump_client_interval = 33;
+using WakeFunction = void (*)();
+std::atomic<WakeFunction> pump_wake{nullptr};
+int64_t pump_now() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+    std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+class BridgeApp final : public CefApp, public CefBrowserProcessHandler {
  public:
+  CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override { return this; }
+  void OnScheduleMessagePumpWork(int64_t delay_ms) override {
+    ++pump_schedules;
+    const auto now = pump_now();
+    const auto deadline = now + std::max<int64_t>(0, std::min<int64_t>(delay_ms, std::numeric_limits<int64_t>::max() - now - 1));
+    const auto previous = pump_deadline.exchange(deadline);
+    if (deadline < previous) { if (auto wake = pump_wake.load()) wake(); }
+  }
   void OnBeforeCommandLineProcessing(const CefString&, CefRefPtr<CefCommandLine> command) override {
     if(std::getenv("LUT_CEF_DISABLE_GPU")) command->AppendSwitch("disable-gpu");
   }
@@ -41,6 +63,11 @@ class View final : public CefClient, public CefRenderHandler,
  public:
   int width, height; double scale; bool focus=false, hidden=false; bool closed = false, closing = false, loading = true;
   uint64_t revision = 0;
+  // Bounded spatial history: latest changed revision per 128px block. A slow
+  // consumer sees every block changed since its last successful upload.
+  std::vector<uint64_t> damage;
+  std::vector<unsigned char> patch;
+  static constexpr int damage_size = 128;
   std::string title, url, error, trusted_url, last_message;
   std::deque<std::string> messages;
   std::vector<unsigned char> pixels;
@@ -83,6 +110,8 @@ class View final : public CefClient, public CefRenderHandler,
     if (w <= 0 || h <= 0 || w > 8192 || h > 8192) return;
     bool resized = pixel_width != w || pixel_height != h;
     if (resized) { pixels.resize(size_t(w)*h*4); pixel_width=w; pixel_height=h; }
+    const int columns=(w+damage_size-1)/damage_size;
+    if(resized) damage.assign(size_t(columns)*((h+damage_size-1)/damage_size), revision+1);
     bool changed = resized;
     auto copy = [&](int x, int y, int rw, int rh) {
       auto src = static_cast<const unsigned char*>(data);
@@ -90,6 +119,7 @@ class View final : public CefClient, public CefRenderHandler,
         size_t i=(size_t(row)*w+col)*4;
         if(pixels[i]!=src[i+2] || pixels[i+1]!=src[i+1] || pixels[i+2]!=src[i] || pixels[i+3]!=src[i+3]) {
           pixels[i]=src[i+2]; pixels[i+1]=src[i+1]; pixels[i+2]=src[i]; pixels[i+3]=src[i+3];
+          damage[size_t(row/damage_size)*columns+col/damage_size]=revision+1;
           changed=true;
         }
       }
@@ -142,6 +172,7 @@ int lut_cef_init(const char* runtime, const char* helper) {
   CefSettings settings;
   settings.no_sandbox=true; // Explicit development-only build, see README.
   settings.windowless_rendering_enabled=true;
+  settings.external_message_pump=true;
   // Ephemeral per-host profile: independent editor processes do not share
   // Chromium's SingletonLock or need write access to the installed runtime.
   std::error_code profile_error;
@@ -181,7 +212,29 @@ int lut_cef_init(const char* runtime, const char* helper) {
   if(!initialized) std::filesystem::remove_all(profile,profile_error);
   return initialized;
 }
-void lut_cef_pump() { if(initialized) CefDoMessageLoopWork(); }
+void lut_cef_pump() {
+  if(initialized) {
+    auto deadline = pump_deadline.load();
+    if (deadline <= pump_now()) pump_deadline.compare_exchange_strong(deadline, std::numeric_limits<int64_t>::max());
+    if (live && pump_now() - pump_last >= pump_client_interval) ++pump_fallbacks;
+    ++pump_calls;
+    CefDoMessageLoopWork();
+    pump_last = pump_now();
+  }
+}
+uint64_t lut_cef_schedule_count() { return pump_schedules.load(); }
+uint64_t lut_cef_pump_count() { return pump_calls.load(); }
+uint64_t lut_cef_fallback_count() { return pump_fallbacks.load(); }
+void lut_cef_set_wake(void (*wake)()) { pump_wake.store(wake); }
+int64_t lut_cef_next_delay_ms() {
+  const auto deadline = pump_deadline.load();
+  int64_t delay = deadline == std::numeric_limits<int64_t>::max() ? -1 : std::max<int64_t>(0, deadline - pump_now());
+  if (live) {
+    const auto client_delay = std::max<int64_t>(0, pump_client_interval - (pump_now() - pump_last));
+    delay = delay < 0 ? client_delay : std::min(delay, client_delay);
+  }
+  return delay;
+}
 int lut_cef_shutdown() {
   if(!initialized || live) return 0;
   CefShutdown(); initialized=false;
@@ -293,6 +346,24 @@ void lut_cef_text(void* p,const char* text) {
   if(auto b=browser(p)) { CefString s(text); auto u=s.ToString16();
     for(auto ch:u) { CefKeyEvent e; e.type=KEYEVENT_CHAR;e.windows_key_code=ch;e.character=ch;e.unmodified_character=ch;b->GetHost()->SendKeyEvent(e); }
   }
+}
+// Packed RGBA patches, borrowed until the next bridge call. CURSOR is a
+// block index, advanced past each returned block; no destructive acknowledgement.
+const void* lut_cef_damage(void* p,uint64_t since,int* cursor,int* x,int* y,int* w,int* h) {
+  auto v=view(p);
+  const int size=View::damage_size, columns=(v->pixel_width+size-1)/size;
+  while(*cursor>=0 && size_t(*cursor)<v->damage.size()) {
+    int i=(*cursor)++;
+    if(v->damage[i]<=since) continue;
+    *x=(i%columns)*size; *y=(i/columns)*size;
+    *w=std::min(size,v->pixel_width-*x); *h=std::min(size,v->pixel_height-*y);
+    v->patch.resize(size_t(*w)*(*h)*4);
+    for(int row=0;row<*h;++row)
+      std::memcpy(v->patch.data()+size_t(row)*(*w)*4,
+                  v->pixels.data()+(size_t(*y+row)*v->pixel_width+*x)*4,size_t(*w)*4);
+    return v->patch.data();
+  }
+  return nullptr;
 }
 const void* lut_cef_frame(void* p,int* w,int* h,uint64_t* r) { auto v=view(p); *w=v->pixel_width;*h=v->pixel_height;*r=v->revision;return v->pixels.empty()?nullptr:v->pixels.data(); }
 const char* lut_cef_title(void* p) { return view(p)->title.c_str(); }

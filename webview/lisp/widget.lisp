@@ -2,7 +2,7 @@
   (:use #:cl)
   (:export #:webview #:navigate #:go-back #:go-forward #:reload-page #:stop-loading
            #:page-title #:page-url #:loading-p #:load-error #:run-demo #:statistics #:execute-script #:attach-webview #:pump-webviews
-           #:initialize-cef #:close-session #:webviews-ready-p #:runtime-available-p #:call-with-native-run))
+           #:enable-scheduled-pump #:initialize-cef #:close-session #:webviews-ready-p #:runtime-available-p #:call-with-native-run))
 (in-package #:lut-webview)
 (defclass webview (lut:widget)
  ((handle :initform nil :accessor handle)
@@ -16,11 +16,13 @@
   (loading-p :initform t :reader loading-p)
   (load-error :initform "" :reader load-error)
   (native-state :initform nil :accessor native-state)
+  (damage-keys :initform (make-hash-table :test #'equal) :accessor damage-keys)
+  (uploaded-bytes :initform 0 :accessor uploaded-bytes)
   (uploads :initform 0 :accessor uploads))
  (:default-initargs :cache-mode :retained))
 (defmethod lut::focusable-p ((view webview)) t)
 (defun statistics (view)
-  (list :paint-revision (revision view) :texture-uploads (uploads view)))
+  (list :paint-revision (revision view) :texture-uploads (uploads view) :uploaded-bytes (uploaded-bytes view)))
 (defgeneric navigate (view url))
 (defgeneric go-back (view))
 (defgeneric go-forward (view))

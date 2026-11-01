@@ -1,5 +1,17 @@
 (in-package #:lut)
 ;; Declare dynamically bound renderer state before compiling its consumers.
+(defvar *event-backend-p* nil)
+(defvar *native-damage-p* nil)
+(defvar *controller-cache-key* nil)
+(defvar *controller-pointer-key* nil)
+(defvar *frame-limit-p* nil)
+(defvar *controller-turns* 0)
+(defvar *native-waits* 0)
+(defvar *native-focus-changes* 0)
+(defvar *native-exposes* 0)
+(defvar *last-native-focus* :unknown)
+(defvar *manual-event-dispatch* nil)
+(defvar *signal-run-errors* nil)
 (defvar *clip* nil)
 (defvar *active-window* nil)
 (defvar *window-tile-caches* nil)
@@ -8,11 +20,22 @@
 (defvar *last-polled-pointer* nil)
 (defvar *last-controller-time* nil)
 (defvar *font-file-stamps* nil)
+(defvar *font-stamp-cache* nil)
+(defparameter *font-stamp-check-interval* internal-time-units-per-second
+ "Native font hot-reload checks run at most once per second per path, not every frame.")
+(defun cached-font-file-stamp (path)
+ (if (null *font-stamp-cache*) (ignore-errors (file-write-date path))
+     (let* ((now (get-internal-real-time)) (entry (gethash path *font-stamp-cache*)))
+       (if (and entry (< (- now (car entry)) *font-stamp-check-interval*)) (cdr entry)
+           (let ((stamp (ignore-errors (file-write-date path))))
+             ;; Bound paths retained after repeated font/settings changes.
+             (when (>= (hash-table-count *font-stamp-cache*) 128) (clrhash *font-stamp-cache*))
+             (setf (gethash path *font-stamp-cache*) (cons now stamp)) stamp)))))
 (defun font-file-stamp (path)
  (if *font-file-stamps*
      (multiple-value-bind (value present) (gethash path *font-file-stamps*)
-       (if present value (setf (gethash path *font-file-stamps*) (ignore-errors (file-write-date path)))))
-     (ignore-errors (file-write-date path))))
+       (if present value (setf (gethash path *font-file-stamps*) (cached-font-file-stamp path))))
+     (cached-font-file-stamp path)))
 (defparameter *idle-poll-interval* (/ 1.0 30)
  "Idle input/queued-work latency is bounded to about 33 ms. Active/dynamic rendering keeps its normal cadence.")
 (defparameter *retained-font-cache-limit* 32)
@@ -67,7 +90,8 @@ The camera applies DPI; raylib handles native scissor rectangle conversion."
 Return FUNCTION and, as a second value, a cancellable job handle."
  (check-type function function) (when owner (ensure-live owner))
  (let ((job (make-ui-job :function function :owner owner)))
-   (bt:with-lock-held (*ui-lock*) (push job *ui-queue*)) (values function job)))
+   (bt:with-lock-held (*ui-lock*) (when owner (ensure-live owner)) (push job *ui-queue*))
+   (when (fboundp 'wake-ui) (wake-ui)) (values function job)))
 (defmacro on-ui (&body body)
  "Execute BODY between frames on the GUI thread. Use ON-WIDGET for owned work."
  `(enqueue-ui (lambda () ,@body)))
@@ -114,6 +138,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
 (defvar *primary-window* nil "Active primary root; cleared on disposal/teardown.")
 (defmethod dispose :after ((w widget))
  (cancel-owner-jobs w)
+ (when (fboundp 'cancel-owner-deadlines) (cancel-owner-deadlines w))
  (when (eq w *window*) (setf *window* nil))
  (when (eq w *primary-window*) (setf *primary-window* nil) (rl:stop)))
 
@@ -813,11 +838,28 @@ Return FUNCTION and, as a second value, a cancellable job handle."
              when (and char (not control)) do (send :text :text (string char)))))))
 (defun frame-step (w dt)
  "One frame, called by name so redefinition takes effect immediately."
+ ;; The binding's paused error screen owns event polling while paused. Restore
+ ;; manual dispatch on resume, without changing RUN/START's public error policy.
+ (handler-bind ((error (lambda (condition) (declare (ignore condition))
+                        (when (and *event-backend-p* (not *signal-run-errors*) (not *frame-limit-p*))
+                          (native-event-call "LUTSetManualEvents" 0)
+                          (setf *manual-event-dispatch* nil)))))
+ (when (and *event-backend-p* (not *manual-event-dispatch*))
+   (native-event-call "LUTSetManualEvents" 1) (setf *manual-event-dispatch* t))
  (let ((frame-start (rl:get-time)) (*font-file-stamps* (make-hash-table :test #'equal)))
  (when *last-controller-time* (setf dt (max 0 (- frame-start *last-controller-time*))))
  (setf *last-controller-time* frame-start *controller-frame-dt* dt)
  (setf *used-fonts* nil *used-textures* nil)
+ (incf *controller-turns*)
+ (let ((focus (rl:is-window-focused)))
+   (unless (eq focus *last-native-focus*)
+     (unless (eq *last-native-focus* :unknown) (incf *native-focus-changes*))
+     (setf *last-native-focus* focus)))
  (drain-ui-queue)
+ (run-ui-deadlines)
+ (when *event-backend-p*
+   (setf *native-damage-p* (plusp (native-event-call "LUTConsumeDamage")))
+   (when *native-damage-p* (incf *native-exposes*)))
  (when (fboundp 'open-pending-dialogs) (open-pending-dialogs w))
  (unless (equal *native-title* (text w))
    (rl:set-window-title (text w)) (setf *native-title* (text w)))
@@ -825,26 +867,34 @@ Return FUNCTION and, as a second value, a cancellable job handle."
  (sync-native-window-state w)
  (emit w :tick dt)
  (when (disposed-p w) (return-from frame-step nil))
- (refresh-platform-integration w)
+ (unless *event-backend-p* (refresh-platform-integration w))
  (layout-window-if-needed w (/ (rl:get-screen-width) (ui-scale w)) (/ (rl:get-screen-height) (ui-scale w)))
  (unless (rl:is-window-focused) (cancel-text-selection w :forget-clicks t))
  (poll-input w)
- (update-native-cursor (window-pointer-cursor w
-   (/ (rl:get-mouse-x) (ui-scale w)) (/ (rl:get-mouse-y) (ui-scale w))))
+ (let ((key (list (rl:get-mouse-x) (rl:get-mouse-y) (focused-widget w) (layout-revision w))))
+   (when (or (not *event-backend-p*) (not (equal key *controller-pointer-key*)))
+     (update-native-cursor (window-pointer-cursor w
+       (/ (rl:get-mouse-x) (ui-scale w)) (/ (rl:get-mouse-y) (ui-scale w))))
+     (setf *controller-pointer-key* key)))
  (advance-text-selection w dt)
  (advance-drag w dt)
- (prepare-window-cache w)
+ (when (or (not *event-backend-p*)
+           (not (equal (controller-cache-key w) *controller-cache-key*))
+           (legacy-tick-delay w) (window-has-dynamic-content-p w))
+   (prepare-window-cache w)
+   (setf *controller-cache-key* (controller-cache-key w)))
  (if (window-needs-present-p w)
      (progn
        (rl:with-drawing ((style-value w :background))
          (let ((*composite-window-cache* (render-identity w))) (render-window w)))
        (note-window-presented w))
-     (progn
+     (unless *event-backend-p*
        ;; Service queued UI work/timers at the normal cadence, but do not redraw
        ;; or swap unchanged buffers. Sleep yields the CPU rather than busy-waiting.
        (sleep (max 0 (- *idle-poll-interval* (- (rl:get-time) frame-start))))
        (rl:poll-input-events)))
- (sweep-native-resources)))
+ (sweep-native-resources)
+ (when *event-backend-p* (controller-wait w)))))
 (defun render-window (w)
  ;; Input and command refresh can change content after layout: use a fresh pass.
  (let ((*font-discovery-pass* (make-hash-table :test #'eq)))
@@ -867,15 +917,29 @@ Return FUNCTION and, as a second value, a cancellable job handle."
  (with-native-logging
  (let ((*active-window* w) (*native-title* nil) (*native-cursor* nil) (*font-cache* nil) (*texture-cache* nil)
        (*window-tile-caches* (make-hash-table))
+       (*font-stamp-cache* (make-hash-table :test #'equal))
        (*last-polled-pointer* nil)
+       (*event-backend-p* (native-event-backend-p)) (*native-damage-p* t)
+       (*controller-cache-key* nil) (*controller-pointer-key* nil)
+       (*frame-limit-p* frames) (*controller-turns* 0) (*native-waits* 0)
+       (*native-focus-changes* 0) (*native-exposes* 0) (*last-native-focus* :unknown)
+       (*manual-event-dispatch* nil)
        (*last-controller-time* nil) (*controller-frame-dt* 0)
        (*used-fonts* nil) (*used-textures* nil) (*retired-targets* nil) (count 0))
+   (unless *event-backend-p*
+     (format *error-output* "~&LUT: polling compatibility backend. Build with make event-backend-build in LUT for native event waiting.~%"))
    (setf *controller-running-p* t *primary-window* w)
    (unwind-protect
      (rl:with-window ((round (* (nth-value 0 (normal-window-size w)) (ui-scale w))) (round (* (nth-value 1 (normal-window-size w)) (ui-scale w))) (text w)
-                     :flags '(:window-resizable :window-highdpi :vsync-hint) :exit-key :null)
+                     :flags (append '(:window-resizable :window-highdpi :vsync-hint)
+                                    (unless (initial-focus-p w) '(:window-unfocused))) :exit-key :null)
        #+darwin (install-cocoa-titlebar-zoom)
+       (when *event-backend-p*
+         (native-event-call "LUTSetManualEvents" 1) (setf *manual-event-dispatch* t)
+         (install-ui-wake (lambda () (cffi:foreign-funcall "LUTWakeEvents" :void))))
        (unwind-protect
+         (progn
+         (emit w :context-open)
          (if (close-request-handler w)
              ;; Raylib's GAME-LOOP closes before calling the frame function.
              ;; Keep its stop flag, but let the application veto OS close.
@@ -890,7 +954,9 @@ Return FUNCTION and, as a second value, a cancellable job handle."
                         (when (and frames (>= (incf count) frames)) (rl:stop))))
              (rl:game-loop (dt :on-error (if (or frames *signal-run-errors*) :signal :pause))
                (frame-step w dt)
-               (when (and frames (>= (incf count) frames)) (rl:stop))))
+               (when (and frames (>= (incf count) frames)) (rl:stop)))))
+         (when *event-backend-p*
+           (install-ui-wake nil) (native-event-call "LUTSetManualEvents" 0))
          (unwind-protect (progn (cancel-drag w) (emit w :context-close))
          (unwind-protect (release-platform-context w)
          (when (fboundp 'shutdown-native-windows) (shutdown-native-windows))
@@ -899,7 +965,7 @@ Return FUNCTION and, as a second value, a cancellable job handle."
          (mapc (lambda (pair) (rl:unload-font (cdr pair))) *font-cache*)
          (mapc (lambda (pair) (rl:unload-texture (cdr pair))) *texture-cache*)))))
      (setf *controller-running-p* nil *primary-window* nil *window* nil rl:*last-error* nil)
-     (cancel-all-ui-jobs)))))
+     (cancel-all-ui-jobs) (clear-ui-deadlines)))))
 (defun start (window &key frames wait)
  "Launch on the OS main thread; subsequent starts create native workers inheriting the prior root's app styles.
 WAIT waits for a primary launch and re-signals its errors on the caller after native cleanup, instead of pausing the loop. Asynchronous launches keep the runner's error handling. Worker launches return a handle immediately, even with WAIT."
@@ -918,7 +984,7 @@ WAIT waits for a primary launch and re-signals its errors on the caller after na
                                    (error (condition) (setf failure condition))))) :wait t)))
                (when failure (error failure)) result))
            (rl:run (lambda () (run window :frames frames)) :wait nil)))))
-(defun stop () "Request stop after current frame." (rl:stop))
+(defun stop () "Request stop and wake a sleeping native loop." (prog1 (rl:stop) (wake-ui)))
 (defmethod clipboard-text :around ((w widget))
  (if (rl:is-window-ready) (rl:get-clipboard-text) (call-next-method)))
 (defmethod (setf clipboard-text) :around (string (w widget))

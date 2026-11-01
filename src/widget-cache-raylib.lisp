@@ -1,7 +1,7 @@
 (in-package #:lut)
 
 (defparameter *window-cache-tile-size* 256)
-(defstruct window-tile-state defaults-key (cache (make-render-cache)) ids (last-repaints 0) (repaints 0) (dynamic-paints 0) (frame 0) layout-key (layout-passes 0) present-key (last-present-time 0) (presents 0) ready-p)
+(defstruct window-tile-state defaults-key (cache (make-render-cache)) ids (last-repaints 0) (repaints 0) (dynamic-paints 0) (frame 0) layout-key (layout-passes 0) present-key dynamic-active-p (last-present-time 0) (presents 0) ready-p)
 
 (defun release-window-cache (root)
  (when *window-tile-caches*
@@ -14,7 +14,10 @@
 (defmethod window-cache-statistics ((root window))
  (let* ((state (and *window-tile-caches* (gethash (render-identity root) *window-tile-caches*)))
         (cache (and state (window-tile-state-cache state))))
-   (list :enabled-p (cache-enabled-p root)
+   (list :focus-changes *native-focus-changes* :exposes *native-exposes*
+         :controller-turns *controller-turns* :native-waits *native-waits*
+         :cache-passes (if state (window-tile-state-frame state) 0)
+         :enabled-p (cache-enabled-p root)
          :tiles (if state (length (window-tile-state-ids state)) 0)
          :repaints (if state (window-tile-state-repaints state) 0)
          :dynamic-paints (if state (window-tile-state-dynamic-paints state) 0)
@@ -50,7 +53,8 @@
        (rl:is-window-resized)
        ;; Raylib exposes no portable compositor-damage event. A low-frequency
        ;; refresh repairs a lost front buffer without continuous buffer swaps.
-       (>= (- (rl:get-time) (window-tile-state-last-present-time state)) 1.0))))
+       (if *event-backend-p* *native-damage-p*
+           (>= (- (rl:get-time) (window-tile-state-last-present-time state)) 1.0)))))
 (defun note-window-presented (root)
  (let ((state (and *window-tile-caches* (gethash (render-identity root) *window-tile-caches*))))
    (when state
@@ -116,6 +120,14 @@
                                     methods
                                     (font-stamp font)
                                     (widget-render-key w) (and dynamic-p frame))) records)))
+                  ;; Spatial dependencies supplement the ordinary widget token.
+                  ;; Geometry/style/focus still invalidate its complete paint area.
+                  (dolist (region (widget-render-regions w))
+                    (destructuring-bind ((rx ry rw rh) key) region
+                      (let ((area (intersect-rectangles
+                                    (list (+ (x w) rx) (+ (y w) ry) rw rh) clip)))
+                        (when (and (plusp (third area)) (plusp (fourth area)))
+                          (push (list area (list :region (render-identity w) rx ry rw rh key)) records)))))
                   (if dynamic-p
                       (when (and (plusp (third paint)) (plusp (fourth paint))) (push (list w paint) dynamic))
                       (when (and (plusp (third clip)) (plusp (fourth clip)))
@@ -185,6 +197,7 @@
                        (symbol-function 'draw-string) (symbol-function 'paint-surface)))
         (*cache-output-pixel-scale* pixel-scale)
         (*font-discovery-pass* (make-hash-table :test #'eq)))
+   (setf (window-tile-state-dynamic-active-p state) (not (null dynamic)))
    (setf (window-tile-state-ready-p state) nil (window-tile-state-last-repaints state) 0)
    ;; DIRTY-IDS lives for this pass only. If a later paint fails, tiles already
    ;; repainted would never reach the patched frame: force a full rebuild instead.
@@ -245,3 +258,7 @@
      (let ((*render-ui-scale* (ui-scale root)))
        (rl:with-mode-2d ((rl:make-camera-2d :zoom (coerce (* *render-ui-scale* (backing-pixel-scale)) 'single-float)))
          (draw-cached-region (window-tile-state-cache state) :frame))) t)))
+
+(defun window-has-dynamic-content-p (root)
+ (let ((state (and *window-tile-caches* (gethash (render-identity root) *window-tile-caches*))))
+   (and state (window-tile-state-dynamic-active-p state))))

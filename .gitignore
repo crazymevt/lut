@@ -17,3 +17,5 @@ debug.log
 __pycache__/
 
 /webview/software-opengl/
+
+/.event-build/

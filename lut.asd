@@ -1,6 +1,8 @@
+(load (merge-pathnames "src/select-event-backend.lisp" *load-truename*))
+
 (asdf:defsystem "lut"
   :description "Lisp User Toolkit: portable retained-mode CLOS GUI"
-  :version "0.2.2" :license "MIT" :serial t
+  :version "0.2.3" :license "MIT" :serial t
   :components ((:file "src/package") (:file "src/core") (:file "src/widgets") (:file "src/styles") (:file "src/text-index") (:file "src/text-history") (:file "src/input") (:file "src/text-buffers") (:file "src/text-geometry") (:file "src/notebook") (:file "src/drag-and-drop") (:file "src/text-selection") (:file "src/interactions") (:file "src/text-presentation") (:file "src/anchored-surfaces") (:file "src/commands") (:file "src/data-models") (:file "src/data-views") (:file "src/application-adapters") (:file "src/platform") (:file "src/advanced-interaction") (:file "src/measurement") (:file "src/wrapped-text") (:file "src/scrolling") (:file "src/ui-extensions") (:file "src/cell-grid") (:file "src/extra-controls") (:file "src/date-time") (:file "src/widget-invalidation"))
   :in-order-to ((asdf:test-op (asdf:test-op "lut/tests"))))
 (asdf:defsystem "lut/render-cache" :version "0.2.2"
@@ -10,7 +12,7 @@
   :description "Shared native table rendering for LUT and embedded hosts"
   :depends-on ("lut/render-cache") :components ((:file "src/data-renderer")))
 (asdf:defsystem "lut/raylib" :depends-on ("lut/data-renderer" "raylib" "bordeaux-threads" "cl-base64" #+darwin "cffi-libffi")
-  :serial t :components ((:file "src/raylib") (:file "src/presentation-raylib") (:file "src/data-raylib") (:file "src/platform-macos") (:file "src/windows") (:file "src/application-raylib") (:file "src/cell-grid-raylib") (:file "src/extra-controls-raylib") (:file "src/widget-cache-raylib")))
+  :serial t :components ((:file "src/raylib") (:file "src/ui-scheduler") (:file "src/presentation-raylib") (:file "src/data-raylib") (:file "src/platform-macos") (:file "src/windows") (:file "src/application-raylib") (:file "src/cell-grid-raylib") (:file "src/extra-controls-raylib") (:file "src/widget-cache-raylib")))
 (asdf:defsystem "lut/examples" :depends-on ("lut/raylib")
   :serial t :components ((:file "examples/demos") (:file "examples/data-models") (:file "examples/platform") (:file "examples/advanced-interaction") (:file "examples/measured-layout") (:file "examples/wrapped-text") (:file "examples/scrolling") (:file "examples/application-adapters") (:file "examples/cell-grid")))
 (asdf:defsystem "lut/docs" :depends-on ("lut/raylib" "docset")

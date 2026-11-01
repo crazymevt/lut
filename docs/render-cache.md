@@ -148,3 +148,18 @@ and 128 cold image textures across idle frames; currently used resources survive
 the trim. Direct-render windows retain the existing per-frame disposal policy.
 Atlas keys include file timestamps, so replacing a font still refreshes it.
 Idle-only polling defaults to 30 Hz; active/dynamic painting uses normal cadence.
+
+Native font-file timestamps are reused for up to one second per path within a
+window run (including missing files). This avoids filesystem probes at idle frame
+cadence; external font replacement is detected on the next timestamp check.
+Changing the selected font path or size still changes the atlas key immediately.
+The timestamp table is context-local, bounded to 128 paths, and discarded on exit.
+
+
+`widget-render-regions` supplements the ordinary whole-widget paint key with
+`(local-rectangle immutable-key)` records. Publish complete current spatial
+state, not an event queue or a consumable dirty list: every intersecting tile
+must see the same dependency, including after skipped cache passes. Region-only
+changes must leave `widget-render-key` and `render-revision` stable; geometry,
+style and ordinary invalidation still repaint the whole widget. The CEF webview
+uses this contract for bounded pixel-block revision keys and regional uploads.

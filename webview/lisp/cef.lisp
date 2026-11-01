@@ -3,8 +3,10 @@
 (defvar *views* nil)
 (defvar *closing* nil)
 (defvar *initialized* nil)
+(defvar *scheduled-pump* nil)
 (defparameter *runtime*
-  (asdf:system-relative-pathname "lut/webview" "webview/runtime/"))
+  (or (let ((path (uiop:getenv "LUT_CEF_RUNTIME"))) (when path (uiop:ensure-directory-pathname path)))
+      (asdf:system-relative-pathname "lut/webview" "webview/runtime/")))
 (defun load-bridge ()
   (unless *library*
     (let ((path (namestring (merge-pathnames
@@ -22,6 +24,22 @@
       #-win32 (setf *library* (cffi:load-foreign-library path)))))
 (cffi:defcfun ("lut_cef_init" %init) :int (runtime :string) (helper :string))
 (cffi:defcfun ("lut_cef_pump" %pump) :void)
+(cffi:defcfun ("lut_cef_set_wake" %set-wake) :void (wake :pointer))
+(cffi:defcfun ("lut_cef_next_delay_ms" %next-delay) :int64)
+(defun cef-pump-delay ()
+  (when *initialized* (let ((delay (%next-delay))) (unless (minusp delay) (/ delay 1000.0d0)))))
+(defun enable-scheduled-pump (window)
+  "Service CEF deadlines on the native UI thread. Earlier deadlines wake through
+  raylib's native C entry point; foreign CEF threads never enter Lisp."
+  (unless (cffi:foreign-symbol-pointer "lut_cef_next_delay_ms")
+    (error "Rebuild the CEF bridge for scheduled pumping."))
+  (setf *scheduled-pump* t)
+  (%set-wake (or (cffi:foreign-symbol-pointer "LUTWakeEvents") (cffi:null-pointer)))
+  (lut:register-ui-service (lambda () (pump-webviews window)) #'cef-pump-delay :owner window)
+  ;; Sync native size/focus/visibility and newly attached views on actual UI work.
+  (lut:on window :tick (lambda (w dt) (declare (ignore dt)) (pump-webviews w)) :interval nil)
+  (lut:on window :context-close (lambda (w event) (declare (ignore w event))
+                                (%set-wake (cffi:null-pointer)) (setf *scheduled-pump* nil))))
 (cffi:defcfun ("lut_cef_shutdown" %shutdown) :int)
 (cffi:defcfun ("lut_cef_create" %create) :pointer (url :string) (width :int) (height :int) (scale :double))
 (cffi:defcfun ("lut_cef_close" %close) :void (view :pointer))
@@ -37,6 +55,8 @@
 (cffi:defcfun ("lut_cef_mouse" %mouse) :void (view :pointer) (kind :int) (x :int) (y :int) (modifiers :int) (delta :int))
 (cffi:defcfun ("lut_cef_key" %key) :void (view :pointer) (key :int) (modifiers :int))
 (cffi:defcfun ("lut_cef_text" %text) :void (view :pointer) (text :string))
+(cffi:defcfun ("lut_cef_damage" %damage) :pointer
+  (view :pointer) (since :uint64) (cursor :pointer) (x :pointer) (y :pointer) (width :pointer) (height :pointer))
 (cffi:defcfun ("lut_cef_frame" %frame) :pointer (view :pointer) (width :pointer) (height :pointer) (revision :pointer))
 (cffi:defcfun ("lut_cef_title" %title) :string (view :pointer))
 (cffi:defcfun ("lut_cef_url" %url) :string (view :pointer))
@@ -62,7 +82,9 @@
   view)
 (defun pump-webviews (window)
   (when *initialized*
-    (%pump) (reap-closed)
+    (when (or (not *scheduled-pump*) (let ((delay (cef-pump-delay))) (and delay (<= delay 0))))
+      (%pump))
+    (reap-closed)
     (dolist (view (copy-list *views*))
       (when (eq (lut:root-of view) window) (update-view view window)))))
 (defmethod navigate ((view webview) url)
@@ -117,18 +139,52 @@
       (let ((pixels (%frame (handle view) w h r)))
         (unless (or (cffi:null-pointer-p pixels) (= (revision view) (cffi:mem-ref r :uint64)))
           (let ((pw (cffi:mem-ref w :int)) (ph (cffi:mem-ref h :int)))
-            (when (and (texture view)
-                       (or (/= pw (rl:texture-width (texture view))) (/= ph (rl:texture-height (texture view)))))
-              (rl:unload-texture (texture view)) (setf (texture view) nil))
-            (if (texture view)
-                (rl:update-texture (texture view) pixels)
-                (setf (texture view) (rl:load-texture-from-image
-                  (rl:make-image :data pixels :width pw :height ph :mipmap-count 1 :pixel-format :uncompressed-r8g8b8a8))))
-            (setf (revision view) (cffi:mem-ref r :uint64))
-            (incf (uploads view))
-            ;; Painting must not schedule layout; only change the retained paint key.
-            (incf (slot-value view 'lut::render-revision))))))))
-(defmethod lut:widget-render-key ((view webview)) (revision view))
+            (upload-frame view pixels pw ph (cffi:mem-ref r :uint64))))))))
+
+(defun upload-frame (view pixels pw ph next-revision)
+  (lut:request-paint view)
+  ;; Revision commits only after all uploads succeed. Partial failures can retry
+  ;; from the previous revision; native damage is never consumed destructively.
+  (if (or (null (texture view))
+          (/= pw (rl:texture-width (texture view)))
+          (/= ph (rl:texture-height (texture view))))
+      (progn
+        (when (texture view) (rl:unload-texture (texture view)) (setf (texture view) nil))
+        (setf (texture view) (rl:load-texture-from-image
+          (rl:make-image :data pixels :width pw :height ph :mipmap-count 1
+                        :pixel-format :uncompressed-r8g8b8a8)))
+        (clrhash (damage-keys view))
+        (incf (uploaded-bytes view) (* pw ph 4))
+        ;; A texture replacement is a whole-widget visual change, not layout.
+        (incf (slot-value view 'lut::render-revision)))
+      (cffi:with-foreign-objects ((cursor :int) (x :int) (y :int) (w :int) (h :int))
+        (setf (cffi:mem-ref cursor :int) 0)
+        (loop for patch = (%damage (handle view) (revision view) cursor x y w h)
+              until (cffi:null-pointer-p patch) do
+          (let ((rx (cffi:mem-ref x :int)) (ry (cffi:mem-ref y :int))
+                (rw (cffi:mem-ref w :int)) (rh (cffi:mem-ref h :int)))
+            (rl:update-texture-rec (texture view) (rl:rect rx ry rw rh) patch)
+            (setf (gethash (list rx ry) (damage-keys view)) next-revision)
+            (incf (uploaded-bytes view) (* rw rh 4))))))
+  (setf (revision view) next-revision)
+  (incf (uploads view)))
+
+(defun frame-render-regions (view pw ph)
+  ;; Pixel blocks map to logical widget coordinates (including fractional DPI).
+  ;; Keep keys for unchanged blocks stable, with bounded storage per texture.
+  (when (and (plusp pw) (plusp ph))
+    (loop for y from 0 below ph by 128 append
+      (loop for x from 0 below pw by 128 collect
+        ;; Include a one-texel sampling halo for filtered/fractional-scale draws.
+        (let ((left (max 0 (1- x))) (top (max 0 (1- y)))
+              (right (min pw (+ x 129))) (bottom (min ph (+ y 129))))
+          (list (list (* left (/ (lut:width view) pw)) (* top (/ (lut:height view) ph))
+                      (* (- right left) (/ (lut:width view) pw))
+                      (* (- bottom top) (/ (lut:height view) ph)))
+                (gethash (list x y) (damage-keys view) 0)))))))
+(defmethod lut:widget-render-regions ((view webview))
+  (when (texture view)
+    (frame-render-regions view (rl:texture-width (texture view)) (rl:texture-height (texture view)))))
 (defmethod lut:render ((view webview))
   (when (texture view)
     (rl:draw-texture-pro (texture view)
@@ -139,6 +195,7 @@
   (when (handle view)
     (%close (handle view)) (push (handle view) *closing*) (setf (handle view) nil))
   (when (texture view) (rl:unload-texture (texture view)) (setf (texture view) nil))
+  (clrhash (damage-keys view))
   view)
 (defmethod lut:dispose :before ((view webview))
   (release-webview-native view)

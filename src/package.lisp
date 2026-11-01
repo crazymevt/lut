@@ -1,7 +1,7 @@
 (defpackage #:lut
   (:use #:cl)
   (:shadow #:step #:directory)
-  (:export #:request-layout #:invalidate-widget #:cache-mode #:cache-enabled-p #:widget-render-key #:window-cache-statistics
+  (:export #:request-layout #:invalidate-widget #:cache-mode #:cache-enabled-p #:widget-render-regions #:widget-render-key #:window-cache-statistics
    #:render-data-table #:render-data-scroll-container
    #:render-cache #:make-render-cache #:update-cached-region #:draw-cached-region
    #:invalidate-render-cache #:render-cache-paint-count #:render-scissor-box #:call-with-render-transform
@@ -83,6 +83,7 @@
    #:window-state #:set-window-state #:normal-window-size #:set-normal-window-size #:close-request-handler
    #:scroll-container #:scroll-geometry #:scroll-to #:reveal-rectangle #:reveal-widget #:reveal-text-range
    #:follow-end-distance #:set-follow-end #:scroll-offset #:minimum #:maximum #:step #:draw-function #:render
+   #:request-paint #:initial-focus-p #:schedule-ui #:cancel-ui-timer #:register-ui-service #:cancel-ui-service #:wake-ui #:native-event-backend-p
    #:on-widget #:cancel-ui #:on-ui #:enqueue-ui #:run #:start #:stop #:*window* #:frame-step #:show-dialog #:close-dialog #:dismiss-dialog #:unsupported-capability #:detach-window
    #:on-window #:evaluate-in-window #:spawn-window #:close-window #:remote-window #:remote-alive-p #:*worker-command*
    #:open-context-menu #:clipboard-text #:choose-file #:choose-color #:choose-font

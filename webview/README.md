@@ -190,3 +190,33 @@ Offscreen integration tests exercise Unicode JSON delivery, a filename with a
 space, rejection before opt-in, and blocked navigation on all CI platforms.
 This remains the prototype's unsandboxed development runtime, not a general
 trusted bridge for arbitrary browsing.
+
+## Regional animated frames
+
+CEF still paints animated content at 30 FPS. The bridge compares CEF's dirty
+rectangles and records the latest changed revision per 128×128 pixel block.
+LUT uploads packed RGBA patches with `UpdateTextureRec`, not the full texture.
+Per-block immutable paint keys invalidate only intersecting retained cache tiles;
+geometry/style changes and texture replacement still invalidate the whole view.
+A one-texel cache-damage halo handles filtering at fractional scale. Spatial
+history is bounded by texture size and is non-destructive: skipped consumption
+and retries cannot drop damage. First paint/size changes use a full upload.
+`statistics` reports cumulative `:uploaded-bytes` as well as frame upload count.
+
+Rebuild/stage the bridge and start a **fresh process** after updating this code;
+an already loaded CEF bridge is not hot-reloaded. No extra Xeon renderer or
+animation timer is required. Browser layout/rasterization and whole-frame
+presentation still have costs; this change targets texture transfer and tile
+repainting, not the elimination of animation work.
+
+Regression commands (use the quiet-run wrapper on this workstation):
+
+```sh
+sbcl --script webview/tests/regions.lisp  # headless spatial keys / DPI
+sbcl --script webview/tests/damage.lisp   # fresh native process / animated pulse
+```
+
+The native fixture checks regional upload bytes, retained cache reuse, unchanged
+layout, GPU/CEF pixel parity, direct/cached parity, skipped consumption, stable
+frames and odd-sized replacement textures. CPU numbers are fixture-local process
+CPU, excluding CEF helpers, not a full-workspace prediction.
