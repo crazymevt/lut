@@ -1,5 +1,8 @@
 # LUT — Lisp User Toolkit
 
+> **Experimental project.** For new Common Lisp GUI projects, use
+> [LGT (Lisp GUI Toolkit)](https://github.com/crazymevt/lgt).
+
 A retained-mode Common Lisp GUI library with CLOS widgets, portable core logic,
 and a raylib backend. Applications build widget trees and register callbacks;
 the library handles layout, painting, input, focus and window processes.
